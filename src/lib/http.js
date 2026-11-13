@@ -5,8 +5,11 @@ const NO_STORE = { "Cache-Control": "no-store" };
  * @param {number} [status]
  * @param {HeadersInit} [headers]
  */
-export const json = (body, status = 200, headers = {}) =>
-  Response.json(body, { status, headers: { ...NO_STORE, ...Object.fromEntries(new Headers(headers)) } });
+export function json(body, status = 200, headers = {}) {
+  const merged = new Headers(NO_STORE);
+  for (const [name, value] of new Headers(headers)) merged.set(name, value);
+  return Response.json(body, { status, headers: merged });
+}
 
 export const notFound = () => json({ error: "not-found" }, 404);
 
