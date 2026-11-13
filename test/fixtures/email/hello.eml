@@ -1,0 +1,10 @@
+Authentication-Results: mx.cloudflare.net; dkim=pass header.d=example.org; spf=pass smtp.mailfrom=example.org; dmarc=pass header.from=example.org
+From: Alex Climber <Alex@Example.org>
+To: hello@climbinglogbook.com
+Subject: Question about grades
+Message-ID: <hello-1@mail.example.org>
+Date: Fri, 13 Nov 2026 10:00:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Does the app support French grades?
