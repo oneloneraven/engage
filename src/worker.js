@@ -1,5 +1,6 @@
 import { adminIdentity } from "./lib/access.js";
 import { handleAccountDelete } from "./intake/accounts.js";
+import { handleInboundEmail } from "./email/inbound.js";
 import { handleSubmission } from "./intake/submissions.js";
 import { forbidden, json, notFound } from "./lib/http.js";
 
@@ -14,6 +15,8 @@ import { forbidden, json, notFound } from "./lib/http.js";
  *   ADMIN_ACCESS_CHECK?: string,
  *   ACCESS_TEAM_DOMAIN?: string,
  *   ACCESS_AUD?: string,
+ *   ATTACHMENTS: import("./email/inbound.js").InboundEnv["ATTACHMENTS"],
+ *   REPLY_ADDRESS_SECRET?: string,
  *   TURNSTILE_SECRET_KEY?: string,
  *   INTAKE_WEB_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
  *   INTAKE_APP_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
@@ -81,4 +84,11 @@ export default {
     if (env.PUBLIC_HOST && hostname === env.PUBLIC_HOST) return routePublic(request, env, ctx);
     return notFound();
   },
+  /**
+   * @param {import("./email/inbound.js").InboundMessage} message
+   * @param {Env} env
+   * @param {Context} ctx
+   * @returns {Promise<void>}
+   */
+  email: (message, env, ctx) => handleInboundEmail(message, env, ctx),
 };

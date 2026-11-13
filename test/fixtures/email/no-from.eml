@@ -1,0 +1,8 @@
+Authentication-Results: mx.cloudflare.net; dkim=pass header.d=example.org; spf=pass smtp.mailfrom=example.org; dmarc=pass header.from=example.org
+To: hello@climbinglogbook.com
+Subject: Who am I
+Message-ID: <nofrom-1@mail.example.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+No sender header here.

@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
-import { getProduct, productForOrigin } from "../src/registry.js";
+import { getProduct, productForEmailDomain, productForOrigin } from "../src/registry.js";
 
 test("getProduct returns the seeded product with decoded columns", async () => {
   const product = await getProduct(env, "cl");
@@ -39,4 +39,11 @@ test("productForOrigin returns null for an unregistered origin", async () => {
 test("productForOrigin returns null for a malformed origin", async () => {
   expect(await productForOrigin(env, "not a url")).toBeNull();
   expect(await productForOrigin(env, "")).toBeNull();
+});
+
+test("productForEmailDomain matches the email domain exactly, ignoring case", async () => {
+  expect((await productForEmailDomain(env, "climbinglogbook.com"))?.slug).toBe("cl");
+  expect((await productForEmailDomain(env, "DEAFTLY.com"))?.slug).toBe("deaftly");
+  expect(await productForEmailDomain(env, "beta.climbinglogbook.com")).toBeNull();
+  expect(await productForEmailDomain(env, "")).toBeNull();
 });

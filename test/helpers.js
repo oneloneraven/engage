@@ -62,6 +62,69 @@ export function stubFetch({ discordStatus = 204 } = {}) {
 }
 
 export async function resetItems() {
+  await env.DB.exec("DELETE FROM attachments");
   await env.DB.exec("DELETE FROM messages");
   await env.DB.exec("DELETE FROM items");
+}
+
+const encoder = new TextEncoder();
+
+/** @param {string} raw */
+function headersOf(raw) {
+  const headers = new Headers();
+  const block = raw.split(/\r?\n\r?\n/)[0].replace(/\r?\n[ \t]+/g, " ");
+  for (const line of block.split(/\r?\n/)) {
+    const colon = line.indexOf(":");
+    if (colon > 0 && /^[\x20-\x7e]*$/.test(line)) headers.append(line.slice(0, colon), line.slice(colon + 1).trim());
+  }
+  return headers;
+}
+
+/**
+ * A ForwardableEmailMessage over a raw message, recording what the handler does with it.
+ * @param {{ to: string, raw: string, from?: string, forwardFails?: boolean }} options
+ */
+export function makeEmailMessage({ to, raw, from = "alex@example.org", forwardFails = false }) {
+  const bytes = encoder.encode(raw.replace(/\r?\n/g, "\r\n"));
+  /** @type {string[]} */
+  const rejected = [];
+  /** @type {string[]} */
+  const forwarded = [];
+  return {
+    from,
+    to,
+    headers: headersOf(raw),
+    raw: new ReadableStream({
+      start(controller) {
+        controller.enqueue(bytes);
+        controller.close();
+      },
+    }),
+    rawSize: bytes.byteLength,
+    rejected,
+    forwarded,
+    setReject: (/** @type {string} */ reason) => {
+      rejected.push(reason);
+    },
+    forward: async (/** @type {string} */ address) => {
+      forwarded.push(address);
+      if (forwardFails) throw new Error(`cannot forward to ${address}`);
+    },
+    reply: async () => {},
+  };
+}
+
+/** An R2 bucket in memory. */
+export function makeBucket() {
+  /** @type {Map<string, { value: ArrayBuffer, options: any }>} */
+  const objects = new Map();
+  return {
+    objects,
+    put: async (/** @type {string} */ key, /** @type {ArrayBuffer} */ value, /** @type {any} */ options) => {
+      objects.set(key, { value, options });
+    },
+    delete: async (/** @type {string | string[]} */ keys) => {
+      for (const key of [keys].flat()) objects.delete(key);
+    },
+  };
 }
