@@ -1,11 +1,13 @@
-resource "cloudflare_dns_record" "app_apex" {
-  zone_id = data.cloudflare_zone.app.id
-  name    = var.app_zone_name
-  type    = "A"
-  content = "192.0.2.1"
-  ttl     = 1
-  proxied = true
-  comment = "Placeholder so the Worker route answers on this hostname; traffic never reaches this IP."
+# Engage answers on two hosts and never the apex, which carries the Proton mail records.
+resource "cloudflare_dns_record" "app_hosts" {
+  for_each = toset(["engage", "in"])
+  zone_id  = data.cloudflare_zone.app.id
+  name     = "${each.key}.${var.app_zone_name}"
+  type     = "A"
+  content  = "192.0.2.1"
+  ttl      = 1
+  proxied  = true
+  comment  = "Placeholder so the Worker route answers on this hostname; traffic never reaches this IP."
 
   lifecycle {
     prevent_destroy = true

@@ -25,10 +25,8 @@
         "binding": "ASSETS"
       },
       "routes": [
-        {
-          "pattern": "oneloneraven.com/*",
-          "zone_name": "oneloneraven.com"
-        }
+        { "pattern": "engage.oneloneraven.com/*", "zone_name": "oneloneraven.com" },
+        { "pattern": "in.oneloneraven.com/*", "zone_name": "oneloneraven.com" }
       ]
     },
     "preview": {
