@@ -324,7 +324,7 @@ export async function counts(env) {
       FROM products LEFT JOIN items ON items.product = products.slug
       GROUP BY products.slug ORDER BY products.slug`,
     ).all(),
-    env.DB.prepare("SELECT COUNT(*) AS n FROM items WHERE reply_owed_at IS NOT NULL").first(),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM items WHERE reply_owed_at IS NOT NULL AND junk = 0").first(),
   ]);
   /** @type {Record<string, { new: number, open: number }>} */
   const byProduct = {};

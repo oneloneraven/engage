@@ -182,6 +182,16 @@ test("a bad cursor throws bad-cursor", async () => {
   }
 });
 
+test("junk never counts as owing a reply, so the badge matches the list", async () => {
+  await baseEnv.DB.prepare(
+    "INSERT INTO items (id, product, kind, source, junk, reply_owed_at, created_at, last_activity_at) VALUES ('j', 'cl', 'email', 'email', 1, ?, ?, ?)",
+  )
+    .bind(T(1), T(1), T(1))
+    .run();
+  expect((await counts(baseEnv)).replyOwed).toBe(0);
+  expect((await listItems(baseEnv, { state: "reply-owed" })).items).toHaveLength(0);
+});
+
 test("counts use the plan definitions and list every product, zeros included", async () => {
   await seedStates();
   expect(await counts(baseEnv)).toEqual({
