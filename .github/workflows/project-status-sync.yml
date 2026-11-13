@@ -1,0 +1,64 @@
+name: Project status sync
+
+# GITHUB_TOKEN can't reach Projects v2, so this uses a token from the organisation's board-sync App.
+on:
+  create:
+  pull_request:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    if: github.actor != 'dependabot[bot]' && ((github.event_name == 'create' && github.ref_type == 'branch') || github.event_name == 'pull_request')
+    runs-on: ubuntu-26.04
+    env:
+      PROJECT_ID: ${{ vars.PROJECT_ID }}
+      STATUS_FIELD_ID: ${{ vars.PROJECT_STATUS_FIELD_ID }}
+      BRANCH_NAME: ${{ github.event_name == 'create' && github.ref_name || github.head_ref }}
+      PR_BODY: ${{ github.event.pull_request.body }}
+      OPTION_ID: ${{ github.event_name == 'create' && vars.PROJECT_IN_PROGRESS_OPTION || vars.PROJECT_IN_REVIEW_OPTION }}
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: token
+        with:
+          client-id: ${{ vars.BOARD_SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.BOARD_SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-issues: read
+          permission-organization-projects: write
+
+      - name: Move the linked issue
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          ISSUE_NUM=$(echo "$BRANCH_NAME" | grep -oE '^[a-z]+/[0-9]+-' | grep -oE '[0-9]+' || true)
+          if [ -z "$ISSUE_NUM" ] && [ -n "$PR_BODY" ]; then
+            ISSUE_NUM=$(echo "$PR_BODY" | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+' | grep -oE '[0-9]+' | head -1 || true)
+          fi
+          if [ -z "$ISSUE_NUM" ]; then
+            echo "No linked issue for '$BRANCH_NAME'; skipping."
+            exit 0
+          fi
+          # shellcheck disable=SC2016 # $owner, $repo and $num are GraphQL variables
+          ITEM_ID=$(gh api graphql -f query='
+            query($owner:String!, $repo:String!, $num:Int!) {
+              repository(owner:$owner, name:$repo) {
+                issue(number:$num) { projectItems(first: 20) { nodes { id project { id } } } }
+              }
+            }' -f owner="$GITHUB_REPOSITORY_OWNER" -f repo="${GITHUB_REPOSITORY#*/}" -F num="$ISSUE_NUM" \
+            --jq ".data.repository.issue.projectItems.nodes[] | select(.project.id == \"$PROJECT_ID\") | .id")
+          if [ -z "$ITEM_ID" ]; then
+            echo "Issue #$ISSUE_NUM isn't on the board; skipping."
+            exit 0
+          fi
+          # shellcheck disable=SC2016 # $project, $item, $field and $value are GraphQL variables
+          gh api graphql -f query='
+            mutation($project:ID!, $item:ID!, $field:ID!, $value:String!) {
+              updateProjectV2ItemFieldValue(input: {
+                projectId: $project, itemId: $item, fieldId: $field, value: { singleSelectOptionId: $value }
+              }) { projectV2Item { id } }
+            }' -f project="$PROJECT_ID" -f item="$ITEM_ID" -f field="$STATUS_FIELD_ID" -f value="$OPTION_ID"
+          echo "Moved issue #$ISSUE_NUM."

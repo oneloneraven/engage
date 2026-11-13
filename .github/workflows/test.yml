@@ -1,0 +1,102 @@
+name: Test
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-node-pnpm
+      - run: pnpm lint
+
+  typecheck:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-node-pnpm
+      - run: pnpm typecheck
+
+  test:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-node-pnpm
+      - run: pnpm test:coverage
+
+  e2e-run:
+    needs: [lint, typecheck]
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-node-pnpm
+      - run: pnpm test:e2e
+
+  e2e:
+    if: ${{ !cancelled() }}
+    needs: [lint, typecheck, e2e-run]
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Require the browser run
+        env:
+          LINT: ${{ needs.lint.result }}
+          TYPECHECK: ${{ needs.typecheck.result }}
+          RUN: ${{ needs.e2e-run.result }}
+        run: |
+          if [ "$LINT" != success ] || [ "$TYPECHECK" != success ]; then
+            echo "::error::E2E did not run because a quick check failed (lint: $LINT, typecheck: $TYPECHECK)"
+            exit 1
+          fi
+          if [ "$RUN" != success ]; then
+            echo "::error::E2E finished with: $RUN"
+            exit 1
+          fi
+
+  e2e-safari-run:
+    needs: [lint, typecheck]
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-node-pnpm
+      - run: sudo safaridriver --enable
+      - run: pnpm test:e2e
+        env:
+          E2E_BROWSERS: safari
+
+  e2e-safari:
+    if: ${{ !cancelled() }}
+    needs: [lint, typecheck, e2e-safari-run]
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Require the browser run
+        env:
+          LINT: ${{ needs.lint.result }}
+          TYPECHECK: ${{ needs.typecheck.result }}
+          RUN: ${{ needs.e2e-safari-run.result }}
+        run: |
+          if [ "$LINT" != success ] || [ "$TYPECHECK" != success ]; then
+            echo "::error::E2E Safari did not run because a quick check failed (lint: $LINT, typecheck: $TYPECHECK)"
+            exit 1
+          fi
+          if [ "$RUN" != success ]; then
+            echo "::error::E2E Safari finished with: $RUN"
+            exit 1
+          fi

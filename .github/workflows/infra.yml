@@ -1,0 +1,55 @@
+name: Infra
+
+on:
+  pull_request:
+    paths: ["infra/**", ".github/workflows/infra.yml"]
+  push:
+    branches: [main]
+    paths: ["infra/**", ".github/workflows/infra.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infra-${{ github.event_name == 'pull_request' && github.ref || 'apply' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  tofu:
+    if: github.event_name != 'push' || github.event.before != '0000000000000000000000000000000000000000'
+    runs-on: ubuntu-26.04
+    environment: ${{ github.event_name != 'pull_request' && 'infra' || '' }}
+    defaults:
+      run:
+        working-directory: infra
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ github.event_name == 'pull_request' && secrets.CLOUDFLARE_INFRA_PLAN_TOKEN || secrets.CLOUDFLARE_INFRA_APPLY_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ github.event_name == 'pull_request' && secrets.TF_STATE_READ_ACCESS_KEY_ID || secrets.TF_STATE_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ github.event_name == 'pull_request' && secrets.TF_STATE_READ_SECRET_ACCESS_KEY || secrets.TF_STATE_SECRET_ACCESS_KEY }}
+      TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: "1.13.9"
+          tofu_wrapper: false
+      - run: tofu fmt -check -recursive
+      - name: Init
+        run: tofu init -input=false -backend-config="endpoints={s3=\"https://${TF_VAR_cloudflare_account_id}.r2.cloudflarestorage.com\"}"
+      - run: tofu validate
+      - name: Plan
+        run: tofu plan -no-color -input=false -out=tfplan
+      - name: Refuse unplanned deletes or replacements
+        run: |
+          DELETES=$(tofu show -json tfplan | jq -r '(.resource_changes // [])[] | select(.change.actions | index("delete")) | .address')
+          if [ -n "$DELETES" ]; then
+            echo "::error::This plan deletes or replaces resources. Deletes and replacements go through the teardown procedure in infra/README.md:"
+            echo "$DELETES"
+            exit 1
+          fi
+      - name: Apply
+        if: github.event_name != 'pull_request'
+        run: tofu apply -no-color -input=false tfplan

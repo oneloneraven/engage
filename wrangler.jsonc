@@ -1,0 +1,55 @@
+// Bindings are repeated in every environment: an environment that omits one does not inherit it.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "engage",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "APP_ENV": "development"
+  },
+  "env": {
+    "production": {
+      "vars": {
+        "APP_ENV": "production"
+      },
+      "assets": {
+        "directory": "./dist",
+        "binding": "ASSETS"
+      },
+      "routes": [
+        {
+          "pattern": "oneloneraven.com/*",
+          "zone_name": "oneloneraven.com"
+        }
+      ]
+    },
+    "preview": {
+      "vars": {
+        "APP_ENV": "preview"
+      },
+      "assets": {
+        "directory": "./dist",
+        "binding": "ASSETS"
+      },
+      "workers_dev": true,
+      "preview_urls": true
+    },
+    "e2e": {
+      "vars": {
+        "APP_ENV": "e2e"
+      },
+      "assets": {
+        "directory": "./dist",
+        "binding": "ASSETS"
+      }
+    }
+  }
+}

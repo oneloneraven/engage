@@ -1,0 +1,5 @@
+rules:
+  dependabot-cooldown:
+    config:
+      # Long enough for a compromised release to be caught and pulled.
+      days: 3

@@ -1,0 +1,15 @@
+# Three days: long enough for a compromised release to be caught and pulled.
+minimumReleaseAge: 4320
+
+# Install scripts are denied unless listed here with a reason.
+allowBuilds:
+  # Vitest's bundler ships its platform binary through an install script.
+  "esbuild": true
+  # WebdriverIO's Edge driver: Edge isn't tested.
+  "edgedriver": false
+  # WebdriverIO downloads the Firefox driver at run time, so its install script isn't needed.
+  "geckodriver": false
+  # wrangler's local runtime downloads its platform binary at install.
+  "workerd": true
+
+overrides: {}

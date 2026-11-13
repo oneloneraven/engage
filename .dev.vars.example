@@ -1,0 +1,1 @@
+# Local Worker secrets for `wrangler dev`. Copy to .dev.vars (gitignored); never commit real values.

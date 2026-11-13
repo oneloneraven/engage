@@ -1,0 +1,35 @@
+{
+  "name": "engage",
+  "version": "0.0.0",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "packageManager": "pnpm@11.11.0",
+  "scripts": {
+    "lint": "biome check --error-on-warnings .",
+    "format": "biome format --write .",
+    "typecheck": "tsc -p .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "dev": "pnpm build && wrangler dev --port 5173",
+    "build": "vite build",
+    "preview": "pnpm build && wrangler dev --env e2e",
+    "test:e2e": "wdio run wdio.conf.js",
+    "e2e:server": "pnpm build && wrangler dev --env e2e --port 4173"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@vitest/coverage-v8": "^5.0.5",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5",
+    "@wdio/cli": "^10.1.0",
+    "@wdio/globals": "^10.1.0",
+    "@wdio/local-runner": "^10.1.0",
+    "@wdio/mocha-framework": "^10.1.0",
+    "@wdio/spec-reporter": "^10.1.0",
+    "axe-core": "^4.14.0",
+    "vite": "^8.3.4",
+    "webdriverio": "^10.1.0",
+    "wrangler": "^4.151.1"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); file=$(echo \"$input\" | jq -r '.tool_input.file_path // empty' 2>/dev/null); dir=$(dirname \"$file\"); while [ ! -d \"$dir\" ]; do dir=$(dirname \"$dir\"); done; branch=$(git -C \"$dir\" rev-parse --abbrev-ref HEAD 2>/dev/null); repo_root=$(git -C \"$dir\" rev-parse --show-toplevel 2>/dev/null); if [ \"$branch\" = \"main\" ] && [ -n \"$repo_root\" ] && [ -n \"$file\" ]; then case \"$file\" in \"$repo_root\"/*) echo \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"PreToolUse\\\",\\\"permissionDecision\\\":\\\"deny\\\",\\\"permissionDecisionReason\\\":\\\"Direct edits to main are blocked — CLAUDE.md requires feature branches + PRs, even for small fixes. Create a branch first.\\\"}}\" ;; esac; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

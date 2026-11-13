@@ -1,0 +1,29 @@
+name: Release artefacts
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  attach:
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+      - uses: $/.github/actions/setup-node-pnpm
+      - run: pnpm build
+      - name: Zip and attach the build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          (cd dist && zip -qr "../engage-dist.zip" .)
+          gh release upload "$TAG" "engage-dist.zip" --repo "$GITHUB_REPOSITORY" --clobber

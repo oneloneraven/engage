@@ -1,0 +1,39 @@
+name: Require release label
+
+on:
+  pull_request:
+    types: [opened, reopened, edited, labeled, unlabeled, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check-label:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Live labels, not the event payload: a label added just after creation isn't in the opened event.
+      - name: Verify a release label is present
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          labels=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')
+          if ! echo "$labels" | grep -qE "^release: (major|minor|patch|none)$"; then
+            echo "::error::No release label. Apply release: major, minor, patch or none (docs/versioning.md)."
+            exit 1
+          fi
+          if echo "$labels" | grep -qx "release: none"; then
+            gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" \
+              --jq '.[] | .filename, (.previous_filename // empty)' \
+              | node .github/scripts/check-release-paths.mjs
+          fi

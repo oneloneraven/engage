@@ -1,0 +1,15 @@
+{
+  "noneAllowed": [
+    "docs/",
+    ".github/",
+    ".claude/",
+    ".gitignore",
+    "*.md",
+    "test/",
+    "biome.json",
+    "vitest.config.js",
+    "e2e/",
+    "wdio.conf.js"
+  ],
+  "noneForbidden": ["infra/", "migrations/", "wrangler.jsonc"]
+}
