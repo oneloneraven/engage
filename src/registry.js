@@ -72,3 +72,15 @@ export async function productForOrigin(env, origin) {
   const match = results.map(toProduct).find(product => product.domains.includes(hostname));
   return match ?? null;
 }
+
+/**
+ * @param {RegistryEnv} env
+ * @param {string} domain
+ * @returns {Promise<Product | null>}
+ */
+export async function productForEmailDomain(env, domain) {
+  const row = await env.DB.prepare("SELECT * FROM products WHERE lower(email_domain) = ?")
+    .bind(domain.toLowerCase())
+    .first();
+  return row ? toProduct(row) : null;
+}
