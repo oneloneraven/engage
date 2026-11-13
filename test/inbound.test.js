@@ -474,6 +474,15 @@ test("no Authentication-Results header means none, and is not junk", async () =>
   expect(item.junk).toBe(0);
 });
 
+test.each(["<scr<script>ipt>alert(1)</script>", "<<script>script>x</script>", "<scr<!-- -->ipt>", "<!<!--- -->-- -->"])(
+  "htmlToText(%j) leaves no tag behind, however the markup is nested",
+  html => {
+    const text = htmlToText(html);
+    expect(text).not.toMatch(/<\/?[a-z!][^>]*>/i);
+    expect(text.toLowerCase()).not.toContain("<script");
+  },
+);
+
 test.each([
   ["<p>One</p><p>Two</p>", "One\n\nTwo"],
   ["a<br>b<br/>c", "a\nb\nc"],
@@ -484,6 +493,7 @@ test.each([
   ["  lots   of \t space  ", "lots of space"],
   ["<ul><li>a</li><li>b</li></ul>", "a\nb"],
   ["<p>unclosed <b>tag", "unclosed tag"],
+  ["<!<!--- -->-- hidden -->shown", "shown"],
   ["", ""],
 ])("htmlToText(%j) is %j", (html, expected) => {
   expect(htmlToText(html)).toBe(expected);

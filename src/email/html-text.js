@@ -14,20 +14,30 @@ function decodeEntity(entity, body) {
   return decodeCodePoint(Number.parseInt(body.slice(hex ? 2 : 1), hex ? 16 : 10));
 }
 
+// Repeated until nothing changes, so nested input such as "<scr<script>ipt>" can't reassemble a tag.
+/** @param {string} html */
+function stripMarkup(html) {
+  let text = html;
+  for (;;) {
+    const next = text
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(/<(script|style|head)\b[\s\S]*?<\/\1\s*>/gi, "")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/(?:p|h[1-6]|blockquote|table)\s*>/gi, "\n\n")
+      .replace(/<\/(?:div|li|tr)\s*>/gi, "\n")
+      .replace(/<\/?[a-z!][^>]*>/gi, "");
+    if (next === text) return text;
+    text = next;
+  }
+}
+
 /**
  * Readable text from an HTML body: tags removed, block boundaries kept as line breaks, entities decoded, whitespace collapsed.
  * @param {string} html
  * @returns {string}
  */
 export function htmlToText(html) {
-  return html
-    .replace(/\r\n?/g, "\n")
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<(script|style|head)\b[\s\S]*?<\/\1\s*>/gi, "")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(?:p|h[1-6]|blockquote|table)\s*>/gi, "\n\n")
-    .replace(/<\/(?:div|li|tr)\s*>/gi, "\n")
-    .replace(/<\/?[a-z!][^>]*>/gi, "")
+  return stripMarkup(html.replace(/\r\n?/g, "\n"))
     .replace(/&(#x[0-9a-f]{1,8}|#[0-9]{1,10}|[a-z]{2,8});/gi, decodeEntity)
     .replace(/[ \t\f\v ]+/g, " ")
     .split("\n")
