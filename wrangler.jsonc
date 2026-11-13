@@ -12,6 +12,9 @@
     "directory": "./dist",
     "binding": "ASSETS"
   },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "engage", "database_id": "a3d02bed-6fe3-4bec-9aa7-cd61b201dc53", "migrations_dir": "migrations" }
+  ],
   "vars": {
     "APP_ENV": "development",
     "ADMIN_HOST": "localhost",
@@ -20,6 +23,9 @@
   },
   "env": {
     "production": {
+      "d1_databases": [
+        { "binding": "DB", "database_name": "engage", "database_id": "a3d02bed-6fe3-4bec-9aa7-cd61b201dc53", "migrations_dir": "migrations" }
+      ],
       "vars": {
         "APP_ENV": "production",
         "ADMIN_HOST": "engage.oneloneraven.com",
@@ -37,6 +43,9 @@
       ]
     },
     "preview": {
+      "d1_databases": [
+        { "binding": "DB", "database_name": "engage", "database_id": "a3d02bed-6fe3-4bec-9aa7-cd61b201dc53", "migrations_dir": "migrations" }
+      ],
       "vars": {
         "APP_ENV": "preview"
       },
@@ -48,12 +57,18 @@
       "preview_urls": true,
       // A PR Preview inherits none of the above, so it repeats what the app needs.
       "previews": {
+        "d1_databases": [
+          { "binding": "DB", "database_name": "engage", "database_id": "a3d02bed-6fe3-4bec-9aa7-cd61b201dc53", "migrations_dir": "migrations" }
+        ],
         "vars": {
           "APP_ENV": "preview"
         }
       }
     },
     "e2e": {
+      "d1_databases": [
+        { "binding": "DB", "database_name": "engage", "database_id": "a3d02bed-6fe3-4bec-9aa7-cd61b201dc53", "migrations_dir": "migrations" }
+      ],
       "vars": {
         "APP_ENV": "e2e",
         "ADMIN_HOST": "localhost",

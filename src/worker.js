@@ -4,6 +4,7 @@ import { forbidden, json, notFound } from "./lib/http.js";
 /**
  * @typedef {{
  *   ASSETS: { fetch: (request: Request) => Promise<Response> },
+ *   DB: import("./lib/db.js").Database,
  *   APP_ENV: string,
  *   RELEASE_VERSION?: string,
  *   ADMIN_HOST?: string,
