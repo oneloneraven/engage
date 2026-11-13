@@ -49,3 +49,12 @@ test("only the default and production configs bind outbound email, so previews a
   expect(wrangler.env.preview.previews.send_email).toBeUndefined();
   expect(wrangler.env.e2e.send_email).toBeUndefined();
 });
+
+test("only the default and production configs bind the attachments bucket, so previews and e2e never write to it", () => {
+  const expected = [{ binding: "ATTACHMENTS", bucket_name: "engage-attachments" }];
+  expect(wrangler.r2_buckets).toEqual(expected);
+  expect(wrangler.env.production.r2_buckets).toEqual(expected);
+  expect(wrangler.env.preview.r2_buckets).toBeUndefined();
+  expect(wrangler.env.preview.previews.r2_buckets).toBeUndefined();
+  expect(wrangler.env.e2e.r2_buckets).toBeUndefined();
+});

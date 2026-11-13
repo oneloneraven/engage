@@ -21,6 +21,7 @@
     { "name": "INTAKE_APP_LIMITER", "namespace_id": "3002", "simple": { "limit": 3, "period": 60 } }
   ],
   "send_email": [{ "name": "EMAIL" }],
+  "r2_buckets": [{ "binding": "ATTACHMENTS", "bucket_name": "engage-attachments" }],
   "vars": {
     "APP_ENV": "development",
     "ADMIN_HOST": "localhost",
@@ -37,6 +38,7 @@
         { "name": "INTAKE_APP_LIMITER", "namespace_id": "3004", "simple": { "limit": 3, "period": 60 } }
       ],
       "send_email": [{ "name": "EMAIL" }],
+      "r2_buckets": [{ "binding": "ATTACHMENTS", "bucket_name": "engage-attachments" }],
       "vars": {
         "APP_ENV": "production",
         "ADMIN_HOST": "engage.oneloneraven.com",
