@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Engage</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --background: #ffffff;
+        --text: #1a1a1a;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: #121212;
+          --text: #f2f2f2;
+        }
+      }
+      body {
+        background: var(--background);
+        color: var(--text);
+        font-family: system-ui, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1 id="greeting">Engage</h1>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
