@@ -18,17 +18,17 @@ function decodeEntity(entity, body) {
 /** @param {string} html */
 function stripMarkup(html) {
   let text = html;
-  for (;;) {
-    const next = text
-      .replace(/<!--[\s\S]*?-->/g, "")
-      .replace(/<(script|style|head)\b[\s\S]*?<\/\1\s*>/gi, "")
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<\/(?:p|h[1-6]|blockquote|table)\s*>/gi, "\n\n")
-      .replace(/<\/(?:div|li|tr)\s*>/gi, "\n")
-      .replace(/<\/?[a-z!][^>]*>/gi, "");
-    if (next === text) return text;
-    text = next;
-  }
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<!--[\s\S]*?-->/g, "");
+    text = text.replace(/<(script|style|head)\b[\s\S]*?<\/\1\s*>/gi, "");
+    text = text.replace(/<br\s*\/?>/gi, "\n");
+    text = text.replace(/<\/(?:p|h[1-6]|blockquote|table)\s*>/gi, "\n\n");
+    text = text.replace(/<\/(?:div|li|tr)\s*>/gi, "\n");
+    text = text.replace(/<\/?[a-z!][^>]*>/gi, "");
+  } while (text !== previous);
+  return text;
 }
 
 /**
