@@ -14,21 +14,31 @@ function decodeEntity(entity, body) {
   return decodeCodePoint(Number.parseInt(body.slice(hex ? 2 : 1), hex ? 16 : 10));
 }
 
-// Repeated until nothing changes, so nested input such as "<scr<script>ipt>" can't reassemble a tag.
-/** @param {string} html */
-function stripMarkup(html) {
-  let text = html;
+/**
+ * Applies one replacement until the text stops changing, so nested input can't reassemble what it removed.
+ * @param {string} text
+ * @param {RegExp} pattern
+ * @param {string} replacement
+ */
+function replaceUntilStable(text, pattern, replacement) {
+  let result = text;
   let previous;
   do {
-    previous = text;
-    text = text.replace(/<!--[\s\S]*?-->/g, "");
-    text = text.replace(/<(script|style|head)\b[\s\S]*?<\/\1\s*>/gi, "");
-    text = text.replace(/<br\s*\/?>/gi, "\n");
-    text = text.replace(/<\/(?:p|h[1-6]|blockquote|table)\s*>/gi, "\n\n");
-    text = text.replace(/<\/(?:div|li|tr)\s*>/gi, "\n");
-    text = text.replace(/<\/?[a-z!][^>]*>/gi, "");
-  } while (text !== previous);
-  return text;
+    previous = result;
+    result = result.replace(pattern, replacement);
+  } while (result !== previous);
+  return result;
+}
+
+/** @param {string} html */
+function stripMarkup(html) {
+  let text = replaceUntilStable(html, /<!--[\s\S]*?-->/g, "");
+  text = replaceUntilStable(text, /<(script|style|head)\b[\s\S]*?<\/\1\s*>/gi, "");
+  text = text
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(?:p|h[1-6]|blockquote|table)\s*>/gi, "\n\n")
+    .replace(/<\/(?:div|li|tr)\s*>/gi, "\n");
+  return replaceUntilStable(text, /<\/?[a-z!][^>]*>/gi, "");
 }
 
 /**
