@@ -13,12 +13,19 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "APP_ENV": "development"
+    "APP_ENV": "development",
+    "ADMIN_HOST": "localhost",
+    "PUBLIC_HOST": "127.0.0.1",
+    "ADMIN_ACCESS_CHECK": "off"
   },
   "env": {
     "production": {
       "vars": {
-        "APP_ENV": "production"
+        "APP_ENV": "production",
+        "ADMIN_HOST": "engage.oneloneraven.com",
+        "PUBLIC_HOST": "engage-api.oneloneraven.com",
+        "ACCESS_TEAM_DOMAIN": "",
+        "ACCESS_AUD": ""
       },
       "assets": {
         "directory": "./dist",
@@ -48,7 +55,10 @@
     },
     "e2e": {
       "vars": {
-        "APP_ENV": "e2e"
+        "APP_ENV": "e2e",
+        "ADMIN_HOST": "localhost",
+        "PUBLIC_HOST": "127.0.0.1",
+        "ADMIN_ACCESS_CHECK": "off"
       },
       "assets": {
         "directory": "./dist",
