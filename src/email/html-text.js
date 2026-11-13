@@ -15,19 +15,39 @@ function decodeEntity(entity, body) {
 }
 
 /**
+ * Applies one replacement until the text stops changing, so nested input can't reassemble what it removed.
+ * @param {string} text
+ * @param {RegExp} pattern
+ * @param {string} replacement
+ */
+function replaceUntilStable(text, pattern, replacement) {
+  let result = text;
+  let previous;
+  do {
+    previous = result;
+    result = result.replace(pattern, replacement);
+  } while (result !== previous);
+  return result;
+}
+
+/** @param {string} html */
+function stripMarkup(html) {
+  let text = replaceUntilStable(html, /<!--[\s\S]*?-->/g, "");
+  text = replaceUntilStable(text, /<(script|style|head)\b[\s\S]*?<\/\1\s*>/gi, "");
+  text = text
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(?:p|h[1-6]|blockquote|table)\s*>/gi, "\n\n")
+    .replace(/<\/(?:div|li|tr)\s*>/gi, "\n");
+  return replaceUntilStable(text, /<\/?[a-z!][^>]*>/gi, "");
+}
+
+/**
  * Readable text from an HTML body: tags removed, block boundaries kept as line breaks, entities decoded, whitespace collapsed.
  * @param {string} html
  * @returns {string}
  */
 export function htmlToText(html) {
-  return html
-    .replace(/\r\n?/g, "\n")
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<(script|style|head)\b[\s\S]*?<\/\1\s*>/gi, "")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(?:p|h[1-6]|blockquote|table)\s*>/gi, "\n\n")
-    .replace(/<\/(?:div|li|tr)\s*>/gi, "\n")
-    .replace(/<\/?[a-z!][^>]*>/gi, "")
+  return stripMarkup(html.replace(/\r\n?/g, "\n"))
     .replace(/&(#x[0-9a-f]{1,8}|#[0-9]{1,10}|[a-z]{2,8});/gi, decodeEntity)
     .replace(/[ \t\f\v ]+/g, " ")
     .split("\n")
