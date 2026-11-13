@@ -1,4 +1,5 @@
 // Bindings are repeated in every environment: an environment that omits one does not inherit it.
+// database_id is a placeholder until infra creates the D1 database.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "engage",
@@ -12,6 +13,9 @@
     "directory": "./dist",
     "binding": "ASSETS"
   },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "engage", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+  ],
   "vars": {
     "APP_ENV": "development",
     "ADMIN_HOST": "localhost",
@@ -20,6 +24,9 @@
   },
   "env": {
     "production": {
+      "d1_databases": [
+        { "binding": "DB", "database_name": "engage", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+      ],
       "vars": {
         "APP_ENV": "production",
         "ADMIN_HOST": "engage.oneloneraven.com",
@@ -37,6 +44,9 @@
       ]
     },
     "preview": {
+      "d1_databases": [
+        { "binding": "DB", "database_name": "engage", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+      ],
       "vars": {
         "APP_ENV": "preview"
       },
@@ -48,12 +58,18 @@
       "preview_urls": true,
       // A PR Preview inherits none of the above, so it repeats what the app needs.
       "previews": {
+        "d1_databases": [
+          { "binding": "DB", "database_name": "engage", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+        ],
         "vars": {
           "APP_ENV": "preview"
         }
       }
     },
     "e2e": {
+      "d1_databases": [
+        { "binding": "DB", "database_name": "engage", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+      ],
       "vars": {
         "APP_ENV": "e2e",
         "ADMIN_HOST": "localhost",
