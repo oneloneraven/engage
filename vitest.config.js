@@ -6,7 +6,7 @@ import { defineConfig } from "vitest/config";
 const migrations = await readD1Migrations("./migrations");
 const seed = readFileSync(new URL("./seeds/products.sql", import.meta.url), "utf8");
 
-const NODE_TESTS = ["test/lib/**/*.test.js", "test/wrangler-previews.test.js"];
+const NODE_TESTS = ["test/lib/**/*.test.js", "test/scripts/**/*.test.js", "test/wrangler-previews.test.js"];
 
 export default defineConfig({
   test: {

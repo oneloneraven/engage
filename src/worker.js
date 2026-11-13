@@ -1,3 +1,4 @@
+import { handleGithubWebhook } from "./github/webhook.js";
 import { adminIdentity } from "./lib/access.js";
 import { handleAccountDelete } from "./intake/accounts.js";
 import { handleInboundEmail } from "./email/inbound.js";
@@ -54,6 +55,7 @@ function decodeSegments(...segments) {
  */
 async function routePublic(request, env, ctx) {
   const { pathname } = new URL(request.url);
+  if (pathname === "/v1/github/webhook") return handleGithubWebhook(request, env);
   if (pathname === "/v1/submissions" && ["POST", "OPTIONS"].includes(request.method)) {
     return handleSubmission(request, env, ctx);
   }
