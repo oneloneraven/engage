@@ -40,3 +40,12 @@ test("every environment, and PR previews, repeat both intake rate limiters with 
   expect(new Set(namespaces).size).toBe(namespaces.length);
   for (const id of namespaces) expect(Number(id)).toBeGreaterThanOrEqual(3001);
 });
+
+test("only the default and production configs bind outbound email, so previews and e2e never send", () => {
+  const expected = [{ name: "EMAIL" }];
+  expect(wrangler.send_email).toEqual(expected);
+  expect(wrangler.env.production.send_email).toEqual(expected);
+  expect(wrangler.env.preview.send_email).toBeUndefined();
+  expect(wrangler.env.preview.previews.send_email).toBeUndefined();
+  expect(wrangler.env.e2e.send_email).toBeUndefined();
+});
