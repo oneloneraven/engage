@@ -16,6 +16,10 @@
   "d1_databases": [
     { "binding": "DB", "database_name": "engage", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
   ],
+  "ratelimits": [
+    { "name": "INTAKE_WEB_LIMITER", "namespace_id": "3001", "simple": { "limit": 5, "period": 60 } },
+    { "name": "INTAKE_APP_LIMITER", "namespace_id": "3002", "simple": { "limit": 3, "period": 60 } }
+  ],
   "vars": {
     "APP_ENV": "development",
     "ADMIN_HOST": "localhost",
@@ -26,6 +30,10 @@
     "production": {
       "d1_databases": [
         { "binding": "DB", "database_name": "engage", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+      ],
+      "ratelimits": [
+        { "name": "INTAKE_WEB_LIMITER", "namespace_id": "3003", "simple": { "limit": 5, "period": 60 } },
+        { "name": "INTAKE_APP_LIMITER", "namespace_id": "3004", "simple": { "limit": 3, "period": 60 } }
       ],
       "vars": {
         "APP_ENV": "production",
@@ -47,6 +55,10 @@
       "d1_databases": [
         { "binding": "DB", "database_name": "engage", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
       ],
+      "ratelimits": [
+        { "name": "INTAKE_WEB_LIMITER", "namespace_id": "3005", "simple": { "limit": 5, "period": 60 } },
+        { "name": "INTAKE_APP_LIMITER", "namespace_id": "3006", "simple": { "limit": 3, "period": 60 } }
+      ],
       "vars": {
         "APP_ENV": "preview"
       },
@@ -61,6 +73,10 @@
         "d1_databases": [
           { "binding": "DB", "database_name": "engage", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
         ],
+        "ratelimits": [
+          { "name": "INTAKE_WEB_LIMITER", "namespace_id": "3007", "simple": { "limit": 5, "period": 60 } },
+          { "name": "INTAKE_APP_LIMITER", "namespace_id": "3008", "simple": { "limit": 3, "period": 60 } }
+        ],
         "vars": {
           "APP_ENV": "preview"
         }
@@ -69,6 +85,10 @@
     "e2e": {
       "d1_databases": [
         { "binding": "DB", "database_name": "engage", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+      ],
+      "ratelimits": [
+        { "name": "INTAKE_WEB_LIMITER", "namespace_id": "3009", "simple": { "limit": 5, "period": 60 } },
+        { "name": "INTAKE_APP_LIMITER", "namespace_id": "3010", "simple": { "limit": 3, "period": 60 } }
       ],
       "vars": {
         "APP_ENV": "e2e",
