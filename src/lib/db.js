@@ -7,6 +7,6 @@
  * }} Statement
  */
 
-/** @typedef {{ prepare: (sql: string) => Statement }} Database */
+/** @typedef {{ prepare: (sql: string) => Statement, batch: (statements: Statement[]) => Promise<unknown> }} Database */
 
 export {};

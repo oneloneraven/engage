@@ -18,3 +18,25 @@ test("every environment, and PR previews, repeat the D1 binding", () => {
   }
   expect(wrangler.env.preview.previews.d1_databases).toEqual(expected);
 });
+
+test("every environment, and PR previews, repeat both intake rate limiters with their own namespaces", () => {
+  const expected = [
+    { name: "INTAKE_WEB_LIMITER", simple: { limit: 5, period: 60 } },
+    { name: "INTAKE_APP_LIMITER", simple: { limit: 3, period: 60 } },
+  ];
+  const configs = {
+    default: wrangler,
+    ...wrangler.env,
+    "preview.previews": wrangler.env.preview.previews,
+  };
+  const namespaces = [];
+  for (const [name, config] of Object.entries(configs)) {
+    expect(
+      config.ratelimits.map(({ name: binding, simple }) => ({ name: binding, simple })),
+      name,
+    ).toEqual(expected);
+    namespaces.push(...config.ratelimits.map(limiter => limiter.namespace_id));
+  }
+  expect(new Set(namespaces).size).toBe(namespaces.length);
+  for (const id of namespaces) expect(Number(id)).toBeGreaterThanOrEqual(3001);
+});
