@@ -123,6 +123,10 @@ export function makeBucket() {
     put: async (/** @type {string} */ key, /** @type {ArrayBuffer} */ value, /** @type {any} */ options) => {
       objects.set(key, { value, options });
     },
+    get: async (/** @type {string} */ key) => {
+      const stored = objects.get(key);
+      return stored ? { body: new Blob([stored.value]).stream() } : null;
+    },
     delete: async (/** @type {string | string[]} */ keys) => {
       for (const key of [keys].flat()) objects.delete(key);
     },

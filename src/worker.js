@@ -1,3 +1,4 @@
+import { routeAdmin } from "./admin/router.js";
 import { handleGithubWebhook } from "./github/webhook.js";
 import { adminIdentity } from "./lib/access.js";
 import { handleAccountDelete } from "./intake/accounts.js";
@@ -17,7 +18,14 @@ import { forbidden, json, notFound } from "./lib/http.js";
  *   ADMIN_ACCESS_CHECK?: string,
  *   ACCESS_TEAM_DOMAIN?: string,
  *   ACCESS_AUD?: string,
- *   ATTACHMENTS: import("./email/inbound.js").InboundEnv["ATTACHMENTS"],
+ *   ATTACHMENTS: {
+ *     put: (key: string, value: ArrayBuffer | Uint8Array, options: { httpMetadata: { contentType: string } }) => Promise<unknown>,
+ *     get: (key: string) => Promise<{ body: ReadableStream } | null>,
+ *     delete: (keys: string | string[]) => Promise<unknown>,
+ *   },
+ *   EMAIL: import("./email/outbound.js").OutboundEnv["EMAIL"],
+ *   GITHUB_APP_ID?: string,
+ *   GITHUB_APP_PRIVATE_KEY?: string,
  *   REPLY_ADDRESS_SECRET?: string,
  *   TURNSTILE_SECRET_KEY?: string,
  *   INTAKE_WEB_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
@@ -29,17 +37,6 @@ import { forbidden, json, notFound } from "./lib/http.js";
 
 const FEED_PATH = /^\/v1\/testimonials\/([^/]+)$/;
 const ACCOUNT_PATH = /^\/v1\/accounts\/([^/]+)\/([^/]+)$/;
-
-/**
- * @param {Request} request
- * @param {Env} env
- * @param {{ email: string }} _identity
- */
-async function routeAdmin(request, env, _identity) {
-  const { pathname } = new URL(request.url);
-  if (pathname.startsWith("/api/") || pathname.startsWith("/v1/")) return notFound();
-  return env.ASSETS.fetch(request);
-}
 
 /** @param {string[]} segments */
 function decodeSegments(...segments) {
@@ -88,7 +85,7 @@ export default {
     }
     if (env.ADMIN_HOST && hostname === env.ADMIN_HOST) {
       const identity = await adminIdentity(request, env);
-      return identity ? routeAdmin(request, env, identity) : forbidden();
+      return identity ? routeAdmin(request, env, ctx, identity) : forbidden();
     }
     if (env.PUBLIC_HOST && hostname === env.PUBLIC_HOST) return routePublic(request, env, ctx);
     return notFound();
