@@ -1,3 +1,4 @@
+-- The registry of products Engage serves. Adding a product is a new migration like this one.
 INSERT INTO products (
   slug, name, domains, issue_repo, site_repo, site_dispatch_event,
   discord_secret, email_domain, email_aliases, context_schema, account_secret, thanks_url
