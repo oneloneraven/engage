@@ -3,6 +3,7 @@ import { adminIdentity } from "./lib/access.js";
 import { handleAccountDelete } from "./intake/accounts.js";
 import { handleInboundEmail } from "./email/inbound.js";
 import { handleSubmission } from "./intake/submissions.js";
+import { publicFeed } from "./testimonials/testimonials.js";
 import { forbidden, json, notFound } from "./lib/http.js";
 
 /**
@@ -26,6 +27,7 @@ import { forbidden, json, notFound } from "./lib/http.js";
 
 /** @typedef {{ waitUntil: (promise: Promise<unknown>) => void }} Context */
 
+const FEED_PATH = /^\/v1\/testimonials\/([^/]+)$/;
 const ACCOUNT_PATH = /^\/v1\/accounts\/([^/]+)\/([^/]+)$/;
 
 /**
@@ -58,6 +60,11 @@ async function routePublic(request, env, ctx) {
   if (pathname === "/v1/github/webhook") return handleGithubWebhook(request, env);
   if (pathname === "/v1/submissions" && ["POST", "OPTIONS"].includes(request.method)) {
     return handleSubmission(request, env, ctx);
+  }
+  const feed = FEED_PATH.exec(pathname);
+  if (feed && request.method === "GET") {
+    const segments = decodeSegments(feed[1]);
+    if (segments) return publicFeed(env, segments[0]);
   }
   const account = ACCOUNT_PATH.exec(pathname);
   if (account && request.method === "DELETE") {
