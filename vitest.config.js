@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 // The Workers pool can't read the filesystem, so migrations go in as a binding.
 const migrations = await readD1Migrations("./migrations");
 
-const NODE_TESTS = ["test/lib/**/*.test.js", "test/wrangler-previews.test.js"];
+const NODE_TESTS = ["test/lib/**/*.test.js", "test/scripts/**/*.test.js", "test/wrangler-previews.test.js"];
 
 export default defineConfig({
   test: {
