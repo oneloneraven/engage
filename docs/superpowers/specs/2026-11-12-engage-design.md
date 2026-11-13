@@ -73,7 +73,7 @@ Decisions are marked **(Raven)** where the product owner made them, and **(desig
   - Infrastructure in OpenTofu under `infra/`.
 - **Hosts:**
   - `engage.oneloneraven.com` **(Raven)**: the admin UI and its API. Gated entirely by Cloudflare Access, with a policy for Raven only, MFA required, and short sessions. **(Raven: MFA, not a hardware key.)** Email one-time PIN alone isn't enough. The builder picks a login method that enforces MFA, such as an identity provider with 2FA enforced, or Access's own MFA if the account supports it. The Worker also verifies the Access JWT on every request and refuses everything if the Access settings are missing, the same pattern as CL's `server/lib/access.js`. Fails closed.
-  - `in.oneloneraven.com`: the public intake API, for submissions, the testimonials feed, GitHub webhooks and OIDC token exchange. It has no Access, and every route does its own authentication (see the per-route rules below).
+  - `engage-api.oneloneraven.com`: the public intake API, for submissions, the testimonials feed, GitHub webhooks and OIDC token exchange. It has no Access, and every route does its own authentication (see the per-route rules below).
   - The Worker routes strictly by host. Admin routes 404 on the public host, and the reverse.
 - **Plan:** Workers Paid **(Raven)**. It unlocks Email Sending and higher limits, and removes the worry about sharing CL's daily request cap.
 - **Discord:** one webhook per channel, configured per product. Every message is content-free: the kind, the product, and a link to Engage. `allowed_mentions: { parse: [] }`.
@@ -117,7 +117,7 @@ The webhook secret is verified on every delivery.
   - "Report an issue"
   - "Tell us what you think".
 - **Where they appear (Raven):** in each app and on each product's marketing site.
-- **One API:** `POST https://in.oneloneraven.com/v1/submissions`.
+- **One API:** `POST https://engage-api.oneloneraven.com/v1/submissions`.
   - Fields:
     - product
     - kind (`issue` | `feedback`)
@@ -205,7 +205,7 @@ The webhook secret is verified on every delivery.
   - Attribution follows the person's credit choice.
   - Raven approves. Approved quotes can be withdrawn at any time.
 - **Publishing:**
-  - `GET https://in.oneloneraven.com/v1/testimonials/<product>` returns approved excerpts: text, attribution and date, with no identifiers. Not cached, because sites read it only at build time, straight after a rebuild is dispatched (Raven, D12).
+  - `GET https://engage-api.oneloneraven.com/v1/testimonials/<product>` returns approved excerpts: text, attribution and date, with no identifiers. Not cached, because sites read it only at build time, straight after a rebuild is dispatched (Raven, D12).
   - Marketing sites read it **at build time** and render it in their own style, with no runtime widget.
   - Approving or withdrawing a quote triggers the product site's rebuild, the same `repository_dispatch` pattern Deaftly already uses for releases.
 - **Deletion:** deleting the item withdraws its quotes and triggers a rebuild.
@@ -243,7 +243,7 @@ The webhook secret is verified on every delivery.
 - **Raven's context:** Raven merges every PR, so releases are never a surprise. A clear "waiting" indicator is enough for v1. Push to a phone comes later.
 - **Credential broker (design call; this is the real second factor):**
   - Cloudflare deploy tokens are removed from GitHub secrets.
-  - The deploy job asks GitHub for an OIDC token (audience `engage`) and POSTs it to `in.oneloneraven.com/v1/deploy-credentials`.
+  - The deploy job asks GitHub for an OIDC token (audience `engage`) and POSTs it to `engage-api.oneloneraven.com/v1/deploy-credentials`.
   - Engage verifies:
     - the token's signature against GitHub's published keys;
     - its repository, workflow, ref, SHA, environment and `run_id`;

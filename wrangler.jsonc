@@ -26,7 +26,7 @@
       },
       "routes": [
         { "pattern": "engage.oneloneraven.com/*", "zone_name": "oneloneraven.com" },
-        { "pattern": "in.oneloneraven.com/*", "zone_name": "oneloneraven.com" }
+        { "pattern": "engage-api.oneloneraven.com/*", "zone_name": "oneloneraven.com" }
       ]
     },
     "preview": {

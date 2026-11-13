@@ -10,7 +10,7 @@
 
 **Architecture:** One Cloudflare Worker that routes strictly by host:
 - `engage.oneloneraven.com`: the admin SPA and its API, behind Cloudflare Access, with the JWT re-verified so it fails closed.
-- `in.oneloneraven.com`: the public intake, testimonials feed and GitHub webhook.
+- `engage-api.oneloneraven.com`: the public intake, testimonials feed and GitHub webhook.
 
 Behind it:
 - D1 holds all state, and R2 holds attachments.
@@ -28,7 +28,7 @@ Behind it:
 
 ## Global Constraints
 
-- Hosts: admin `engage.oneloneraven.com`, public `in.oneloneraven.com`. Admin routes return 404 on the public host, and public routes return 404 on the admin host.
+- Hosts: admin `engage.oneloneraven.com`, public `engage-api.oneloneraven.com`. Admin routes return 404 on the public host, and public routes return 404 on the admin host.
 - The admin host refuses every request unless the `Cf-Access-Jwt-Assertion` header verifies (signature, `aud` = `ACCESS_AUD`, `iss` = `https://<ACCESS_TEAM_DOMAIN>`, expiry). Missing configuration means refuse. Only `APP_ENV` `e2e`/`development` with `ADMIN_ACCESS_CHECK=off` skips the check.
 - Discord messages carry only the kind, the product name and a link to `https://engage.oneloneraven.com/items/<id>`, with `allowed_mentions: { parse: [] }`. They never include submitted text, a subject, an email address or a name.
 - Submitted text is never written to logs, and error responses never echo it back.
@@ -113,7 +113,7 @@ docs/adr/                   0002-…0005 (see Task 14)
   - modules `core`, `js-toolchain`, `web-app`, `cloudflare-opentofu`;
   - `zone_name` `oneloneraven.com`, `beta` **no**.
   - Stop at the module's apex warning, and change the plan so that **no apex record or apex route** is created.
-- [ ] **Step 2:** In `infra/dns.tf`, replace the apex placeholder with proxied placeholder records for `engage` and `in`. In `wrangler.jsonc` production, set two routes: `engage.oneloneraven.com/*` and `in.oneloneraven.com/*`. Add the bindings and vars above to **every** environment (the file's own comment says environments don't inherit). Add `"triggers": { "crons": ["17 3 * * *"] }`.
+- [ ] **Step 2:** In `infra/dns.tf`, replace the apex placeholder with proxied placeholder records for `engage` and `in`. In `wrangler.jsonc` production, set two routes: `engage.oneloneraven.com/*` and `engage-api.oneloneraven.com/*`. Add the bindings and vars above to **every** environment (the file's own comment says environments don't inherit). Add `"triggers": { "crons": ["17 3 * * *"] }`.
 - [ ] **Step 3:** Add dev dependencies `@cloudflare/vitest-plugin`, and dependencies `valibot` and `postal-mime`. Replace `vitest.config.js` with a `workers` project using `cloudflareTest` (CL's pattern, `climbing-logbook/vitest.config.js`): the D1 migrations go in as `TEST_D1_MIGRATIONS`, `setupFiles: ["./test/apply-migrations.js"]`, and an `outboundService` that returns 599 for every host. Add a `node` project for `test/lib/**` and `scripts`.
 - [ ] **Step 4:** Copy the approved spec to `docs/superpowers/specs/2026-11-12-engage-design.md` and this plan to `docs/superpowers/plans/`.
 - [ ] **Step 5:** Run `pnpm lint && pnpm typecheck && pnpm test && pnpm build`. Expected: all exit 0, and the template's health test passes.
@@ -147,7 +147,7 @@ docs/adr/                   0002-…0005 (see Task 14)
   - `test/routing.test.js`:
     - `GET https://engage.oneloneraven.com/api/items` with no header → 403
     - with `ACCESS_AUD` unset → 403, even with a valid token
-    - `GET https://in.oneloneraven.com/api/items` → 404
+    - `GET https://engage-api.oneloneraven.com/api/items` → 404
     - `GET https://engage.oneloneraven.com/v1/testimonials/cl` → 404
     - `GET https://other.example/` → 404
     - `/api/health` on either host → 200 JSON with `ok: true`
@@ -435,7 +435,7 @@ CREATE INDEX items_issue ON items (issue_number);
 - Create: `scripts/create-github-app.mjs`. It creates the App in one click through GitHub's manifest flow (Raven, D17), the same way bootstrap's `secrets.mjs release-app` does.
   - Name `oneloneraven-engage`, owned by the `oneloneraven` organisation.
   - The permissions and events from spec §4.3.
-  - Webhook URL `https://in.oneloneraven.com/v1/github/webhook`, with a generated webhook secret.
+  - Webhook URL `https://engage-api.oneloneraven.com/v1/github/webhook`, with a generated webhook secret.
   - It stores the App id, private key and webhook secret in Proton Pass, then opens the install page (All repositories).
   - A `--set-worker-secrets` mode pipes them into `wrangler secret put` for production. Secrets never go to stdout.
   - Test the manifest builder: permissions, events and webhook URL.
