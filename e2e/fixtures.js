@@ -10,7 +10,7 @@ export const ISSUE_URL = "https://github.com/oneloneraven/climbing-logbook/issue
 
 /** @param {string} browserName */
 export function idsFor(browserName) {
-  const prefix = `e2e-${browserName}`;
+  const prefix = `e2e-${browserName.toLowerCase()}`;
   return {
     hostile: `${prefix}-hostile`,
     noEmail: `${prefix}-no-email`,
