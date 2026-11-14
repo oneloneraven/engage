@@ -1,8 +1,10 @@
 # Infrastructure
 
 Everything provisionable is managed here with [OpenTofu](https://opentofu.org), the open-source fork of Terraform (same HCL, providers and state format): DNS, TLS and HSTS,
-DNSSEC, CAA, security headers and cache rules for `oneloneraven.com`, and the
-placeholder records for Engage's two hosts, `engage.` and `engage-api.`. The apex is
+DNSSEC, CAA, security headers and cache rules for `oneloneraven.com`, the
+placeholder records for Engage's two hosts, `engage.` and `engage-api.`, the
+Access application in front of `engage.`, and the Turnstile widget for web
+feedback on the product sites. The apex is
 never Engage's: it carries the Proton mail records. The
 Worker itself is deployed by wrangler from the release workflows. The only
 things outside OpenTofu are the state bucket (it must exist before OpenTofu
@@ -41,8 +43,8 @@ account and, for zone permissions, to `oneloneraven.com` only.
 |---|---|---|
 | Preview | `CLOUDFLARE_PREVIEW_TOKEN` (repository) | Account: Workers Scripts Edit, Account Settings Read |
 | Deploy | `CLOUDFLARE_DEPLOY_TOKEN` (environments `production`, and `beta` if used) | Account: Workers Scripts Edit, Account Settings Read. Zone: Workers Routes Edit |
-| Infra plan | `CLOUDFLARE_INFRA_PLAN_TOKEN` (repository) | Account: Workers R2 Storage Read, Transform Rules Read. Zone: DNS Read, Zone Settings Read, Zone WAF Read, Cache Settings Read |
-| Infra apply | `CLOUDFLARE_INFRA_APPLY_TOKEN` (environment `infra`) | Account: Workers R2 Storage Edit, Transform Rules Edit. Zone: DNS Edit, Zone Settings Edit, Zone WAF Edit, Cache Settings Edit |
+| Infra plan | `CLOUDFLARE_INFRA_PLAN_TOKEN` (repository) | Account: Workers R2 Storage Read, Transform Rules Read, Access: Apps and Policies Read, Access: Organizations, Identity Providers, and Groups Read, Turnstile Sites Read. Zone: DNS Read, Zone Settings Read, Zone WAF Read, Cache Settings Read |
+| Infra apply | `CLOUDFLARE_INFRA_APPLY_TOKEN` (environment `infra`) | Account: Workers R2 Storage Edit, Transform Rules Edit, Access: Apps and Policies Edit, Access: Organizations, Identity Providers, and Groups Read, Turnstile Sites Edit. Zone: DNS Edit, Zone Settings Edit, Zone WAF Edit, Cache Settings Edit |
 
 Transform Rules is account-scoped, so the infra tokens' Transform Rules permission covers every zone in the account, not just `oneloneraven.com`.
 
@@ -78,12 +80,29 @@ version locally.
 
 `CLOUDFLARE_ACCOUNT_ID` as a repository variable. It isn't confidential.
 
+`OWNER_EMAIL` as a repository secret: the one email the Access policy lets
+through to the admin host. It is never committed.
+
+### Access
+
+The admin host accepts only one login method: signing in with a Cloudflare
+account, which brings that account's MFA. `access.tf` looks the method up and
+pins it, so adding another login method to the account, such as a one-time
+PIN, never opens the admin host to it. Keep MFA on the Cloudflare account that
+`OWNER_EMAIL` names. After an apply, `tofu output access_aud` gives the value
+for the Worker's `ACCESS_AUD`.
+
 ### Worker secrets
 
 Set each runtime secret once per environment with
 `pnpm exec wrangler secret put <NAME> --env <env>`. Setting one environment
 never sets another. Local development reads them from `.dev.vars`, which is
 gitignored.
+
+`TURNSTILE_SECRET_KEY` comes from the widget, without displaying it:
+`tofu output -raw turnstile_secret | pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --env production`.
+The sitekey (`tofu output turnstile_sitekey`) isn't secret: it goes in each
+product's feedback form.
 
 ## Disaster recovery
 
