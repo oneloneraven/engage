@@ -6,6 +6,7 @@ import { handleInboundEmail } from "./email/inbound.js";
 import { handleSubmission } from "./intake/submissions.js";
 import { publicFeed } from "./testimonials/testimonials.js";
 import { forbidden, json, notFound } from "./lib/http.js";
+import { runRetention } from "./retention.js";
 
 /**
  * @typedef {{
@@ -97,4 +98,13 @@ export default {
    * @returns {Promise<void>}
    */
   email: (message, env, ctx) => handleInboundEmail(message, env, ctx),
+  /**
+   * @param {{ scheduledTime: number }} controller
+   * @param {Env} env
+   * @param {Context} ctx
+   * @returns {Promise<void>}
+   */
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(runRetention(env, new Date(controller.scheduledTime)));
+  },
 };

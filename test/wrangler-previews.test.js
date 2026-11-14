@@ -58,3 +58,10 @@ test("only the default and production configs bind the attachments bucket, so pr
   expect(wrangler.env.preview.previews.r2_buckets).toBeUndefined();
   expect(wrangler.env.e2e.r2_buckets).toBeUndefined();
 });
+
+test("only production runs the retention cron, so previews, PR previews and e2e never delete anything", () => {
+  expect(wrangler.env.production.triggers).toEqual({ crons: ["17 3 * * *"] });
+  expect(wrangler.env.preview.triggers).toBeUndefined();
+  expect(wrangler.env.preview.previews.triggers).toBeUndefined();
+  expect(wrangler.env.e2e.triggers).toBeUndefined();
+});
