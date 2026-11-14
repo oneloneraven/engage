@@ -10,7 +10,7 @@ import {
   withdrawTestimonial,
 } from "../api.js";
 import { failure, guarded, h, loading, replace } from "../dom.js";
-import { formatSize, formatTime, itemHeading, kindLabel, productName, sourceLabel } from "../format.js";
+import { formatSize, formatTime, itemHeading, kindLabel, sourceLabel } from "../format.js";
 
 /** @typedef {import("../api.js").ItemDetail} ItemDetail */
 
@@ -83,9 +83,9 @@ export function mountItem(pane, id, hooks) {
     const thread = h("ol", { class: "thread", "aria-label": "Messages" });
     const attachments = h("section", { class: "attachments", "aria-labelledby": "attachments-title" });
 
-    const replyPanel = replyComposer(refresh);
-    const draftPanel = issueDraftPanel(refresh);
-    const quotePanel = quoteComposer(refresh);
+    const replyPanel = replyComposer(refresh, () => closePanel(replyPanel.root));
+    const draftPanel = issueDraftPanel(refresh, () => closePanel(draftPanel.root));
+    const quotePanel = quoteComposer(refresh, () => closePanel(quotePanel.root));
     panels.append(replyPanel.root, draftPanel.root, quotePanel.root);
 
     replace(
@@ -144,6 +144,13 @@ export function mountItem(pane, id, hooks) {
       item = next;
       draw();
       hooks.onChanged();
+    }
+
+    /** @param {HTMLElement} panel */
+    function closePanel(panel) {
+      panel.hidden = true;
+      for (const opener of toolbar.querySelectorAll("button[aria-expanded]"))
+        opener.setAttribute("aria-expanded", "false");
     }
 
     /** @param {HTMLElement} panel @param {HTMLButtonElement} opener */
@@ -269,7 +276,7 @@ export function mountItem(pane, id, hooks) {
         h(
           "p",
           { class: "muted" },
-          `${productName(current.product)} · ${kindLabel(current.kind)} · Received `,
+          `${current.productName} · ${kindLabel(current.kind)} · Received `,
           h("time", { datetime: current.createdAt }, formatTime(current.createdAt)),
         ),
       );
@@ -294,9 +301,14 @@ export function mountItem(pane, id, hooks) {
       );
     }
 
+    let drawnThread = "";
+
     function drawThread() {
       if (!item) return;
       const current = item;
+      const key = current.messages.map(message => message.id).join(" ");
+      if (key === drawnThread) return;
+      drawnThread = key;
       replace(
         thread,
         current.messages.map(message =>
@@ -326,34 +338,34 @@ export function mountItem(pane, id, hooks) {
      * @param {string} messageId
      */
     function formattedView(messageId) {
-      const open = formattedOpen.has(messageId);
-      const toggle = h(
-        "button",
-        { type: "button", class: "secondary", "aria-expanded": String(open) },
-        open ? "Hide formatted" : "Show formatted",
-      );
+      const toggle = h("button", { type: "button", class: "secondary" });
+      const wrapper = h("div", { class: "formatted" }, toggle);
+      const frame = () =>
+        h(
+          "figure",
+          null,
+          h("iframe", {
+            sandbox: true,
+            referrerpolicy: "no-referrer",
+            title: "Formatted view of this message",
+            src: `/api/items/${encodeURIComponent(id)}/messages/${encodeURIComponent(messageId)}/html`,
+          }),
+          h("figcaption", { class: "muted" }, "Formatted view"),
+        );
+      const show = (/** @type {boolean} */ open) => {
+        toggle.setAttribute("aria-expanded", String(open));
+        toggle.textContent = open ? "Hide formatted" : "Show formatted";
+        if (open) wrapper.append(frame());
+        else wrapper.querySelector("figure")?.remove();
+      };
       toggle.addEventListener("click", () => {
-        if (formattedOpen.has(messageId)) formattedOpen.delete(messageId);
-        else formattedOpen.add(messageId);
-        drawThread();
+        const open = !formattedOpen.has(messageId);
+        if (open) formattedOpen.add(messageId);
+        else formattedOpen.delete(messageId);
+        show(open);
       });
-      return h(
-        "div",
-        { class: "formatted" },
-        toggle,
-        open &&
-          h(
-            "figure",
-            null,
-            h("iframe", {
-              sandbox: true,
-              referrerpolicy: "no-referrer",
-              title: "Formatted view of this message",
-              src: `/api/items/${encodeURIComponent(id)}/messages/${encodeURIComponent(messageId)}/html`,
-            }),
-            h("figcaption", { class: "muted" }, "Formatted view"),
-          ),
-      );
+      show(formattedOpen.has(messageId));
+      return wrapper;
     }
 
     function drawAttachments() {
@@ -481,8 +493,11 @@ export function mountItem(pane, id, hooks) {
     draw();
   }
 
-  /** @param {() => Promise<void>} refresh */
-  function replyComposer(refresh) {
+  /**
+   * @param {() => Promise<void>} refresh
+   * @param {() => void} close
+   */
+  function replyComposer(refresh, close) {
     const error = h("div", { class: "status" });
     const text = h("textarea", { id: "reply-text", name: "text", rows: "6", maxlength: String(REPLY_MAX) });
     const send = guarded(h("button", { type: "button", class: "primary" }, "Send reply"), async () => {
@@ -494,7 +509,7 @@ export function mountItem(pane, id, hooks) {
       try {
         await sendReply(id, text.value);
         text.value = "";
-        root.hidden = true;
+        close();
         await refresh();
       } catch (caught) {
         replace(error, failure(/** @type {Error} */ (caught).message));
@@ -506,18 +521,16 @@ export function mountItem(pane, id, hooks) {
       labelled("reply-text", "Your reply", text),
       h("p", { class: "muted" }, "Plain text, sent to the person's email address."),
       error,
-      h(
-        "div",
-        { class: "buttons" },
-        send,
-        button("Cancel", () => (root.hidden = true)),
-      ),
+      h("div", { class: "buttons" }, send, button("Cancel", close)),
     );
     return { root };
   }
 
-  /** @param {() => Promise<void>} refresh */
-  function issueDraftPanel(refresh) {
+  /**
+   * @param {() => Promise<void>} refresh
+   * @param {() => void} close
+   */
+  function issueDraftPanel(refresh, close) {
     const error = h("div", { class: "status" });
     const repo = h("input", { id: "draft-repo", name: "repo", type: "text", autocomplete: "off" });
     const title = h("input", { id: "draft-title", name: "title", type: "text", maxlength: "256", autocomplete: "off" });
@@ -535,7 +548,7 @@ export function mountItem(pane, id, hooks) {
             .map(label => label.trim())
             .filter(Boolean),
         });
-        root.hidden = true;
+        close();
         await refresh();
       } catch (caught) {
         replace(error, failure(/** @type {Error} */ (caught).message));
@@ -554,12 +567,7 @@ export function mountItem(pane, id, hooks) {
       labelled("draft-body", "Description", body),
       labelled("draft-labels", "Labels, separated by commas", labels),
       error,
-      h(
-        "div",
-        { class: "buttons" },
-        create,
-        button("Cancel", () => (root.hidden = true)),
-      ),
+      h("div", { class: "buttons" }, create, button("Cancel", close)),
     );
     const root = h(
       "section",
@@ -588,8 +596,11 @@ export function mountItem(pane, id, hooks) {
     };
   }
 
-  /** @param {() => Promise<void>} refresh */
-  function quoteComposer(refresh) {
+  /**
+   * @param {() => Promise<void>} refresh
+   * @param {() => void} close
+   */
+  function quoteComposer(refresh, close) {
     const error = h("div", { class: "status" });
     const preview = h("blockquote", { class: "preview" });
     const hint = h("p", { class: "muted" }, "Select the words to quote in the message, then save them.");
@@ -599,7 +610,7 @@ export function mountItem(pane, id, hooks) {
         await createExcerpt(id, selectedText);
         selectedText = "";
         window.getSelection()?.removeAllRanges();
-        root.hidden = true;
+        close();
         await refresh();
       } catch (caught) {
         replace(error, failure(/** @type {Error} */ (caught).message));
@@ -611,12 +622,7 @@ export function mountItem(pane, id, hooks) {
       hint,
       preview,
       error,
-      h(
-        "div",
-        { class: "buttons" },
-        save,
-        button("Cancel", () => (root.hidden = true)),
-      ),
+      h("div", { class: "buttons" }, save, button("Cancel", close)),
     );
     return {
       root,

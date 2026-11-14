@@ -1,10 +1,9 @@
 import { getCounts } from "./api.js";
 import { h, replace } from "./dom.js";
-import { productName } from "./format.js";
 
 /** @type {HTMLElement | null} */
 let nav = null;
-/** @type {string[]} */
+/** @type {[string, string][]} */
 let products = [];
 
 /** @param {string} href @param {string} label @param {boolean} current */
@@ -51,7 +50,7 @@ export function mountShell() {
   let lastQuery = new URLSearchParams();
   getCounts()
     .then(counts => {
-      products = Object.keys(counts.byProduct);
+      products = Object.entries(counts.byProduct).map(([slug, { name }]) => [slug, name]);
       draw(lastPath, lastQuery);
     })
     .catch(() => {});
@@ -81,12 +80,8 @@ export function mountShell() {
         h(
           "ul",
           { class: "nav-list" },
-          products.map(slug =>
-            h(
-              "li",
-              null,
-              navLink(`/inbox?product=${encodeURIComponent(slug)}`, productName(slug), inInbox && product === slug),
-            ),
+          products.map(([slug, name]) =>
+            h("li", null, navLink(`/inbox?product=${encodeURIComponent(slug)}`, name, inInbox && product === slug)),
           ),
         ),
     );

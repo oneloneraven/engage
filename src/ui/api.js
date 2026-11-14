@@ -3,7 +3,7 @@ import { sentenceFor } from "./errors.js";
 /** @typedef {import("../admin/items.js").ItemSummary} ItemSummary */
 /** @typedef {import("../admin/items.js").ItemDetail} ItemDetail */
 /** @typedef {import("../github/app.js").IssueDraft} IssueDraft */
-/** @typedef {{ new: number, open: number, replyOwed: number, byProduct: Record<string, { new: number, open: number }> }} Counts */
+/** @typedef {{ new: number, open: number, replyOwed: number, byProduct: Record<string, { name: string, new: number, open: number }> }} Counts */
 
 class ApiError extends Error {
   /**

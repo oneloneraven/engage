@@ -51,9 +51,3 @@ export function itemHeading(item) {
   const characters = [...first];
   return characters.length > 90 ? `${characters.slice(0, 89).join("")}…` : first;
 }
-
-/** @type {Record<string, string>} */
-const PRODUCT_NAMES = { cl: "Climbing Logbook", deaftly: "Deaftly" };
-
-/** @param {string} slug */
-export const productName = slug => PRODUCT_NAMES[slug] ?? slug;

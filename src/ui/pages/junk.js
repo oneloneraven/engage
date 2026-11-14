@@ -1,6 +1,6 @@
 import { listItems, patchItem } from "../api.js";
 import { emptyState, failure, guarded, h, loading, prefersReducedMotion, replace } from "../dom.js";
-import { formatDay, itemTitle, kindLabel, productName } from "../format.js";
+import { formatDay, itemTitle, kindLabel } from "../format.js";
 
 /**
  * @param {HTMLElement} container
@@ -52,11 +52,7 @@ export function junkPage(container) {
         "a",
         { class: "row-link", href: `/items/${encodeURIComponent(item.id)}`, "data-link": "" },
         h("span", { class: "row-title" }, itemTitle(item)),
-        h(
-          "span",
-          { class: "muted" },
-          `${productName(item.product)} · ${kindLabel(item.kind)} · ${formatDay(item.createdAt)}`,
-        ),
+        h("span", { class: "muted" }, `${item.productName} · ${kindLabel(item.kind)} · ${formatDay(item.createdAt)}`),
       ),
       restore,
     );

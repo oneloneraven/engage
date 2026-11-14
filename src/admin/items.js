@@ -4,6 +4,7 @@ import { recordAudit } from "../audit.js";
  * @typedef {{
  *   id: string,
  *   product: string,
+ *   productName: string,
  *   kind: "issue" | "feedback" | "email",
  *   source: "web" | "app" | "email",
  *   subject: string | null,
@@ -75,7 +76,7 @@ const STATE_CLAUSES = {
 };
 
 const SUMMARY_COLUMNS =
-  "id, product, kind, source, subject, contact_email, contact_name, read_at, starred, junk, suspected_spam, archived_at, reply_owed_at, issue_number, issue_url, created_at, last_activity_at, (SELECT COUNT(*) FROM messages WHERE messages.item_id = items.id) AS message_count";
+  "id, product, (SELECT name FROM products WHERE products.slug = items.product) AS product_name, kind, source, subject, contact_email, contact_name, read_at, starred, junk, suspected_spam, archived_at, reply_owed_at, issue_number, issue_url, created_at, last_activity_at, (SELECT COUNT(*) FROM messages WHERE messages.item_id = items.id) AS message_count";
 
 /** @param {string} term */
 const escapeLike = term => term.replace(/[\\%_]/g, "\\$&");
@@ -88,6 +89,7 @@ function toSummary(row) {
   return {
     id: String(row.id),
     product: String(row.product),
+    productName: String(row.product_name ?? row.product),
     kind: /** @type {ItemSummary["kind"]} */ (row.kind),
     source: /** @type {ItemSummary["source"]} */ (row.source),
     subject: /** @type {string | null} */ (row.subject),
@@ -314,25 +316,25 @@ export async function deleteItem(env, id, actor, options = {}) {
 
 /**
  * @param {ItemsEnv} env
- * @returns {Promise<{ new: number, open: number, replyOwed: number, byProduct: Record<string, { new: number, open: number }> }>}
+ * @returns {Promise<{ new: number, open: number, replyOwed: number, byProduct: Record<string, { name: string, new: number, open: number }> }>}
  */
 export async function counts(env) {
   const [perProduct, owed] = await Promise.all([
     env.DB.prepare(
-      `SELECT products.slug AS slug,
+      `SELECT products.slug AS slug, products.name AS name,
         COALESCE(SUM(CASE WHEN ${NEW} THEN 1 ELSE 0 END), 0) AS new_count,
         COALESCE(SUM(CASE WHEN ${OPEN} THEN 1 ELSE 0 END), 0) AS open_count
       FROM products LEFT JOIN items ON items.product = products.slug
-      GROUP BY products.slug ORDER BY products.slug`,
+      GROUP BY products.slug, products.name ORDER BY products.slug`,
     ).all(),
     env.DB.prepare("SELECT COUNT(*) AS n FROM items WHERE reply_owed_at IS NOT NULL AND junk = 0").first(),
   ]);
-  /** @type {Record<string, { new: number, open: number }>} */
+  /** @type {Record<string, { name: string, new: number, open: number }>} */
   const byProduct = {};
   let totalNew = 0;
   let totalOpen = 0;
   for (const row of perProduct.results) {
-    const entry = { new: Number(row.new_count), open: Number(row.open_count) };
+    const entry = { name: String(row.name), new: Number(row.new_count), open: Number(row.open_count) };
     byProduct[String(row.slug)] = entry;
     totalNew += entry.new;
     totalOpen += entry.open;

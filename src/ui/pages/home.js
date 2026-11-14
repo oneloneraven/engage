@@ -1,6 +1,6 @@
 import { getCounts, listItems } from "../api.js";
 import { emptyState, failure, h, link, loading, replace } from "../dom.js";
-import { itemTitle, productName, verdict } from "../format.js";
+import { itemTitle, verdict } from "../format.js";
 
 let swept = false;
 
@@ -48,7 +48,7 @@ export function homePage(container) {
                       `/items/${encodeURIComponent(item.id)}`,
                       h("span", { class: "dot attention", "aria-hidden": "true" }),
                       h("span", { class: "grow" }, h("span", { class: "muted" }, "Reply owed: "), itemTitle(item)),
-                      h("span", { class: "muted" }, productName(item.product)),
+                      h("span", { class: "muted" }, item.productName),
                     ),
                   ),
                 ),
@@ -80,7 +80,7 @@ export function homePage(container) {
                     "data-link": "",
                     "data-product": slug,
                   },
-                  h("h3", { class: "product-name" }, productName(slug)),
+                  h("h3", { class: "product-name" }, perProduct.name),
                   h("p", { class: "muted" }, `${perProduct.new} new · ${perProduct.open} open`),
                 ),
               ),

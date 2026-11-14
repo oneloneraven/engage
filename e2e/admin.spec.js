@@ -41,7 +41,10 @@ describe("home", () => {
         new: 3,
         open: 5,
         replyOwed: 2,
-        byProduct: { cl: { new: 2, open: 3 }, deaftly: { new: 1, open: 2 } },
+        byProduct: {
+          cl: { name: "Climbing Logbook", new: 2, open: 3 },
+          deaftly: { name: "Deaftly", new: 1, open: 2 },
+        },
       }),
     );
     await browser.url("/");
@@ -168,6 +171,9 @@ describe("item", () => {
     const formatted = await page.frame({ selector: ".formatted iframe" });
     await expect(formatted.$("#formatted")).toHaveText("Formatted hello");
     await expect(formatted.$("#ran")).not.toBeExisting();
+    await toolbarButton("Star").click();
+    await browser.waitUntil(async () => (await toolbarButton("Star").getAttribute("aria-pressed")) === "true");
+    await expect(formatted.$("#formatted")).toHaveText("Formatted hello");
     await $("button=Hide formatted").click();
     await expect($(".formatted iframe")).not.toBeExisting();
   });
@@ -177,6 +183,15 @@ describe("item", () => {
     const link = $(".toolbar").$("a=View GitHub issue #7");
     await expect(link).toHaveAttribute("href", ISSUE_URL);
     await expect(toolbarButton("Create GitHub issue")).not.toBeExisting();
+  });
+
+  it("collapses the opener when a panel is cancelled", async () => {
+    await openItem(ids().email);
+    await toolbarButton("Reply").click();
+    await expect(toolbarButton("Reply")).toHaveAttribute("aria-expanded", "true");
+    await $('[aria-label="Reply"]').$("button=Cancel").click();
+    await expect($('[aria-label="Reply"]')).not.toBeDisplayed();
+    await expect(toolbarButton("Reply")).toHaveAttribute("aria-expanded", "false");
   });
 
   it("disables quoting, with the reason, when there is no consent", async () => {
@@ -237,6 +252,9 @@ describe("item", () => {
     await $("button=Delete for good").click();
     await browser.waitUntil(async () => new URL(await browser.getUrl()).pathname === "/inbox");
     await expect(row(remove)).not.toBeExisting();
+    await expect($("h1.item-title")).not.toBeExisting();
+    await expect($(".split")).not.toHaveElementClass("has-item");
+    await expect($(".detail-pane .empty")).toBeExisting();
     const status = await browser.execute(async id => (await fetch(`/api/items/${id}`)).status, remove);
     expect(status).toBe(404);
   });
@@ -247,6 +265,7 @@ describe("junk", () => {
     const { junk } = ids();
     await browser.url("/junk");
     await expect(row(junk)).toBeExisting();
+    await expect($("button=Show more")).not.toBeDisplayed();
     await row(junk).$("button=Not junk").click();
     await browser.waitUntil(async () => !(await row(junk).isExisting()));
     await browser.url(`/inbox?q=${encodeURIComponent(`Cheap pills ${browser.capabilities.browserName}`)}`);

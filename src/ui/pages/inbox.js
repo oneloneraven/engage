@@ -1,6 +1,6 @@
 import { getCounts, listItems } from "../api.js";
 import { emptyState, failure, guarded, h, prefersReducedMotion, replace } from "../dom.js";
-import { formatDay, itemTitle, kindLabel, productName } from "../format.js";
+import { formatDay, itemTitle, kindLabel } from "../format.js";
 import { navigate } from "../router.js";
 import { mountItem } from "./item.js";
 
@@ -109,7 +109,7 @@ export function inboxPage(container, context) {
   function rowFor(item) {
     const unread = item.readAt === null && item.archivedAt === null;
     const current = item.id === itemId;
-    const meta = [productName(item.product), kindLabel(item.kind), formatDay(item.lastActivityAt)];
+    const meta = [item.productName, kindLabel(item.kind), formatDay(item.lastActivityAt)];
     const li = h(
       "li",
       { "data-id": item.id, ...(unread && { "data-unread": "true" }) },
@@ -257,7 +257,7 @@ export function inboxPage(container, context) {
   function syncFilters() {
     const known = [...productField.element.options].some(option => option.value === filters.product);
     if (filters.product && !known)
-      productField.element.append(h("option", { value: filters.product }, productName(filters.product)));
+      productField.element.append(h("option", { value: filters.product }, filters.product));
     for (const [name, control] of Object.entries(controls)) {
       if (control.value !== filters[name]) control.value = filters[name];
     }
@@ -268,7 +268,7 @@ export function inboxPage(container, context) {
       if (!alive) return;
       setOptions(productField.element, [
         ["", "All products"],
-        ...Object.keys(counts.byProduct).map(slug => [slug, productName(slug)]),
+        ...Object.entries(counts.byProduct).map(([slug, { name }]) => [slug, name]),
       ]);
       productField.element.value = filters.product;
     })
@@ -289,8 +289,7 @@ export function inboxPage(container, context) {
       backHref: urlFor(filters, null),
       onChanged: () => load(),
       onGone: () => {
-        itemId = null;
-        navigate(urlFor(), { replace: true });
+        navigate(urlFor(filters, null), { replace: true });
         load();
       },
     });

@@ -46,4 +46,4 @@ Describe the components, where each runs, and how data flows between them.
 
 ## Known gaps
 
-None recorded yet.
+- A link in an email's formatted view can navigate its frame to another admin path (the shell's `frame-src 'self'` can't name one path without naming the host), which loads there with your Access session. The frame stays sandboxed with an opaque origin, so the shell and its data are out of reach; the worst case is an item marked read. Accepted.

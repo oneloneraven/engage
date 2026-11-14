@@ -473,6 +473,10 @@ textarea {
   min-width: 0;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 button,
 .button {
   font: inherit;
@@ -579,10 +583,6 @@ button:disabled {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--panel-radius);
-}
-
-.panel[hidden] {
-  display: none;
 }
 
 .panel > * + *,
