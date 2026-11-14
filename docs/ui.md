@@ -15,11 +15,13 @@ Tokens on `:root`. Dark is the default when the system asks for it; light otherw
 | `--line` | `#2A3346` | `#D5DAE4` | Dividers and borders |
 | `--text` | `#E6E9F0` | `#141A26` | Body text |
 | `--muted` | `#9AA3B5` | `#566079` | Secondary text and metadata |
-| `--petrol` | `#3BB7C9` | `#0E7C8C` | Links, focus, selection: the first sheen colour |
+| `--petrol` | `#3BB7C9` | `#0C7482` | Links, focus, selection: the first sheen colour |
 | `--violet` | `#8B7CF6` | `#5B4BD6` | The second sheen colour: the verdict underline and active nav only |
 | `--attention` | `#F2B544` | `#9A6400` | Needs you: reply owed, things waiting |
 | `--danger` | `#F07178` | `#B4232F` | Delete, failed health, junk |
 | `--ok` | `#5CCB8A` | `#1E7A47` | Healthy |
+
+Light `--petrol` is `#0C7482`, a shade darker than first proposed (`#0E7C8C`), because the lighter value measured 4.48:1 against `--ink`, just under the 4.5:1 that links and primary buttons need.
 
 The sheen gradient (`--petrol` to `--violet`) appears in exactly two places: the verdict underline, and the active navigation marker. Never as a background wash.
 

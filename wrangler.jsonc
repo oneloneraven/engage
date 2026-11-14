@@ -10,7 +10,8 @@
   },
   "assets": {
     "directory": "./dist",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
   },
   "d1_databases": [
     { "binding": "DB", "database_name": "engage", "database_id": "a3d02bed-6fe3-4bec-9aa7-cd61b201dc53", "migrations_dir": "migrations" }
@@ -47,7 +48,8 @@
       },
       "assets": {
         "directory": "./dist",
-        "binding": "ASSETS"
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application"
       },
       "routes": [
         { "pattern": "engage.oneloneraven.com/*", "zone_name": "oneloneraven.com" },
@@ -67,7 +69,8 @@
       },
       "assets": {
         "directory": "./dist",
-        "binding": "ASSETS"
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application"
       },
       "workers_dev": true,
       "preview_urls": true,
@@ -101,7 +104,8 @@
       },
       "assets": {
         "directory": "./dist",
-        "binding": "ASSETS"
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application"
       }
     }
   }

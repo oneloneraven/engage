@@ -1,5 +1,7 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { SevereServiceError } from "webdriverio";
+import { seedSql } from "./e2e/fixtures.js";
 
 const BASE_URL = "http://localhost:4173";
 let server;
@@ -20,6 +22,16 @@ async function waitFor(url, timeoutMs) {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   throw new Error(`${url} didn't answer within ${timeoutMs / 1000}s`);
+}
+
+function seedDatabase() {
+  const wrangler = ["exec", "wrangler", "d1"];
+  const local = ["engage", "--local", "--env", "e2e"];
+  const run = args => execFileSync("pnpm", ["--silent", ...wrangler, ...args], { stdio: "pipe" });
+  mkdirSync(".wrangler", { recursive: true });
+  writeFileSync(".wrangler/e2e-seed.sql", seedSql());
+  run(["migrations", "apply", ...local]);
+  run(["execute", ...local, "--file", ".wrangler/e2e-seed.sql"]);
 }
 
 function stopServer() {
@@ -61,6 +73,11 @@ export const config = {
   async onPrepare() {
     if (await answers(BASE_URL))
       throw new SevereServiceError(`Something is already serving ${BASE_URL}; stop it first`);
+    try {
+      seedDatabase();
+    } catch (error) {
+      throw new SevereServiceError(`Couldn't seed the e2e database: ${error.stderr?.toString() || error.message}`);
+    }
     server = spawn("pnpm", ["--silent", "e2e:server"], { stdio: "inherit", detached: true });
     try {
       await waitFor(BASE_URL, 120000);
