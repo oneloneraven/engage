@@ -10,7 +10,9 @@
   },
   "assets": {
     "directory": "./dist",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
   },
   "d1_databases": [
     { "binding": "DB", "database_name": "engage", "database_id": "a3d02bed-6fe3-4bec-9aa7-cd61b201dc53", "migrations_dir": "migrations" }
@@ -47,7 +49,9 @@
       },
       "assets": {
         "directory": "./dist",
-        "binding": "ASSETS"
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": true
       },
       "routes": [
         { "pattern": "engage.oneloneraven.com/*", "zone_name": "oneloneraven.com" },
@@ -68,7 +72,9 @@
       },
       "assets": {
         "directory": "./dist",
-        "binding": "ASSETS"
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": true
       },
       "workers_dev": true,
       "preview_urls": true,
@@ -94,15 +100,20 @@
         { "name": "INTAKE_WEB_LIMITER", "namespace_id": "3009", "simple": { "limit": 5, "period": 60 } },
         { "name": "INTAKE_APP_LIMITER", "namespace_id": "3010", "simple": { "limit": 3, "period": 60 } }
       ],
+      // Local wrangler dev only simulates sending, and e2e is never deployed.
+      "send_email": [{ "name": "EMAIL" }],
       "vars": {
         "APP_ENV": "e2e",
         "ADMIN_HOST": "localhost",
         "PUBLIC_HOST": "127.0.0.1",
-        "ADMIN_ACCESS_CHECK": "off"
+        "ADMIN_ACCESS_CHECK": "off",
+        "REPLY_ADDRESS_SECRET": "e2e-only-not-a-secret"
       },
       "assets": {
         "directory": "./dist",
-        "binding": "ASSETS"
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": true
       }
     }
   }

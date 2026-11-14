@@ -149,7 +149,7 @@ The webhook secret is verified on every delivery.
   - `hello@<domain>` (and any aliases kept for old mail, such as `support@` on CL) routes to Engage's `email()` handler as an **email** item.
   - `reply+<itemId>.<sig>@<domain>` routes replies back onto the item they belong to. `sig` is a truncated HMAC of the item id, so nobody can forge a reply onto another item.
   - Anything else is rejected.
-- **Parsing:** `postal-mime`. Text and HTML bodies are stored, with the HTML sanitised and shown in a sandboxed frame. Attachments go to R2 (25 MiB inbound cap), under the same retention as the item.
+- **Parsing:** `postal-mime`. Text and HTML bodies are stored. The HTML is kept as received and shown only on request, as its own document in a sandboxed frame whose policy lets it run no script and load nothing from elsewhere. Attachments go to R2 (25 MiB inbound cap), under the same retention as the item.
 - **Spam:**
   - Each message's SPF, DKIM and DMARC results are recorded.
   - Failing or suspicious mail goes to a **junk** view and doesn't trigger a ping.

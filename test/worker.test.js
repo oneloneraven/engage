@@ -41,3 +41,14 @@ test("the admin host never serves public paths", async () => {
 test("any other host gets nothing", async () => {
   expect((await get("https://other.example/")).status).toBe(404);
 });
+
+test("admin pages carry a policy that runs only Engage's own code and frames only its own documents", async () => {
+  const local = { ...env, APP_ENV: "e2e", ADMIN_HOST: "localhost", ADMIN_ACCESS_CHECK: "off" };
+  const response = await worker.fetch(new Request("https://localhost/items/a"), local);
+  expect(response.headers.get("Content-Security-Policy")).toBe(
+    "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+  );
+  expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  expect(response.headers.get("Referrer-Policy")).toBe("no-referrer");
+  expect(await response.text()).toBe("asset");
+});

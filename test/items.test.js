@@ -198,15 +198,28 @@ test("counts use the plan definitions and list every product, zeros included", a
     new: 2,
     open: 2,
     replyOwed: 1,
-    byProduct: { cl: { new: 1, open: 2 }, deaftly: { new: 1, open: 0 } },
+    byProduct: {
+      cl: { name: "Climbing Logbook", new: 1, open: 2 },
+      deaftly: { name: "Deaftly", new: 1, open: 0 },
+    },
   });
   await resetItems();
   expect(await counts(baseEnv)).toEqual({
     new: 0,
     open: 0,
     replyOwed: 0,
-    byProduct: { cl: { new: 0, open: 0 }, deaftly: { new: 0, open: 0 } },
+    byProduct: {
+      cl: { name: "Climbing Logbook", new: 0, open: 0 },
+      deaftly: { name: "Deaftly", new: 0, open: 0 },
+    },
   });
+});
+
+test("items carry their product's display name from the registry", async () => {
+  await seedStates();
+  const { items } = await listItems(baseEnv, {});
+  expect(items.length).toBeGreaterThan(0);
+  for (const item of items) expect(item.productName).toBe(item.product === "cl" ? "Climbing Logbook" : "Deaftly");
 });
 
 test("getItem returns the thread in order, attachment metadata and testimonials", async () => {
