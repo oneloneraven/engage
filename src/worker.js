@@ -19,6 +19,7 @@ import { runRetention } from "./retention.js";
  *   ADMIN_ACCESS_CHECK?: string,
  *   ACCESS_TEAM_DOMAIN?: string,
  *   ACCESS_AUD?: string,
+ *   OWNER_EMAIL?: string,
  *   ATTACHMENTS: {
  *     put: (key: string, value: ArrayBuffer | Uint8Array, options: { httpMetadata: { contentType: string } }) => Promise<unknown>,
  *     get: (key: string) => Promise<{ body: ReadableStream } | null>,

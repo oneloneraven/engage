@@ -102,6 +102,24 @@ describe("adminIdentity", () => {
     expect(await adminIdentity(request(await sign()), env, { fetchImpl: certs(), nowS: NOW })).toBeNull();
   });
 
+  const owned = { APP_ENV: "production", ACCESS_TEAM_DOMAIN: TEAM, ACCESS_AUD: AUD, OWNER_EMAIL: "Owner@Example.test" };
+
+  it("accepts a valid token for the owner, matching the email case-insensitively", async () => {
+    expect(await adminIdentity(request(await sign()), owned, { fetchImpl: certs(), nowS: NOW })).toEqual({
+      email: "owner@example.test",
+    });
+  });
+
+  it("refuses a valid token for anyone other than the owner", async () => {
+    const token = await sign({ email: "someone@example.test" });
+    expect(await adminIdentity(request(token), owned, { fetchImpl: certs(), nowS: NOW })).toBeNull();
+  });
+
+  it("refuses even the owner when the owner email isn't configured", async () => {
+    const env = { ...owned, OWNER_EMAIL: "" };
+    expect(await adminIdentity(request(await sign()), env, { fetchImpl: certs(), nowS: NOW })).toBeNull();
+  });
+
   it("refuses a request with no token", async () => {
     const env = { APP_ENV: "production", ACCESS_TEAM_DOMAIN: TEAM, ACCESS_AUD: AUD };
     expect(await adminIdentity(new Request("https://engage.oneloneraven.com/"), env)).toBeNull();
