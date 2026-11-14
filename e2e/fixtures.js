@@ -22,6 +22,7 @@ export function idsFor(browserName) {
     remove: `${prefix}-remove`,
     junk: `${prefix}-junk`,
     linked: `${prefix}-linked`,
+    reply: `${prefix}-reply`,
   };
 }
 
@@ -235,6 +236,20 @@ export function seedSql(now = new Date()) {
           read: true,
           issueNumber: 7,
           body: "The export is empty.",
+        },
+        now,
+      ),
+      itemSql(
+        {
+          id: ids.reply,
+          product: "cl",
+          kind: "feedback",
+          source: "web",
+          subject: `Reply to me ${browserName}`,
+          email: "replyee@example.test",
+          minutesAgo: 11,
+          read: true,
+          body: "Can I export to CSV?",
         },
         now,
       ),

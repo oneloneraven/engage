@@ -100,11 +100,14 @@
         { "name": "INTAKE_WEB_LIMITER", "namespace_id": "3009", "simple": { "limit": 5, "period": 60 } },
         { "name": "INTAKE_APP_LIMITER", "namespace_id": "3010", "simple": { "limit": 3, "period": 60 } }
       ],
+      // Local wrangler dev only simulates sending, and e2e is never deployed.
+      "send_email": [{ "name": "EMAIL" }],
       "vars": {
         "APP_ENV": "e2e",
         "ADMIN_HOST": "localhost",
         "PUBLIC_HOST": "127.0.0.1",
-        "ADMIN_ACCESS_CHECK": "off"
+        "ADMIN_ACCESS_CHECK": "off",
+        "REPLY_ADDRESS_SECRET": "e2e-only-not-a-secret"
       },
       "assets": {
         "directory": "./dist",

@@ -132,16 +132,30 @@ describe("item", () => {
     await expect($("#reason-reply")).toHaveText("No contact email");
   });
 
+  it("sends a reply and appends it to the thread", async () => {
+    await openItem(ids().reply);
+    await toolbarButton("Reply").click();
+    await $("#reply-text").setValue("Yes: Settings, then Export.");
+    await $("button=Send reply").click();
+    await expect($$(".message")).toBeElementsArrayOfSize(2);
+    await expect($(".message.out .message-body")).toHaveText("Yes: Settings, then Export.");
+    await expect($('[aria-label="Reply"]')).not.toBeDisplayed();
+    await expect(toolbarButton("Reply")).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("shows why a reply failed, and keeps what was typed", async () => {
+    const replies = await browser.mock("**/api/items/*/replies", { method: "post" });
+    replies.respond({ error: "send-failed" }, { statusCode: 502, fetchResponse: false });
     await openItem(ids().email);
     await toolbarButton("Reply").click();
     await $("#reply-text").setValue("Yes, it does.");
     await $("button=Send reply").click();
     await expect($('[aria-label="Reply"] [role=alert]')).toHaveText(
-      "Couldn't send: reply addresses aren't set up on this server yet.",
+      "Couldn't send the reply, and nothing was sent: try again in a minute.",
     );
     await expect($("#reply-text")).toHaveValue("Yes, it does.");
     await expect($$(".message")).toBeElementsArrayOfSize(1);
+    await browser.mockRestoreAll();
   });
 
   it("opens an editable issue draft, and says when GitHub can't be reached", async () => {

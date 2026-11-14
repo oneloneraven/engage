@@ -41,13 +41,22 @@ test("every environment, and PR previews, repeat both intake rate limiters with 
   for (const id of namespaces) expect(Number(id)).toBeGreaterThanOrEqual(3001);
 });
 
-test("only the default and production configs bind outbound email, so previews and e2e never send", () => {
+test("previews never bind outbound email, and e2e binds it only for local simulation, so neither sends", () => {
   const expected = [{ name: "EMAIL" }];
   expect(wrangler.send_email).toEqual(expected);
   expect(wrangler.env.production.send_email).toEqual(expected);
   expect(wrangler.env.preview.send_email).toBeUndefined();
   expect(wrangler.env.preview.previews.send_email).toBeUndefined();
-  expect(wrangler.env.e2e.send_email).toBeUndefined();
+  expect(wrangler.env.e2e.send_email).toEqual(expected);
+  expect(wrangler.env.e2e.routes).toBeUndefined();
+  expect(wrangler.env.e2e.workers_dev ?? wrangler.workers_dev).toBe(false);
+});
+
+test("only e2e sets a reply-address secret in config; every real environment takes it as a Worker secret", () => {
+  expect(wrangler.env.e2e.vars.REPLY_ADDRESS_SECRET).toBe("e2e-only-not-a-secret");
+  for (const config of [wrangler, wrangler.env.production, wrangler.env.preview, wrangler.env.preview.previews]) {
+    expect(config.vars.REPLY_ADDRESS_SECRET).toBeUndefined();
+  }
 });
 
 test("only the default and production configs bind the attachments bucket, so previews and e2e never write to it", () => {
