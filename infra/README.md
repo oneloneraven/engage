@@ -30,8 +30,10 @@ State lives in the R2 bucket `engage-tfstate`, never in git.
    does the CI tokens, or follow this page by hand.
 3. Run "Bootstrap OpenTofu state bucket".
 4. Run "Infra" (dispatch it, or merge a change under `infra/`).
-5. Add the DS record from `tofu output app_dnssec_ds_record` at the
-   registrar.
+5. Wait for DNSSEC to go live. The domain is on Cloudflare Registrar, which
+   adds the DS record to the registry itself from the zone's CDS records,
+   within one to two days. It's live when the zone's DNSSEC status is
+   `active`.
 6. In the dashboard, check the Worker's Preview URLs setting is on.
 
 ### Cloudflare API tokens
@@ -133,4 +135,7 @@ Deliberately deleting the project's infrastructure:
    environment.
 4. Empty and delete the `engage-tfstate` bucket in the dashboard.
 5. Revoke the four Cloudflare tokens and the R2 credentials.
-6. Remove the DS record at the registrar.
+6. Wait for the zone's DNSSEC status to go from `pending-disabled` to
+   `disabled`, which means the DS record has left the registry. Cloudflare
+   Registrar is expected to remove it automatically; if the status stays
+   `pending-disabled`, turn DNSSEC off in the domain's Registrar settings.
