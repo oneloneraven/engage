@@ -43,8 +43,8 @@ account and, for zone permissions, to `oneloneraven.com` only.
 |---|---|---|
 | Preview | `CLOUDFLARE_PREVIEW_TOKEN` (repository) | Account: Workers Scripts Edit, Account Settings Read |
 | Deploy | `CLOUDFLARE_DEPLOY_TOKEN` (environments `production`, and `beta` if used) | Account: Workers Scripts Edit, Account Settings Read. Zone: Workers Routes Edit |
-| Infra plan | `CLOUDFLARE_INFRA_PLAN_TOKEN` (repository) | Account: Workers R2 Storage Read, Transform Rules Read, Access: Apps and Policies Read, Access: Organizations, Identity Providers, and Groups Read, Turnstile Sites Read. Zone: DNS Read, Zone Settings Read, Zone WAF Read, Cache Settings Read |
-| Infra apply | `CLOUDFLARE_INFRA_APPLY_TOKEN` (environment `infra`) | Account: Workers R2 Storage Edit, Transform Rules Edit, Access: Apps and Policies Edit, Access: Organizations, Identity Providers, and Groups Read, Turnstile Sites Edit. Zone: DNS Edit, Zone Settings Edit, Zone WAF Edit, Cache Settings Edit |
+| Infra plan | `CLOUDFLARE_INFRA_PLAN_TOKEN` (repository) | Account: Workers R2 Storage Read, Transform Rules Read, Access: Apps and Policies Read, Turnstile Sites Read. Zone: DNS Read, Zone Settings Read, Zone WAF Read, Cache Settings Read |
+| Infra apply | `CLOUDFLARE_INFRA_APPLY_TOKEN` (environment `infra`) | Account: Workers R2 Storage Edit, Transform Rules Edit, Access: Apps and Policies Edit, Turnstile Sites Edit. Zone: DNS Edit, Zone Settings Edit, Zone WAF Edit, Cache Settings Edit |
 
 Transform Rules is account-scoped, so the infra tokens' Transform Rules permission covers every zone in the account, not just `oneloneraven.com`.
 
@@ -80,16 +80,23 @@ version locally.
 
 `CLOUDFLARE_ACCOUNT_ID` as a repository variable. It isn't confidential.
 
+`ACCESS_LOGIN_METHOD_ID` as a repository variable: the id of the account's
+Cloudflare login method in Access (Zero Trust → Integrations → Identity
+providers). It isn't confidential, and passing it in means this stack never
+needs to read account-wide Zero Trust settings.
+
 `OWNER_EMAIL` as a repository secret: the one email the Access policy lets
 through to the admin host. It is never committed.
 
 ### Access
 
 The admin host accepts only one login method: signing in with a Cloudflare
-account, which brings that account's MFA. `access.tf` looks the method up and
-pins it, so adding another login method to the account, such as a one-time
-PIN, never opens the admin host to it. Keep MFA on the Cloudflare account that
-`OWNER_EMAIL` names. After an apply, `tofu output access_aud` gives the value
+account, which brings that account's MFA. `access.tf` pins that method, so
+adding another login method to the account, such as a one-time PIN, never
+opens the admin host to it. Keep the Cloudflare account that `OWNER_EMAIL`
+names on passkey or security-key 2FA only: an authenticator-app code can be
+phished. Sessions last 8 hours, with the binding, HttpOnly and SameSite
+cookie protections on. After an apply, `tofu output access_aud` gives the value
 for the Worker's `ACCESS_AUD`.
 
 ### Worker secrets

@@ -14,3 +14,8 @@ variable "owner_email" {
   type        = string
   sensitive   = true
 }
+
+variable "access_login_method_id" {
+  description = "The Access login method for signing in with the Cloudflare account, which carries the account's MFA. Supplied by the ACCESS_LOGIN_METHOD_ID repository variable, so this stack never reads account-wide Zero Trust settings."
+  type        = string
+}
