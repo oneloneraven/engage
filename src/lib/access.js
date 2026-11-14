@@ -1,4 +1,4 @@
-// Checked as well as Access itself, so a misconfigured Access application can't open the admin host.
+// Checked as well as Access itself, so a misconfigured or tampered Access application can't open the admin host to anyone but the owner.
 
 const KEYS_TTL_MS = 60 * 60 * 1000;
 const CLOCK_SKEW_S = 60;
@@ -87,7 +87,7 @@ export async function verifyAccessJwt(token, { teamDomain, aud, fetchImpl = fetc
 /**
  * The verified Access identity behind a request to the admin host, or null.
  * @param {Request} request
- * @param {{ APP_ENV?: string, ADMIN_ACCESS_CHECK?: string, ACCESS_TEAM_DOMAIN?: string, ACCESS_AUD?: string }} env
+ * @param {{ APP_ENV?: string, ADMIN_ACCESS_CHECK?: string, ACCESS_TEAM_DOMAIN?: string, ACCESS_AUD?: string, OWNER_EMAIL?: string }} env
  * @param {{ fetchImpl?: typeof fetch, nowS?: number }} [options]
  * @returns {Promise<AccessIdentity | null>}
  */
@@ -96,8 +96,14 @@ export async function adminIdentity(request, env, options = {}) {
     return { email: "dev@localhost" };
   }
   const token = request.headers.get("Cf-Access-Jwt-Assertion");
-  if (!token || !env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) return null;
-  return verifyAccessJwt(token, { teamDomain: env.ACCESS_TEAM_DOMAIN, aud: env.ACCESS_AUD, ...options });
+  const owner = env.OWNER_EMAIL?.trim().toLowerCase();
+  if (!token || !env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD || !owner) return null;
+  const identity = await verifyAccessJwt(token, {
+    teamDomain: env.ACCESS_TEAM_DOMAIN,
+    aud: env.ACCESS_AUD,
+    ...options,
+  });
+  return identity?.email.toLowerCase() === owner ? identity : null;
 }
 
 export function clearAccessKeyCache() {
