@@ -1,4 +1,4 @@
-import { deleteItem } from "../admin/items.js";
+import { deleteItem, deleteItems } from "../admin/items.js";
 import { recordAudit } from "../audit.js";
 import { dispatch } from "../github/app.js";
 import { notFound } from "../lib/http.js";
@@ -175,6 +175,35 @@ export async function withdrawAllForItem(env, itemId, actor) {
  */
 export function deleteItemWithTestimonials(env, id, actor) {
   return deleteItem(env, id, actor, { beforeDelete: withdrawAllForItem });
+}
+
+/**
+ * The bulk form of deleteItemWithTestimonials, for retention: a fixed number of queries per call.
+ * @param {TestimonialsEnv & import("../admin/items.js").BulkDeleteEnv} env
+ * @param {string[]} ids
+ * @param {string} actor
+ * @returns {Promise<void>}
+ */
+export async function deleteItemsWithTestimonials(env, ids, actor) {
+  if (ids.length === 0) return;
+  const list = JSON.stringify(ids);
+  const live = "item_id IN (SELECT value FROM json_each(?)) AND approved_at IS NOT NULL AND withdrawn_at IS NULL";
+  const { results } = await env.DB.prepare(`SELECT DISTINCT product FROM testimonials WHERE ${live} ORDER BY product`)
+    .bind(list)
+    .all();
+  if (results.length > 0) {
+    const now = new Date().toISOString();
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO audit_events (at, actor, action, target_type, target_id, detail)
+         SELECT ?, ?, 'testimonial.withdrawn', 'testimonial', id, json_object('testimonialId', id)
+         FROM testimonials WHERE ${live} ORDER BY id`,
+      ).bind(now, actor, list),
+      env.DB.prepare(`UPDATE testimonials SET withdrawn_at = ? WHERE ${live}`).bind(now, list),
+    ]);
+    for (const row of results) await rebuildSite(env, String(row.product));
+  }
+  await deleteItems(env, ids, actor);
 }
 
 /**

@@ -1,6 +1,6 @@
 import { env as baseEnv } from "cloudflare:test";
 import { beforeEach, expect, test, vi } from "vitest";
-import { counts, deleteItem, getItem, listItems, setFlags } from "../src/admin/items.js";
+import { counts, deleteItem, deleteItems, getItem, listItems, setFlags } from "../src/admin/items.js";
 import { makeBucket, makeEnv, resetItems } from "./helpers.js";
 
 const ACTOR = "raven@example.com";
@@ -387,6 +387,51 @@ test("deleteItem removes the item, its rows and its R2 objects, and audits only 
     detail: "{}",
   });
   expect(JSON.stringify(events)).not.toContain("secret subject");
+});
+
+test("deleteItems removes several items, their rows and R2 objects in one R2 call, and audits each id", async () => {
+  await seedFull();
+  await seed("c");
+  const bucket = bucketWith(["items/a/att1", "items/a/att2", "items/keep/att3"]);
+  const calls = /** @type {unknown[]} */ ([]);
+  const original = bucket.delete;
+  bucket.delete = async keys => {
+    calls.push(keys);
+    return original(keys);
+  };
+  const env = makeEnv({ ATTACHMENTS: bucket });
+  await deleteItems(env, ["c", "a"], ACTOR);
+  expect(await getItem(env, "a")).toBeNull();
+  expect(await getItem(env, "c")).toBeNull();
+  expect(await getItem(env, "keep")).not.toBeNull();
+  expect(calls).toEqual([["items/a/att1", "items/a/att2"]]);
+  expect([...bucket.objects.keys()]).toEqual(["items/keep/att3"]);
+  expect((await audits()).map(event => [event.actor, event.action, event.target_id, event.detail])).toEqual([
+    [ACTOR, "item.deleted", "a", "{}"],
+    [ACTOR, "item.deleted", "c", "{}"],
+  ]);
+});
+
+test("deleteItems deletes nothing and audits nothing when the R2 delete fails", async () => {
+  await seedFull();
+  const env = makeEnv({
+    ATTACHMENTS: {
+      delete: async () => {
+        throw new Error("r2 down");
+      },
+    },
+  });
+  await expect(deleteItems(env, ["a", "keep"], ACTOR)).rejects.toThrow("r2 down");
+  expect(await getItem(env, "a")).not.toBeNull();
+  expect(await audits()).toEqual([]);
+});
+
+test("deleteItems with no ids does nothing", async () => {
+  const bucket = makeBucket();
+  bucket.delete = vi.fn();
+  await deleteItems(makeEnv({ ATTACHMENTS: bucket }), [], ACTOR);
+  expect(bucket.delete).not.toHaveBeenCalled();
+  expect(await audits()).toEqual([]);
 });
 
 test("deleteItem leaves the rows in place when an R2 delete fails, so it can be retried", async () => {

@@ -58,6 +58,7 @@ import { recordAudit } from "../audit.js";
 
 /** @typedef {{ DB: import("../lib/db.js").Database }} ItemsEnv */
 /** @typedef {ItemsEnv & { ATTACHMENTS: { delete: (key: string) => Promise<unknown> } }} DeleteEnv */
+/** @typedef {ItemsEnv & { ATTACHMENTS: { delete: (keys: string[]) => Promise<unknown> } }} BulkDeleteEnv */
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
@@ -312,6 +313,36 @@ export async function deleteItem(env, id, actor, options = {}) {
   for (const attachment of results) await env.ATTACHMENTS.delete(String(attachment.r2_key));
   await env.DB.prepare("DELETE FROM items WHERE id = ?").bind(id).run();
   await recordAudit(env, { actor, action: "item.deleted", targetType: "item", targetId: id, detail: {} });
+}
+
+const R2_DELETE_LIMIT = 1000;
+
+/**
+ * Deletes many items in a fixed handful of queries, whatever their number: R2 first, so a failure leaves every row to retry.
+ * @param {BulkDeleteEnv} env
+ * @param {string[]} ids
+ * @param {string} actor
+ * @returns {Promise<void>}
+ */
+export async function deleteItems(env, ids, actor) {
+  if (ids.length === 0) return;
+  const list = JSON.stringify(ids);
+  const { results } = await env.DB.prepare(
+    "SELECT r2_key FROM attachments WHERE item_id IN (SELECT value FROM json_each(?)) ORDER BY r2_key",
+  )
+    .bind(list)
+    .all();
+  const keys = results.map(row => String(row.r2_key));
+  for (let start = 0; start < keys.length; start += R2_DELETE_LIMIT) {
+    await env.ATTACHMENTS.delete(keys.slice(start, start + R2_DELETE_LIMIT));
+  }
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO audit_events (at, actor, action, target_type, target_id, detail)
+       SELECT ?, ?, 'item.deleted', 'item', id, '{}' FROM items WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id`,
+    ).bind(new Date().toISOString(), actor, list),
+    env.DB.prepare("DELETE FROM items WHERE id IN (SELECT value FROM json_each(?))").bind(list),
+  ]);
 }
 
 /**
