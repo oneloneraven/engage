@@ -75,6 +75,12 @@ test("only production runs the retention cron, so previews, PR previews and e2e 
   expect(wrangler.env.e2e.triggers).toBeUndefined();
 });
 
+test("production names its Access team domain and audience, so the admin host can let the owner in", () => {
+  const { ACCESS_TEAM_DOMAIN, ACCESS_AUD } = wrangler.env.production.vars;
+  expect(ACCESS_TEAM_DOMAIN).toMatch(/^[a-z0-9-]+\.cloudflareaccess\.com$/);
+  expect(ACCESS_AUD).toMatch(/^[0-9a-f]{64}$/);
+});
+
 test("every environment runs the Worker before its assets, so the admin shell is behind the Access check and only on the admin host", () => {
   const configs = { default: wrangler, ...wrangler.env };
   for (const [name, config] of Object.entries(configs)) {
