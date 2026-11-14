@@ -46,7 +46,7 @@ for (const colorScheme of ["light", "dark"]) {
       });
     }
 
-    it("the item page has none with the reply composer and issue draft open", async () => {
+    it("the item page has none with the reply composer, issue draft and formatted view open", async () => {
       const ids = idsFor(String(browser.capabilities.browserName));
       await browser.url(`/items/${ids.email}`);
       await $("h1.item-title").waitForExist();
@@ -54,6 +54,9 @@ for (const colorScheme of ["light", "dark"]) {
       expect(await violations()).toEqual([]);
       await $(".toolbar").$("button=Create GitHub issue").click();
       await $("#draft-title").waitForExist();
+      expect(await violations()).toEqual([]);
+      await $("button=Show formatted").click();
+      await $(".formatted iframe").waitForExist();
       expect(await violations()).toEqual([]);
     });
   });

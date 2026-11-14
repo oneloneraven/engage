@@ -3,6 +3,10 @@ export const BROWSER_NAMES = ["chrome", "firefox", "safari"];
 export const SHARED_OWED = "e2e-shared-owed";
 export const HOSTILE_MESSAGE = "<img src=x onerror=alert(1)>\n```\n@raven `code` <b>bold</b>";
 export const CONSENT_MESSAGE = "Love the offline mode. It never loses my logbook.";
+export const FORMATTED_HTML =
+  '<p id="formatted" style="color: rgb(160, 0, 0)">Formatted hello</p>' +
+  "<script>document.body.insertAdjacentHTML('beforeend', '<p id=\"ran\">Script ran</p>')</script>";
+export const ISSUE_URL = "https://github.com/oneloneraven/climbing-logbook/issues/7";
 
 /** @param {string} browserName */
 export function idsFor(browserName) {
@@ -17,6 +21,7 @@ export function idsFor(browserName) {
     archive: `${prefix}-archive`,
     remove: `${prefix}-remove`,
     junk: `${prefix}-junk`,
+    linked: `${prefix}-linked`,
   };
 }
 
@@ -32,7 +37,7 @@ const insert = (table, columns) =>
   `INSERT INTO ${table} (${Object.keys(columns).join(", ")}) VALUES (${Object.values(columns).map(sql).join(", ")});`;
 
 /**
- * @param {{ id: string, product: string, kind: string, source: string, subject?: string | null, email?: string | null, name?: string | null, consent?: boolean, minutesAgo: number, read?: boolean, junk?: boolean, owed?: boolean, body: string, authResult?: string | null }} item
+ * @param {{ id: string, product: string, kind: string, source: string, subject?: string | null, email?: string | null, name?: string | null, consent?: boolean, minutesAgo: number, read?: boolean, junk?: boolean, owed?: boolean, body: string, html?: string, issueNumber?: number, authResult?: string | null }} item
  * @param {Date} now
  */
 function itemSql(item, now) {
@@ -54,6 +59,8 @@ function itemSql(item, now) {
       junk: item.junk ? 1 : 0,
       read_at: item.read ? at : null,
       reply_owed_at: item.owed ? at : null,
+      issue_number: item.issueNumber ?? null,
+      issue_url: item.issueNumber ? ISSUE_URL.replace(/\d+$/, String(item.issueNumber)) : null,
       created_at: at,
       last_activity_at: at,
     }),
@@ -63,6 +70,7 @@ function itemSql(item, now) {
       direction: "in",
       from_addr: item.email ?? null,
       body_text: item.body,
+      body_html: item.html ?? null,
       created_at: at,
     }),
   ].join("\n");
@@ -145,6 +153,7 @@ export function seedSql(now = new Date()) {
           read: true,
           authResult: '{"spf":"pass","dkim":"pass","dmarc":"pass"}',
           body: "Does it work with captions turned off?",
+          html: FORMATTED_HTML,
         },
         now,
       ),
@@ -212,6 +221,20 @@ export function seedSql(now = new Date()) {
           read: true,
           junk: true,
           body: "Buy now.",
+        },
+        now,
+      ),
+      itemSql(
+        {
+          id: ids.linked,
+          product: "cl",
+          kind: "issue",
+          source: "app",
+          subject: `Already filed ${browserName}`,
+          minutesAgo: 10,
+          read: true,
+          issueNumber: 7,
+          body: "The export is empty.",
         },
         now,
       ),

@@ -1,5 +1,5 @@
 import { $, $$, browser, expect } from "@wdio/globals";
-import { CONSENT_MESSAGE, HOSTILE_MESSAGE, SHARED_OWED, idsFor } from "./fixtures.js";
+import { CONSENT_MESSAGE, HOSTILE_MESSAGE, ISSUE_URL, SHARED_OWED, idsFor } from "./fixtures.js";
 
 const ids = () => idsFor(String(browser.capabilities.browserName));
 const row = id => $(`li[data-id="${id}"]`);
@@ -156,6 +156,27 @@ describe("item", () => {
     );
     await expect($("#draft-title")).toHaveValue("Captions off");
     await expect(toolbarButton("Create GitHub issue")).toBeExisting();
+  });
+
+  it("shows the formatted version only on request, in a sandbox that runs nothing", async () => {
+    const page = await browser.url(`/items/${ids().email}`);
+    await $("h1.item-title").waitForExist();
+    await expect($(".formatted iframe")).not.toBeExisting();
+    await $("button=Show formatted").click();
+    await expect($(".formatted iframe")).toHaveAttribute("sandbox", "");
+    await expect($(".formatted figcaption")).toHaveText("Formatted view");
+    const formatted = await page.frame({ selector: ".formatted iframe" });
+    await expect(formatted.$("#formatted")).toHaveText("Formatted hello");
+    await expect(formatted.$("#ran")).not.toBeExisting();
+    await $("button=Hide formatted").click();
+    await expect($(".formatted iframe")).not.toBeExisting();
+  });
+
+  it("links to the GitHub issue once there is one", async () => {
+    await openItem(ids().linked);
+    const link = $(".toolbar").$("a=View GitHub issue #7");
+    await expect(link).toHaveAttribute("href", ISSUE_URL);
+    await expect(toolbarButton("Create GitHub issue")).not.toBeExisting();
   });
 
   it("disables quoting, with the reason, when there is no consent", async () => {

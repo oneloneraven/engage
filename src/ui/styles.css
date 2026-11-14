@@ -635,6 +635,31 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+.formatted {
+  margin-top: 0.75rem;
+}
+
+.formatted figure {
+  margin: 0.75rem 0 0;
+}
+
+/* Email HTML is written for a white page, whatever the interface theme. */
+.formatted iframe {
+  display: block;
+  width: 100%;
+  height: 28rem;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color-scheme: light;
+}
+
+.formatted figcaption {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+}
+
 .attachments,
 .quotes,
 .details {

@@ -33,7 +33,7 @@ import { recordAudit } from "../audit.js";
  *   context: Record<string, unknown> | null,
  *   accountRef: string | null,
  *   authResult: { spf: string, dkim: string, dmarc: string } | null,
- *   messages: { id: string, direction: "in" | "out", fromAddr: string | null, bodyText: string, rfcMessageId: string | null, createdAt: string }[],
+ *   messages: { id: string, direction: "in" | "out", fromAddr: string | null, bodyText: string, hasHtml: boolean, rfcMessageId: string | null, createdAt: string }[],
  *   attachments: { id: string, messageId: string, filename: string | null, contentType: string | null, size: number }[],
  *   testimonials: { id: string, product: string, excerpt: string, attribution: string, approvedAt: string | null, withdrawnAt: string | null, createdAt: string }[],
  * }} ItemDetail
@@ -190,7 +190,7 @@ export async function getItem(env, id) {
   if (!row) return null;
   const [messages, attachments, testimonials] = await Promise.all([
     env.DB.prepare(
-      "SELECT id, direction, from_addr, body_text, rfc_message_id, created_at FROM messages WHERE item_id = ? ORDER BY created_at, id",
+      "SELECT id, direction, from_addr, body_text, body_html IS NOT NULL AS has_html, rfc_message_id, created_at FROM messages WHERE item_id = ? ORDER BY created_at, id",
     )
       .bind(id)
       .all(),
@@ -218,6 +218,7 @@ export async function getItem(env, id) {
       direction: /** @type {"in" | "out"} */ (message.direction),
       fromAddr: /** @type {string | null} */ (message.from_addr),
       bodyText: String(message.body_text),
+      hasHtml: message.has_html === 1,
       rfcMessageId: /** @type {string | null} */ (message.rfc_message_id),
       createdAt: String(message.created_at),
     })),

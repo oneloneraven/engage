@@ -257,6 +257,31 @@ async function attachmentRead({ env, params: [itemId, attachmentId] }) {
   });
 }
 
+const FORMATTED_VIEW_POLICY =
+  "sandbox; default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'; frame-ancestors 'self'";
+
+/**
+ * Inbound HTML is served as its own sandboxed document, never handed to the admin page's scripts.
+ * @param {RouteContext} context
+ */
+async function messageHtmlRead({ env, params: [itemId, messageId] }) {
+  const row = await env.DB.prepare(
+    "SELECT body_html FROM messages WHERE id = ? AND item_id = ? AND body_html IS NOT NULL",
+  )
+    .bind(messageId, itemId)
+    .first();
+  if (!row) return notFound();
+  return new Response(String(row.body_html), {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Content-Security-Policy": FORMATTED_VIEW_POLICY,
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 /** @type {{ pattern: RegExp, handlers: Record<string, (context: RouteContext) => Promise<Response>> }[]} */
 const ROUTES = [
   { pattern: /^\/api\/items$/, handlers: { GET: itemsList } },
@@ -266,11 +291,24 @@ const ROUTES = [
   { pattern: /^\/api\/items\/([^/]+)\/issue$/, handlers: { POST: issueCreate } },
   { pattern: /^\/api\/items\/([^/]+)\/testimonials$/, handlers: { POST: excerptCreate } },
   { pattern: /^\/api\/items\/([^/]+)\/attachments\/([^/]+)$/, handlers: { GET: attachmentRead } },
+  { pattern: /^\/api\/items\/([^/]+)\/messages\/([^/]+)\/html$/, handlers: { GET: messageHtmlRead } },
   { pattern: /^\/api\/testimonials\/([^/]+)\/approve$/, handlers: { POST: testimonialApprove } },
   { pattern: /^\/api\/testimonials\/([^/]+)\/withdraw$/, handlers: { POST: testimonialWithdraw } },
   { pattern: /^\/api\/blocklist$/, handlers: { POST: blocklistAdd } },
   { pattern: /^\/api\/counts$/, handlers: { GET: countsRead } },
 ];
+
+const PAGE_POLICY =
+  "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+
+/** @param {Response} asset */
+function withPagePolicy(asset) {
+  const response = new Response(asset.body, asset);
+  response.headers.set("Content-Security-Policy", PAGE_POLICY);
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "no-referrer");
+  return response;
+}
 
 /** @param {unknown} error */
 function errorResponse(error, env) {
@@ -298,7 +336,7 @@ export async function routeAdmin(request, env, _ctx, identity) {
   const url = new URL(request.url);
   const { pathname } = url;
   if (pathname.startsWith("/v1/")) return notFound();
-  if (!pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
+  if (!pathname.startsWith("/api/")) return withPagePolicy(await env.ASSETS.fetch(request));
 
   for (const { pattern, handlers } of ROUTES) {
     const match = pattern.exec(pathname);

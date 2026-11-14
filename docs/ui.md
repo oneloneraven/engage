@@ -71,7 +71,7 @@ Desktop                                        Mobile
 - **Health dot:** a 10px dot (`--ok`, `--attention` or `--danger`), always paired with a word ("Healthy", "Errors"), never colour alone.
 - **Confirmations:** delete asks inline in the toolbar ("Delete this and its quotes for good?" with "Delete for good" and "Keep it"), not in a modal.
 - **Empty states:** one sentence and, where there is one, the next action. For example: "Nothing needs you. New feedback lands here and pings Discord."
-- **Inbound HTML:** shown only on request, in a sandboxed frame with a `--line` border and the caption "Formatted view". Not built yet: the admin API doesn't expose `body_html`, so this needs an API field first.
+- **Inbound HTML:** shown only on request ("Show formatted"), in a sandboxed frame with a `--line` border, a white page whatever the theme (email is written for one), and the caption "Formatted view". Remote images and links don't load in it, by design.
 
 ## Motion
 

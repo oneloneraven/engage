@@ -11,12 +11,15 @@ Describe the components, where each runs, and how data flows between them.
 
 | Boundary | Between | What crosses it | Controls |
 |---|---|---|---|
+| Browser → admin host | You, signed in through Cloudflare Access, and the Worker | The admin shell, the admin API, and every item's content | Access at the edge; the Worker verifies the Access token on every admin path, assets included (`run_worker_first`), and serves the shell on the admin host only; the shell's policy runs only Engage's own scripts and frames only its own documents |
+| Inbound email HTML → your browser | A sender's markup and the admin shell | Email HTML, shown only when you ask for the formatted view | Served as its own document under a `sandbox` policy (opaque origin, no script) that loads nothing from elsewhere, inside an `<iframe sandbox>`; never passed to the shell's scripts. User text is rendered as text only |
 | Release job → GitHub API | `release.yml` and the release GitHub App | Short-lived App token (Contents and Workflows: read and write) to push release tags and create releases | Token minted only in the release job and scoped to this repository; App installed on this repository only; private key held as a repository secret |
 
 ## Assets
 
 | Asset | Why it matters |
 |---|---|
+| Item content (feedback, email, contact details) | Personal data; leaking it breaks the privacy promise to every person who wrote in |
 | Release App private key | Anyone holding it can mint tokens that push tags and, through Workflows, change workflow files |
 
 ## Actors
@@ -35,7 +38,9 @@ Describe the components, where each runs, and how data flows between them.
 | | Spoofing | | |
 | | Tampering | | |
 | | Repudiation | | |
-| | Information disclosure | | |
+| Script in an inbound email's HTML runs with your admin session | Elevation of privilege | HTML is only ever a sandboxed document with an opaque origin and no script, under a policy header that also applies if it's opened directly; the shell renders user text with text nodes only | Mitigated |
+| Remote images or styles in an email's HTML tell the sender when and where you read it | Information disclosure | The formatted view's policy allows only inline styles and `data:` images and fonts; the shell's `frame-src 'self'` stops a link in it loading another site into the frame | Mitigated |
+| The admin shell is served without the Access check, or on the public host | Information disclosure | The Worker runs before assets on every environment, so assets go through the same Access check and host routing as the API | Mitigated |
 | | Denial of service | | |
 | Leaked release token or App key used to alter workflow files | Elevation of privilege | The Workflows permission is needed because GitHub refuses a tag whose commit's workflow files differ from the default branch's. Tokens last one hour and are minted only in the release job; the key is a repository secret; the App is installed on this repository only | Accepted |
 

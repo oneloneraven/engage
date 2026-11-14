@@ -5,7 +5,7 @@ import { sentenceFor } from "./errors.js";
 /** @typedef {import("../github/app.js").IssueDraft} IssueDraft */
 /** @typedef {{ new: number, open: number, replyOwed: number, byProduct: Record<string, { new: number, open: number }> }} Counts */
 
-export class ApiError extends Error {
+class ApiError extends Error {
   /**
    * @param {string} code
    * @param {number} status

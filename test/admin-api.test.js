@@ -227,6 +227,52 @@ describe("GET /api/items/:id", () => {
   });
 });
 
+describe("GET /api/items/:id/messages/:messageId/html", () => {
+  const HTML = '<p style="color: red">Hello</p><img src="https://tracker.example/pixel.gif"><script>alert(1)</script>';
+
+  /** @param {string | null} html */
+  async function withHtml(html) {
+    await seed("a");
+    await baseEnv.DB.prepare("UPDATE messages SET body_html = ? WHERE id = 'm-a'").bind(html).run();
+  }
+
+  test("the item says which messages have a formatted version", async () => {
+    await withHtml(HTML);
+    await seed("b");
+    expect((await (await call("GET", "/api/items/a")).json()).messages[0].hasHtml).toBe(true);
+    expect((await (await call("GET", "/api/items/b")).json()).messages[0].hasHtml).toBe(false);
+  });
+
+  test("serves the stored HTML as a sandboxed document that can load nothing from elsewhere", async () => {
+    await withHtml(HTML);
+    const response = await call("GET", "/api/items/a/messages/m-a/html");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+    expect(response.headers.get("Content-Security-Policy")).toBe(
+      "sandbox; default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'; frame-ancestors 'self'",
+    );
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(response.headers.get("Referrer-Policy")).toBe("no-referrer");
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(await response.text()).toBe(HTML);
+  });
+
+  test("is 404 when the message has no HTML, belongs to another item or doesn't exist", async () => {
+    await withHtml(HTML);
+    await seed("b");
+    expect((await call("GET", "/api/items/b/messages/m-b/html")).status).toBe(404);
+    expect((await call("GET", "/api/items/b/messages/m-a/html")).status).toBe(404);
+    expect((await call("GET", "/api/items/a/messages/missing/html")).status).toBe(404);
+  });
+
+  test("doesn't mark the item read or audit anything", async () => {
+    await withHtml(HTML);
+    await call("GET", "/api/items/a/messages/m-a/html");
+    expect(await audit()).toEqual([]);
+    expect((await baseEnv.DB.prepare("SELECT read_at FROM items WHERE id = 'a'").first())?.read_at).toBeNull();
+  });
+});
+
 describe("PATCH /api/items/:id", () => {
   test("sets flags and audits under the Access identity", async () => {
     await seed("a");

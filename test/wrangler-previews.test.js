@@ -65,3 +65,15 @@ test("only production runs the retention cron, so previews, PR previews and e2e 
   expect(wrangler.env.preview.previews.triggers).toBeUndefined();
   expect(wrangler.env.e2e.triggers).toBeUndefined();
 });
+
+test("every environment runs the Worker before its assets, so the admin shell is behind the Access check and only on the admin host", () => {
+  const configs = { default: wrangler, ...wrangler.env };
+  for (const [name, config] of Object.entries(configs)) {
+    expect(config.assets, name).toEqual({
+      directory: "./dist",
+      binding: "ASSETS",
+      not_found_handling: "single-page-application",
+      run_worker_first: true,
+    });
+  }
+});

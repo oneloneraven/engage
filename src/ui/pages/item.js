@@ -54,6 +54,8 @@ export function mountItem(pane, id, hooks) {
   let item = null;
   let confirmingDelete = false;
   let selectedText = "";
+  /** @type {Set<string>} */
+  const formattedOpen = new Set();
   /** @type {(() => void) | null} */
   let stopSelection = null;
 
@@ -313,8 +315,44 @@ export function mountItem(pane, id, hooks) {
               h("time", { datetime: message.createdAt }, formatTime(message.createdAt)),
             ),
             h("p", { class: "message-body" }, message.bodyText),
+            message.hasHtml && formattedView(message.id),
           ),
         ),
+      );
+    }
+
+    /**
+     * Inbound HTML loads only on request, as its own sandboxed document from the API.
+     * @param {string} messageId
+     */
+    function formattedView(messageId) {
+      const open = formattedOpen.has(messageId);
+      const toggle = h(
+        "button",
+        { type: "button", class: "secondary", "aria-expanded": String(open) },
+        open ? "Hide formatted" : "Show formatted",
+      );
+      toggle.addEventListener("click", () => {
+        if (formattedOpen.has(messageId)) formattedOpen.delete(messageId);
+        else formattedOpen.add(messageId);
+        drawThread();
+      });
+      return h(
+        "div",
+        { class: "formatted" },
+        toggle,
+        open &&
+          h(
+            "figure",
+            null,
+            h("iframe", {
+              sandbox: true,
+              referrerpolicy: "no-referrer",
+              title: "Formatted view of this message",
+              src: `/api/items/${encodeURIComponent(id)}/messages/${encodeURIComponent(messageId)}/html`,
+            }),
+            h("figcaption", { class: "muted" }, "Formatted view"),
+          ),
       );
     }
 
