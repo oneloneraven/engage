@@ -11,7 +11,7 @@ Describe the components, where each runs, and how data flows between them.
 
 | Boundary | Between | What crosses it | Controls |
 |---|---|---|---|
-| Browser → admin host | You, signed in through Cloudflare Access, and the Worker | The admin shell, the admin API, and every item's content | Access at the edge; the Worker verifies the Access token on every admin path, assets included (`run_worker_first`), and serves the shell on the admin host only; the shell's policy runs only Engage's own scripts and frames only its own documents |
+| Browser → admin host | You, signed in through Cloudflare Access, and the Worker | The admin shell, the admin API, and every item's content | Access at the edge; the Worker verifies the Access token on every admin path, assets included (`run_worker_first`), and refuses any email but the owner's (`OWNER_EMAIL`), failing closed when it isn't set, and serves the shell on the admin host only; the shell's policy runs only Engage's own scripts and frames only its own documents |
 | Inbound email HTML → your browser | A sender's markup and the admin shell | Email HTML, shown only when you ask for the formatted view | Served as its own document under a `sandbox` policy (opaque origin, no script) that loads nothing from elsewhere, inside an `<iframe sandbox>`; never passed to the shell's scripts. User text is rendered as text only |
 | Release job → GitHub API | `release.yml` and the release GitHub App | Short-lived App token (Contents and Workflows: read and write) to push release tags and create releases | Token minted only in the release job and scoped to this repository; App installed on this repository only; private key held as a repository secret |
 
