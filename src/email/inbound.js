@@ -38,6 +38,9 @@ import { parseReplyAddress } from "./reply-address.js";
 
 const REJECTION = "Address does not exist";
 const MAX_SUBJECT_CHARACTERS = 200;
+const MAX_TEXT_BYTES = 500_000;
+const MAX_HTML_BYTES = 1_000_000;
+const TRUNCATION_NOTE = "\n\n[This message was too long to show in full. The whole text is attached as message.txt.]";
 const RESULT = /(?<![\w.-])(spf|dkim|dmarc)\s*=\s*([a-z]+)/gi;
 const SENDER = /^[^@\s]+@[^@\s]+$/;
 
@@ -138,6 +141,40 @@ async function isBlocked(env, address) {
 const bytesOf = content => (typeof content === "string" ? new TextEncoder().encode(content) : content);
 
 /**
+ * The longest start of `value` that fits in `maxBytes` of UTF-8, never splitting a character.
+ * @param {string} value
+ * @param {number} maxBytes
+ */
+function utf8Prefix(value, maxBytes) {
+  const { read } = new TextEncoder().encodeInto(value, new Uint8Array(maxBytes));
+  return value.slice(0, read);
+}
+
+/**
+ * D1 rows hold at most 2,000,000 bytes, so a body bigger than its share is kept whole in R2 as an attachment instead.
+ * @param {string} text
+ * @param {string | null} html
+ */
+function fitBodies(text, html) {
+  const encoder = new TextEncoder();
+  /** @type {{ content: Uint8Array, filename: string, contentType: string }[]} */
+  const overflow = [];
+  let storedText = text;
+  let storedHtml = html;
+  const textBytes = encoder.encode(text);
+  if (textBytes.byteLength > MAX_TEXT_BYTES) {
+    overflow.push({ content: textBytes, filename: "message.txt", contentType: "text/plain" });
+    storedText = `${utf8Prefix(text, MAX_TEXT_BYTES - encoder.encode(TRUNCATION_NOTE).byteLength)}${TRUNCATION_NOTE}`;
+  }
+  const htmlBytes = html === null ? null : encoder.encode(html);
+  if (htmlBytes && htmlBytes.byteLength > MAX_HTML_BYTES) {
+    overflow.push({ content: htmlBytes, filename: "message.html", contentType: "text/html" });
+    storedHtml = null;
+  }
+  return { text: storedText, html: storedHtml, overflow };
+}
+
+/**
  * Takes one inbound message: a new email item, or a reply appended to the item its address belongs to.
  * @param {InboundMessage} message
  * @param {InboundEnv} env
@@ -168,16 +205,19 @@ export async function handleInboundEmail(message, env, ctx) {
   const itemId = replyItemId ?? newId();
   const messageId = newId();
   const now = new Date().toISOString();
-  const html = email?.html || null;
-  const text = email?.text?.trim() ? email.text : html ? htmlToText(html) : "";
+  const fullHtml = email?.html || null;
+  const fullText = email?.text?.trim() ? email.text : fullHtml ? htmlToText(fullHtml) : "";
+  const { text, html, overflow } = fitBodies(fullText, fullHtml);
   const subject = [...(email?.subject?.trim() ?? "")].slice(0, MAX_SUBJECT_CHARACTERS).join("") || null;
 
-  const attachments = (email?.attachments ?? []).map(attachment => ({
-    id: newId(),
-    content: bytesOf(attachment.content),
-    filename: attachment.filename,
-    contentType: attachment.mimeType,
-  }));
+  const attachments = [
+    ...(email?.attachments ?? []).map(attachment => ({
+      content: bytesOf(attachment.content),
+      filename: attachment.filename,
+      contentType: attachment.mimeType,
+    })),
+    ...overflow,
+  ].map(attachment => ({ id: newId(), ...attachment }));
   const keys = attachments.map(attachment => `items/${itemId}/${attachment.id}`);
   await Promise.all(
     attachments.map((attachment, index) =>

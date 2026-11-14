@@ -5,6 +5,7 @@ import worker from "../src/worker.js";
 import {
   approve,
   createExcerpt,
+  deleteItemsWithTestimonials,
   deleteItemWithTestimonials,
   publicFeed,
   withdraw,
@@ -253,6 +254,35 @@ test("deleteItemWithTestimonials withdraws, dispatches, then deletes the item an
   expect(await quote()).toBeNull();
   expect(await baseEnv.DB.prepare("SELECT id FROM items WHERE id = 'i1'").first()).toBeNull();
   expect((await audits()).map(event => event.action)).toEqual(["testimonial.withdrawn", "item.deleted"]);
+});
+
+test("deleteItemsWithTestimonials withdraws every live quote, dispatches once per product, then deletes", async () => {
+  await seedItem("i1");
+  await seedItem("i2");
+  await seedItem("i3");
+  await seedQuote("q1", "i1", { approved_at: T });
+  await seedQuote("q2", "i2", { approved_at: T });
+  await seedQuote("q3", "i2");
+  const dispatches = stubGithub();
+  await deleteItemsWithTestimonials({ ...testEnv(), ATTACHMENTS: makeBucket() }, ["i1", "i2", "i3"], ACTOR);
+  expect(dispatches).toHaveLength(1);
+  expect((await baseEnv.DB.prepare("SELECT COUNT(*) AS n FROM items").first())?.n).toBe(0);
+  expect((await baseEnv.DB.prepare("SELECT COUNT(*) AS n FROM testimonials").first())?.n).toBe(0);
+  expect((await audits()).map(event => [event.action, event.target_id, event.detail])).toEqual([
+    ["testimonial.withdrawn", "q1", '{"testimonialId":"q1"}'],
+    ["testimonial.withdrawn", "q2", '{"testimonialId":"q2"}'],
+    ["item.deleted", "i1", "{}"],
+    ["item.deleted", "i2", "{}"],
+    ["item.deleted", "i3", "{}"],
+  ]);
+});
+
+test("deleteItemsWithTestimonials with no live quotes dispatches nothing", async () => {
+  await seedItem("i1");
+  const dispatches = stubGithub();
+  await deleteItemsWithTestimonials({ ...testEnv(), ATTACHMENTS: makeBucket() }, ["i1"], ACTOR);
+  expect(dispatches).toHaveLength(0);
+  expect((await audits()).map(event => event.action)).toEqual(["item.deleted"]);
 });
 
 test("publicFeed lists approved, unwithdrawn quotes newest first without ids", async () => {

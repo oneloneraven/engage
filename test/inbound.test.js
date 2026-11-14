@@ -335,6 +335,61 @@ test("an attachment goes to R2 under the item and attachment ids, with a row des
   expect(object?.options).toEqual({ httpMetadata: { contentType: "text/plain" } });
 });
 
+const HEADERS = helloEml.slice(0, helloEml.indexOf("Content-Type:"));
+const utf8Bytes = (/** @type {unknown} */ value) => new TextEncoder().encode(String(value)).byteLength;
+
+test("a text body too big for a database row is kept whole as an attachment, and cut short in the row", async () => {
+  const bucket = makeBucket();
+  const text = `Start ${"é".repeat(300_000)} end`;
+  const raw = `${HEADERS}Content-Type: text/plain; charset=utf-8\nContent-Transfer-Encoding: 8bit\n\n${text}\n`;
+  await receive("hello@climbinglogbook.com", raw, { env: inboundEnv({ ATTACHMENTS: bucket }) });
+  const [stored] = await messages();
+  expect(utf8Bytes(stored.body_text)).toBeLessThanOrEqual(500_000);
+  expect(String(stored.body_text)).toMatch(
+    /^Start é+\n\n\[This message was too long to show in full\. The whole text is attached as message\.txt\.\]$/,
+  );
+  expect(String(stored.body_text)).not.toContain("�");
+  const { results } = await baseEnv.DB.prepare("SELECT * FROM attachments").all();
+  expect(results).toMatchObject([{ message_id: stored.id, filename: "message.txt", content_type: "text/plain" }]);
+  const object = bucket.objects.get(String(results[0].r2_key));
+  expect(new TextDecoder().decode(object?.value).trim()).toBe(text);
+  expect(results[0].size).toBe(object?.value.byteLength);
+});
+
+test("an HTML body too big for a database row is kept whole as an attachment, with no formatted view", async () => {
+  const bucket = makeBucket();
+  const html = `<p>${"x".repeat(1_100_000)}</p>`;
+  const raw = [
+    `${HEADERS}Content-Type: multipart/alternative; boundary="b"`,
+    "",
+    "--b",
+    "Content-Type: text/plain; charset=utf-8",
+    "",
+    "Short text",
+    "--b",
+    "Content-Type: text/html; charset=utf-8",
+    "",
+    html,
+    "--b--",
+    "",
+  ].join("\n");
+  await receive("hello@climbinglogbook.com", raw, { env: inboundEnv({ ATTACHMENTS: bucket }) });
+  const [stored] = await messages();
+  expect(stored.body_html).toBeNull();
+  expect(String(stored.body_text).trim()).toBe("Short text");
+  const { results } = await baseEnv.DB.prepare("SELECT * FROM attachments").all();
+  expect(results).toMatchObject([{ filename: "message.html", content_type: "text/html" }]);
+  expect(new TextDecoder().decode(bucket.objects.get(String(results[0].r2_key))?.value)).toContain(html);
+});
+
+test("bodies within the limits are stored as they are, with no extra attachment", async () => {
+  const text = "é".repeat(249_000);
+  const raw = `${HEADERS}Content-Type: text/plain; charset=utf-8\nContent-Transfer-Encoding: 8bit\n\n${text}\n`;
+  await receive("hello@climbinglogbook.com", raw);
+  expect(String((await messages())[0].body_text).trim()).toBe(text);
+  expect((await baseEnv.DB.prepare("SELECT COUNT(*) AS n FROM attachments").first())?.n).toBe(0);
+});
+
 test("R2 objects are removed again when the database write fails", async () => {
   const bucket = makeBucket();
   const failing = inboundEnv({

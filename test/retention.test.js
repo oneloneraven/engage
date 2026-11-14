@@ -102,18 +102,76 @@ test("every deletion is audited as system:retention", async () => {
   ]);
 });
 
-test("a run deletes at most 500 items, oldest first", async () => {
-  for (let index = 0; index < 501; index++) {
-    await seed(`j${String(index).padStart(3, "0")}`, { junk: 1, createdAt: daysAgo(100 + (500 - index) / 1000) });
-  }
+/**
+ * Junk items `prefix0000`… created a day apart going back from 100 days ago, so a lower number is newer.
+ * @param {string} prefix
+ * @param {number} count
+ */
+async function seedMany(prefix, count) {
+  await baseEnv.DB.prepare(
+    `WITH RECURSIVE n(i) AS (SELECT 0 UNION ALL SELECT i + 1 FROM n WHERE i + 1 < ?)
+     INSERT INTO items (id, product, kind, source, junk, created_at, last_activity_at)
+     SELECT ? || printf('%04d', i), 'cl', 'feedback', 'web', 1,
+       strftime('%Y-%m-%dT%H:%M:%fZ', ?, '-' || (100 + i) || ' days'),
+       strftime('%Y-%m-%dT%H:%M:%fZ', ?, '-' || (100 + i) || ' days')
+     FROM n`,
+  )
+    .bind(count, prefix, NOW.toISOString(), NOW.toISOString())
+    .run();
+}
+
+/**
+ * Counts D1 calls the way the per-invocation query limit does: a batch is one.
+ * @param {import("../src/lib/db.js").Database} db
+ */
+function countingDb(db) {
+  const counter = { queries: 0 };
+  const raw = new WeakMap();
+  /** @param {any} statement */
+  const wrap = statement => {
+    /** @param {"first" | "all" | "run"} method */
+    const counted = method => () => {
+      counter.queries++;
+      return statement[method]();
+    };
+    const wrapped = {
+      bind: (/** @type {unknown[]} */ ...values) => wrap(statement.bind(...values)),
+      first: counted("first"),
+      all: counted("all"),
+      run: counted("run"),
+    };
+    raw.set(wrapped, statement);
+    return wrapped;
+  };
+  return {
+    counter,
+    db: {
+      prepare: (/** @type {string} */ sql) => wrap(db.prepare(sql)),
+      batch: (/** @type {any[]} */ statements) => {
+        counter.queries++;
+        return db.batch(statements.map(statement => raw.get(statement) ?? statement));
+      },
+    },
+  };
+}
+
+test("a run deletes at most 2,000 items, oldest first, in batches", async () => {
+  await seedMany("j", 2001);
   await seed("newest", { junk: 1, createdAt: daysAgo(31) });
-  expect(await runRetention(testEnv(), NOW)).toEqual({ deleted: 500, failed: 0 });
-  expect(await remaining()).toEqual(["j500", "newest"]);
+  expect(await runRetention(testEnv(), NOW)).toEqual({ deleted: 2000, failed: 0 });
+  expect(await remaining()).toEqual(["j0000", "newest"]);
 }, 60_000);
 
-test("a failing deletion is logged by error name only, skipped, and the run carries on", async () => {
-  await seed("bad", { junk: 1, createdAt: daysAgo(90) });
-  await seed("good", { junk: 1, createdAt: daysAgo(40) });
+test("a full run stays far inside D1's 1,000 queries per invocation", async () => {
+  await seedMany("j", 2001);
+  const { counter, db } = countingDb(baseEnv.DB);
+  await runRetention(makeEnv({ ATTACHMENTS: makeBucket(), DB: db }), NOW);
+  expect(counter.queries).toBeLessThanOrEqual(110);
+}, 60_000);
+
+test("a failing batch is retried item by item, the failing item is logged by error name only and skipped, and the run stops", async () => {
+  await seedMany("j", 150);
+  await seed("bad", { junk: 1, createdAt: daysAgo(900) });
   await baseEnv.DB.exec(
     "INSERT INTO messages (id, item_id, direction, body_text, created_at) VALUES ('m', 'bad', 'in', 'secret words', 'x')",
   );
@@ -121,18 +179,29 @@ test("a failing deletion is logged by error name only, skipped, and the run carr
     "INSERT INTO attachments (id, item_id, message_id, r2_key, size) VALUES ('a', 'bad', 'm', 'k/secret', 1)",
   );
   const bucket = makeBucket();
-  bucket.delete = async () => {
-    throw new TypeError("secret words");
+  bucket.delete = async keys => {
+    if ([keys].flat().includes("k/secret")) throw new TypeError("secret words");
   };
   const error = vi.spyOn(console, "error").mockImplementation(() => {});
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   const result = await runRetention(makeEnv({ ATTACHMENTS: bucket }), NOW);
-  expect(result).toEqual({ deleted: 1, failed: 1 });
-  expect(await remaining()).toEqual(["bad"]);
+  expect(result).toEqual({ deleted: 99, failed: 1 });
+  expect(await remaining()).toHaveLength(52);
+  expect(await remaining()).toContain("bad");
   expect(error).toHaveBeenCalledTimes(1);
-  const logged = String(error.mock.calls[0][0]);
-  expect(JSON.parse(logged)).toMatchObject({ event: "retention.delete-failed", errorName: "TypeError" });
-  expect(logged).not.toContain("secret");
-  expect(logged).not.toContain("bad");
+  expect(warn).toHaveBeenCalledTimes(1);
+  for (const call of [error.mock.calls[0][0], warn.mock.calls[0][0]]) {
+    expect(String(call)).not.toContain("secret");
+    expect(String(call)).not.toContain("bad");
+  }
+  expect(JSON.parse(String(warn.mock.calls[0][0]))).toMatchObject({
+    event: "retention.batch-failed",
+    errorName: "TypeError",
+  });
+  expect(JSON.parse(String(error.mock.calls[0][0]))).toMatchObject({
+    event: "retention.delete-failed",
+    errorName: "TypeError",
+  });
 });
 
 test("nothing due means nothing deleted", async () => {
