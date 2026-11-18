@@ -35,5 +35,5 @@ Read a doc when the work touches it, not up front.
 ## Stack
 
 - JavaScript with pnpm, Biome, `tsc` over JSDoc and Vitest: [coding standards](docs/coding-standards.md#javascript-toolchain). Run `pnpm lint && pnpm typecheck && pnpm test` before pushing.
-- A browser app built with Vite and tested end to end with WebdriverIO in Chromium and Firefox (and Safari on macOS in CI for public repos), with axe-core checking WCAG 2.2 AA: [coding standards](docs/coding-standards.md#web-app).
+- A browser app built with Vite and tested end to end with WebdriverIO in Chromium and Firefox, with axe-core checking WCAG 2.2 AA: [coding standards](docs/coding-standards.md#web-app).
 - Cloudflare Workers, deployed by wrangler from release tags; infrastructure in OpenTofu: [coding standards](docs/coding-standards.md#cloudflare-and-opentofu), [infra](infra/README.md). Merging `infra/` is a production change.

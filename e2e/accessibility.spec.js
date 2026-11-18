@@ -26,14 +26,8 @@ async function violations() {
 }
 
 for (const colorScheme of ["light", "dark"]) {
-  describe(`${colorScheme} theme at phone width @safari`, () => {
-    before(async function () {
-      if (!browser.isBidi) {
-        // Safari speaks classic WebDriver only, which can't emulate a colour scheme or set the viewport.
-        if (colorScheme === "dark") this.skip();
-        await browser.setWindowSize(375, 812);
-        return;
-      }
+  describe(`${colorScheme} theme at phone width`, () => {
+    before(async () => {
       await browser.setViewport({ width: 375, height: 812 });
       await browser.emulate("colorScheme", colorScheme);
     });
