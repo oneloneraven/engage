@@ -2,9 +2,10 @@
 
 Everything provisionable is managed here with [OpenTofu](https://opentofu.org), the open-source fork of Terraform (same HCL, providers and state format): DNS, TLS and HSTS,
 DNSSEC, CAA, security headers and cache rules for `oneloneraven.com`, the
-placeholder records for Engage's two hosts, `engage.` and `engage-api.`, the
-Access application in front of `engage.`, and the Turnstile widget for web
-feedback on the product sites. The apex is
+placeholder records for Engage's two hosts, `engage.` and `engage-api.`. The
+admin Access application and policy, and the Turnstile widget for web
+feedback on the product sites, are managed in the central identity stack,
+coraxia. The apex is
 never Engage's: it carries the Proton mail records. The
 Worker itself is deployed by wrangler from the release workflows. The only
 things outside OpenTofu are the state bucket (it must exist before OpenTofu
@@ -82,24 +83,22 @@ version locally.
 
 `CLOUDFLARE_ACCOUNT_ID` as a repository variable. It isn't confidential.
 
-`ACCESS_LOGIN_METHOD_ID` as a repository variable: the id of the account's
-Cloudflare login method in Access (Zero Trust → Integrations → Identity
-providers). It isn't confidential, and passing it in means this stack never
-needs to read account-wide Zero Trust settings.
-
-`OWNER_EMAIL` as a repository secret: the one email the Access policy lets
-through to the admin host. It is never committed.
+The admin Access application and policy are managed in coraxia, so this
+stack no longer needs `OWNER_EMAIL` as a repository secret or
+`ACCESS_LOGIN_METHOD_ID` as a repository variable. Both can be deleted from
+the repository's Actions secrets and variables once the policy deletion has
+applied. The Worker's own `OWNER_EMAIL` runtime secret is separate and stays.
 
 ### Access
 
 The admin host accepts only one login method: signing in with a Cloudflare
-account, which brings that account's MFA. `access.tf` pins that method, so
+account, which brings that account's MFA. coraxia pins that method, so
 adding another login method to the account, such as a one-time PIN, never
 opens the admin host to it. Keep the Cloudflare account that `OWNER_EMAIL`
 names on passkey or security-key 2FA only: an authenticator-app code can be
 phished. Sessions last 8 hours, with the binding, HttpOnly and SameSite
-cookie protections on. The Access application itself lives in the central
-identity stack, coraxia; its audience tag is committed in `wrangler.jsonc` as
+cookie protections on. The Access application and its policy live in the
+central identity stack, coraxia; the audience tag is committed in `wrangler.jsonc` as
 `ACCESS_AUD`.
 
 ### Worker secrets
