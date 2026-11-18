@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { adminIdentity, clearAccessKeyCache, verifyAccessJwt } from "../../src/lib/access.js";
 
-const TEAM = "oneloneraven.cloudflareaccess.com";
+const TEAM = "example.cloudflareaccess.com";
 const AUD = "test-audience";
 const NOW = 1_800_000_000;
 
@@ -20,9 +20,10 @@ const b64url = value =>
 /**
  * @param {object} [claims]
  * @param {string} [kid]
+ * @param {string} [alg]
  */
-async function sign(claims = {}, kid = "k1") {
-  const header = b64url({ alg: "RS256", kid });
+async function sign(claims = {}, kid = "k1", alg = "RS256") {
+  const header = b64url({ alg, kid });
   const payload = b64url({
     aud: [AUD],
     iss: `https://${TEAM}`,
@@ -75,6 +76,21 @@ describe("verifyAccessJwt", () => {
     expect(await verify(await sign({ exp: NOW - 61 }))).toBeNull();
   });
 
+  it("refuses a token that isn't valid yet, beyond the clock skew", async () => {
+    expect(await verify(await sign({ nbf: NOW + 61 }))).toBeNull();
+    expect(await verify(await sign({ nbf: NOW + 59 }))).toEqual({ email: "owner@example.test" });
+  });
+
+  it("accepts an audience given as a string and refuses one that doesn't include it", async () => {
+    expect(await verify(await sign({ aud: AUD }))).toEqual({ email: "owner@example.test" });
+    expect(await verify(await sign({ aud: "someone-else" }))).toBeNull();
+  });
+
+  it("refuses an algorithm other than RS256, whatever the signature", async () => {
+    expect(await verify(await sign({}, "k1", "HS256"))).toBeNull();
+    expect(await verify(await sign({}, "k1", "none"))).toBeNull();
+  });
+
   it("refuses a token with no email", async () => {
     expect(await verify(await sign({ email: undefined }))).toBeNull();
   });
@@ -95,7 +111,7 @@ describe("verifyAccessJwt", () => {
 
 describe("adminIdentity", () => {
   const request = (/** @type {string} */ token) =>
-    new Request("https://engage.oneloneraven.com/", { headers: { "Cf-Access-Jwt-Assertion": token } });
+    new Request("https://admin.example.test/", { headers: { "Cf-Access-Jwt-Assertion": token } });
 
   it("refuses everything when the audience isn't configured, even a valid token", async () => {
     const env = { APP_ENV: "production", ACCESS_TEAM_DOMAIN: TEAM, ACCESS_AUD: "" };
@@ -122,7 +138,7 @@ describe("adminIdentity", () => {
 
   it("refuses a request with no token", async () => {
     const env = { APP_ENV: "production", ACCESS_TEAM_DOMAIN: TEAM, ACCESS_AUD: AUD };
-    expect(await adminIdentity(new Request("https://engage.oneloneraven.com/"), env)).toBeNull();
+    expect(await adminIdentity(new Request("https://admin.example.test/"), env)).toBeNull();
   });
 
   it("only skips the check in e2e and local development", async () => {

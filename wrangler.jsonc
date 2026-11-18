@@ -45,7 +45,8 @@
         "ADMIN_HOST": "engage.oneloneraven.com",
         "PUBLIC_HOST": "engage-api.oneloneraven.com",
         "ACCESS_TEAM_DOMAIN": "ravendarque.cloudflareaccess.com",
-        "ACCESS_AUD": "134ee41e0518ae732aa3391a62c7cfa246ab4ea015c48c372c3add8f4d7f8657"
+        "ACCESS_AUD": "134ee41e0518ae732aa3391a62c7cfa246ab4ea015c48c372c3add8f4d7f8657",
+        "TURNSTILE_SITEKEY": "0x4AAAAAAGA4Yit4Q7K_7Sl8"
       },
       "assets": {
         "directory": "./dist",

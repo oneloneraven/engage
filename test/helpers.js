@@ -33,6 +33,7 @@ export function makeEnv(overrides = {}) {
     ...env,
     ADMIN_HOST: "engage.oneloneraven.com",
     TURNSTILE_SECRET_KEY: "turnstile-secret",
+    TURNSTILE_SITEKEY: "turnstile-sitekey",
     DISCORD_WEBHOOK_CL: DISCORD_URL,
     DISCORD_WEBHOOK_DEAFTLY: DISCORD_URL,
     ACCOUNT_SECRET_CL: "cl-account-secret",

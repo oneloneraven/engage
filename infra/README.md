@@ -103,21 +103,38 @@ central identity stack, coraxia; the audience tag is committed in `wrangler.json
 
 ### Worker secrets
 
-Set each runtime secret once per environment with
+`OWNER_EMAIL` and `TURNSTILE_SECRET_KEY` reach the production Worker one
+way. Each is stored as a secret of the `production` environment on GitHub,
+and the manual "Sync Worker secrets" workflow sets it on the Worker from
+there. The workflow runs on `main` only, passes each secret through the
+environment and pipes it on stdin, fails when one is empty, and never prints
+it. To set or change either:
+
+1. Run `gh secret set <NAME> --env production`, which prompts for the value
+   with hidden input.
+2. Run "Sync Worker secrets" on `main`.
+3. Check that `pnpm exec wrangler secret list --env production` lists it.
+
+`TURNSTILE_SECRET_KEY` comes from the `engage-intake` widget, which lives in
+the central identity stack, coraxia: read it on the widget's Turnstile page
+in the Cloudflare dashboard. To rotate it, run coraxia's "Rotate a Turnstile
+widget secret" with the widget's sitekey, then set the new value as above.
+The sitekey isn't secret: it is `TURNSTILE_SITEKEY` in the production vars,
+coraxia's `widget_sitekey` output, and it goes in each product's feedback
+form. `verifyTurnstile` (`src/lib/turnstile.js`) refuses every token while
+the secret or the sitekey is missing.
+
+Set every other runtime secret once per environment with
 `pnpm exec wrangler secret put <NAME> --env <env>`. Setting one environment
 never sets another. Local development reads them from `.dev.vars`, which is
 gitignored.
-
-`TURNSTILE_SECRET_KEY` comes from the `engage-intake` widget, which lives in
-the central identity stack, coraxia: copy it from the widget's Turnstile page
-in the Cloudflare dashboard. The sitekey isn't secret: it goes in each
-product's feedback form.
 
 ## Disaster recovery
 
 1. Run "Bootstrap OpenTofu state bucket".
 2. Run "Infra" to recreate everything managed here.
-3. Set the Worker secrets again, per environment.
+3. Run "Sync Worker secrets" on `main`, and set the other Worker secrets
+   again, per environment.
 4. Redeploy the latest release: run "Deploy" from its tag (and "Promote to
    production" where there's a beta).
 
