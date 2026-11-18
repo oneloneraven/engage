@@ -1,0 +1,11 @@
+Authentication-Results: mx.cloudflare.net; dkim=pass header.d=example.org; spf=pass smtp.mailfrom=example.org; dmarc=pass header.from=example.org
+From: Alex Climber <alex@example.org>
+To: hello@climbinglogbook.com
+Subject: Formatted note
+Message-ID: <html-1@mail.example.org>
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><head><title>ignored title</title><style>p { color: red; }</style></head>
+<body><p>Hello <b>there</b> &amp; welcome&nbsp;back.</p><p>Tom &lt;tom@example.org&gt; said &#233;&#x1F600;&#99999999;</p>
+<script>alert("no")</script><div>Line one<br>Line two</div></body></html>

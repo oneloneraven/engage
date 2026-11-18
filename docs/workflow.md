@@ -58,8 +58,9 @@ Name a branch by what the change does for users, with the issue number:
   it was verified. It is not a restatement of the diff.
 - Merges are squash only. The branch is deleted on merge.
 - Claude merges a PR once it meets the definition of done and every required
-  check passes, including PRs that cut a release. This is standing approval:
-  it asks first only when it needs the maintainer's input.
+  check passes. It asks the maintainer before merging a PR that cuts a release
+  (any label but `release: none`). This is standing approval for every other
+  merge.
 
 ## Git
 

@@ -10,45 +10,111 @@
   },
   "assets": {
     "directory": "./dist",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
   },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "engage", "database_id": "a3d02bed-6fe3-4bec-9aa7-cd61b201dc53", "migrations_dir": "migrations" }
+  ],
+  "ratelimits": [
+    { "name": "INTAKE_WEB_LIMITER", "namespace_id": "3001", "simple": { "limit": 5, "period": 60 } },
+    { "name": "INTAKE_APP_LIMITER", "namespace_id": "3002", "simple": { "limit": 3, "period": 60 } }
+  ],
+  "send_email": [{ "name": "EMAIL" }],
+  "r2_buckets": [{ "binding": "ATTACHMENTS", "bucket_name": "engage-attachments" }],
   "vars": {
-    "APP_ENV": "development"
+    "APP_ENV": "development",
+    "ADMIN_HOST": "localhost",
+    "PUBLIC_HOST": "127.0.0.1",
+    "ADMIN_ACCESS_CHECK": "off"
   },
   "env": {
     "production": {
+      "d1_databases": [
+        { "binding": "DB", "database_name": "engage", "database_id": "a3d02bed-6fe3-4bec-9aa7-cd61b201dc53", "migrations_dir": "migrations" }
+      ],
+      "ratelimits": [
+        { "name": "INTAKE_WEB_LIMITER", "namespace_id": "3003", "simple": { "limit": 5, "period": 60 } },
+        { "name": "INTAKE_APP_LIMITER", "namespace_id": "3004", "simple": { "limit": 3, "period": 60 } }
+      ],
+      "send_email": [{ "name": "EMAIL" }],
+      "r2_buckets": [{ "binding": "ATTACHMENTS", "bucket_name": "engage-attachments" }],
       "vars": {
-        "APP_ENV": "production"
+        "APP_ENV": "production",
+        "ADMIN_HOST": "engage.oneloneraven.com",
+        "PUBLIC_HOST": "engage-api.oneloneraven.com",
+        "ACCESS_TEAM_DOMAIN": "ravendarque.cloudflareaccess.com",
+        "ACCESS_AUD": "134ee41e0518ae732aa3391a62c7cfa246ab4ea015c48c372c3add8f4d7f8657",
+        "TURNSTILE_SITEKEY": "0x4AAAAAAGA4Yit4Q7K_7Sl8"
       },
       "assets": {
         "directory": "./dist",
-        "binding": "ASSETS"
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": true
       },
       "routes": [
-        {
-          "pattern": "oneloneraven.com/*",
-          "zone_name": "oneloneraven.com"
-        }
-      ]
+        { "pattern": "engage.oneloneraven.com/*", "zone_name": "oneloneraven.com" },
+        { "pattern": "engage-api.oneloneraven.com/*", "zone_name": "oneloneraven.com" }
+      ],
+      "triggers": { "crons": ["17 3 * * *"] }
     },
     "preview": {
+      "d1_databases": [
+        { "binding": "DB", "database_name": "engage", "database_id": "a3d02bed-6fe3-4bec-9aa7-cd61b201dc53", "migrations_dir": "migrations" }
+      ],
+      "ratelimits": [
+        { "name": "INTAKE_WEB_LIMITER", "namespace_id": "3005", "simple": { "limit": 5, "period": 60 } },
+        { "name": "INTAKE_APP_LIMITER", "namespace_id": "3006", "simple": { "limit": 3, "period": 60 } }
+      ],
       "vars": {
         "APP_ENV": "preview"
       },
       "assets": {
         "directory": "./dist",
-        "binding": "ASSETS"
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": true
       },
       "workers_dev": true,
-      "preview_urls": true
+      "preview_urls": true,
+      // A PR Preview inherits none of the above, so it repeats what the app needs.
+      "previews": {
+        "d1_databases": [
+          { "binding": "DB", "database_name": "engage", "database_id": "a3d02bed-6fe3-4bec-9aa7-cd61b201dc53", "migrations_dir": "migrations" }
+        ],
+        "ratelimits": [
+          { "name": "INTAKE_WEB_LIMITER", "namespace_id": "3007", "simple": { "limit": 5, "period": 60 } },
+          { "name": "INTAKE_APP_LIMITER", "namespace_id": "3008", "simple": { "limit": 3, "period": 60 } }
+        ],
+        "vars": {
+          "APP_ENV": "preview"
+        }
+      }
     },
     "e2e": {
+      "d1_databases": [
+        { "binding": "DB", "database_name": "engage", "database_id": "a3d02bed-6fe3-4bec-9aa7-cd61b201dc53", "migrations_dir": "migrations" }
+      ],
+      "ratelimits": [
+        { "name": "INTAKE_WEB_LIMITER", "namespace_id": "3009", "simple": { "limit": 5, "period": 60 } },
+        { "name": "INTAKE_APP_LIMITER", "namespace_id": "3010", "simple": { "limit": 3, "period": 60 } }
+      ],
+      // Local wrangler dev only simulates sending, and e2e is never deployed.
+      "send_email": [{ "name": "EMAIL" }],
       "vars": {
-        "APP_ENV": "e2e"
+        "APP_ENV": "e2e",
+        "ADMIN_HOST": "localhost",
+        "PUBLIC_HOST": "127.0.0.1",
+        "ADMIN_ACCESS_CHECK": "off",
+        "REPLY_ADDRESS_SECRET": "e2e-only-not-a-secret"
       },
       "assets": {
         "directory": "./dist",
-        "binding": "ASSETS"
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": true
       }
     }
   }

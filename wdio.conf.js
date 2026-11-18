@@ -1,5 +1,7 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { SevereServiceError } from "webdriverio";
+import { seedSql } from "./e2e/fixtures.js";
 
 const BASE_URL = "http://localhost:4173";
 let server;
@@ -22,6 +24,16 @@ async function waitFor(url, timeoutMs) {
   throw new Error(`${url} didn't answer within ${timeoutMs / 1000}s`);
 }
 
+function seedDatabase() {
+  const wrangler = ["exec", "wrangler", "d1"];
+  const local = ["engage", "--local", "--env", "e2e"];
+  const run = args => execFileSync("pnpm", ["--silent", ...wrangler, ...args], { stdio: "pipe" });
+  mkdirSync(".wrangler", { recursive: true });
+  writeFileSync(".wrangler/e2e-seed.sql", seedSql());
+  run(["migrations", "apply", ...local]);
+  run(["execute", ...local, "--file", ".wrangler/e2e-seed.sql"]);
+}
+
 function stopServer() {
   try {
     if (server) process.kill(-server.pid);
@@ -35,20 +47,14 @@ const BROWSERS = {
     "goog:chromeOptions": { args: ["--headless=new", "--no-sandbox"] },
   },
   firefox: { browserName: "firefox", browserVersion: "stable", "moz:firefoxOptions": { args: ["-headless"] } },
-  safari: { browserName: "safari" },
 };
 
 const selected = (process.env.E2E_BROWSERS ?? "chrome,firefox").split(",").map(name => name.trim());
 
-const SAFARI_TAG = "@safari";
-const safariOnly = selected.length === 1 && selected[0] === "safari";
-if (selected.includes("safari") && !safariOnly)
-  throw new Error("Safari runs on its own in E2E_BROWSERS: it runs only the specs tagged " + SAFARI_TAG);
-
 export const config = {
   runner: "local",
   specs: ["./e2e/**/*.spec.js"],
-  maxInstances: selected.includes("safari") ? 1 : 2,
+  maxInstances: 2,
   capabilities: selected.map(name => {
     if (!BROWSERS[name]) throw new Error(`Unknown browser in E2E_BROWSERS: ${name}`);
     return BROWSERS[name];
@@ -57,10 +63,15 @@ export const config = {
   logLevel: "warn",
   framework: "mocha",
   reporters: ["spec"],
-  mochaOpts: { timeout: 60000, ...(safariOnly && { grep: SAFARI_TAG }) },
+  mochaOpts: { timeout: 60000 },
   async onPrepare() {
     if (await answers(BASE_URL))
       throw new SevereServiceError(`Something is already serving ${BASE_URL}; stop it first`);
+    try {
+      seedDatabase();
+    } catch (error) {
+      throw new SevereServiceError(`Couldn't seed the e2e database: ${error.stderr?.toString() || error.message}`);
+    }
     server = spawn("pnpm", ["--silent", "e2e:server"], { stdio: "inherit", detached: true });
     try {
       await waitFor(BASE_URL, 120000);

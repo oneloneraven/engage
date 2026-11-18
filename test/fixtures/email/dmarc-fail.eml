@@ -1,0 +1,9 @@
+Authentication-Results: mx.cloudflare.net; dkim=none; spf=fail smtp.mailfrom=example.org; dmarc=fail header.from=example.org
+From: Alex Climber <alex@example.org>
+To: hello@climbinglogbook.com
+Subject: You have won
+Message-ID: <spoof-1@mail.example.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Click here.

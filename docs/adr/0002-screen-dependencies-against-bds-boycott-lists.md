@@ -56,3 +56,5 @@ Checked at bootstrap for the project's default dependencies and vendors.
 | Cloudflare (hosting, DNS, R2) | Cloudflare, Inc. | N |  |
 | wrangler | Cloudflare, Inc. | N |  |
 | OpenTofu | OpenTofu project (Linux Foundation) | N | Chosen over Terraform, whose owner IBM is a No Tech for Apartheid target. |
+| `@fontsource-variable/bricolage-grotesque` (Bricolage Grotesque, OFL-1.1) | Fontsource (independent open source); typeface by Mathieu Triay | N | Self-hosted so the CSP stays `self` only. Only the Latin file is bundled. |
+| `@fontsource-variable/atkinson-hyperlegible-next` (Atkinson Hyperlegible Next, OFL-1.1) | Fontsource (independent open source); typeface by the Braille Institute | N | Self-hosted for the same reason. Only the Latin file is bundled. |

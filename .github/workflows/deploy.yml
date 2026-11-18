@@ -23,6 +23,12 @@ jobs:
           persist-credentials: false
       - uses: $/.github/actions/setup-node-pnpm
       - run: pnpm build
+      # Before the deploy, so new code never runs against an old schema. Migrations stay backward-compatible.
+      - name: Apply D1 migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm exec wrangler d1 migrations apply engage --env production --remote
       - name: Deploy to production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
