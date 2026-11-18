@@ -98,8 +98,9 @@ adding another login method to the account, such as a one-time PIN, never
 opens the admin host to it. Keep the Cloudflare account that `OWNER_EMAIL`
 names on passkey or security-key 2FA only: an authenticator-app code can be
 phished. Sessions last 8 hours, with the binding, HttpOnly and SameSite
-cookie protections on. After an apply, `tofu output access_aud` gives the value
-for the Worker's `ACCESS_AUD`.
+cookie protections on. The Access application itself lives in the central
+identity stack, coraxia; its audience tag is committed in `wrangler.jsonc` as
+`ACCESS_AUD`.
 
 ### Worker secrets
 
@@ -108,9 +109,9 @@ Set each runtime secret once per environment with
 never sets another. Local development reads them from `.dev.vars`, which is
 gitignored.
 
-`TURNSTILE_SECRET_KEY` comes from the widget, without displaying it:
-`tofu output -raw turnstile_secret | pnpm exec wrangler secret put TURNSTILE_SECRET_KEY --env production`.
-The sitekey (`tofu output turnstile_sitekey`) isn't secret: it goes in each
+`TURNSTILE_SECRET_KEY` comes from the `engage-intake` widget, which lives in
+the central identity stack, coraxia: copy it from the widget's Turnstile page
+in the Cloudflare dashboard. The sitekey isn't secret: it goes in each
 product's feedback form.
 
 ## Disaster recovery
