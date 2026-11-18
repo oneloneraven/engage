@@ -17,7 +17,7 @@ State lives in the R2 bucket `engage-tfstate`, never in git.
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `infra.yml` | PR touching `infra/` (plan); push to `main` (apply) | Format check, validate, plan; refuses any plan that deletes or replaces. Skips the repository's first push, before credentials exist |
+| `infra.yml` | PR touching `infra/` (plan); push to `main` (apply); manual | Format check, validate, plan; refuses any plan that deletes or replaces unless run by hand with `allow_deletes` ([Deleting resources](#deleting-resources)). Skips the repository's first push, before credentials exist |
 | `bootstrap-state.yml` | Manual | Creates the state bucket if it's missing; safe to re-run |
 | `preview.yml` | PR | Uploads a Preview named `pr-<n>` and comments its URL |
 | `deploy.yml` | `v*` tag | Deploys the tag (to beta when the project has one, otherwise production) |
@@ -120,6 +120,15 @@ product's feedback form.
 3. Set the Worker secrets again, per environment.
 4. Redeploy the latest release: run "Deploy" from its tag (and "Promote to
    production" where there's a beta).
+
+## Deleting resources
+
+`infra.yml` refuses a plan that deletes or replaces anything, so a merge that
+removes a resource fails its apply and changes nothing. To apply it on
+purpose, read the failed run's plan, then run "Infra" by hand on `main` with
+`allow_deletes` ticked. It runs in the `infra` environment, so only `main` can
+do it. Resources with `prevent_destroy` still refuse: removing that is the
+teardown below.
 
 ## Teardown
 
