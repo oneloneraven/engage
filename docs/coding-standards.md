@@ -157,19 +157,12 @@ Platform persona for this stack: what ends up in the bundle and its size,
 browser support, loading, empty and error states, and accessibility.
 
 - **End-to-end tests with WebdriverIO** in Chromium and Firefox, against the
-  built app, and in Safari on a macOS runner for public repositories
-  (`E2E_BROWSERS` picks the browsers). axe-core checks every page against WCAG 2.2 AA at phone width
+  built app (`E2E_BROWSERS` picks the browsers). Engage doesn't run Safari:
+  it's an admin tool with one user. axe-core checks every page against WCAG 2.2 AA at phone width
   in light and dark themes; a new page joins the accessibility spec's list.
-- **Browser runs wait for lint and typecheck.** The `e2e` and `e2e-safari`
-  checks fail with a reason if a quick check failed, rather than passing as
+- **Browser runs wait for lint and typecheck.** The `e2e`
+  check fails with a reason if a quick check failed, rather than passing as
   skipped. Superseded pull request runs are cancelled.
-- **Safari runs only specs tagged `@safari`.** Safari on GitHub's macOS
-  runners opens no WebDriver BiDi session, so a spec that uses BiDi
-  (`browser.mock`, `emulate`, `setViewport`, `parallelMode`, per-user-context
-  cookies) fails there. Put `@safari` in a `describe` title only when every
-  command it and the shared hooks use is WebDriver Classic. Other browsers
-  run every spec. Keep the shared hooks Classic-only, or untagged specs and
-  tagged ones will diverge.
 - **Escape all user-controlled data** before it's interpolated into HTML.
   Never build markup from raw input.
 - **A real `<button>` for anything clickable.** Modals have

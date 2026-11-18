@@ -1,4 +1,4 @@
-export const BROWSER_NAMES = ["chrome", "firefox", "safari"];
+export const BROWSER_NAMES = ["chrome", "firefox"];
 
 export const SHARED_OWED = "e2e-shared-owed";
 export const HOSTILE_MESSAGE = "<img src=x onerror=alert(1)>\n```\n@raven `code` <b>bold</b>";
