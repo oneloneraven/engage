@@ -5,7 +5,7 @@ import { newId } from "../lib/ids.js";
 import { getProduct, productForOrigin } from "../registry.js";
 import * as v from "valibot";
 import { submissionSchema, validateContext } from "./schema.js";
-import { verifyTurnstile } from "./turnstile.js";
+import { verifyTurnstile } from "../lib/turnstile.js";
 
 const BODY_LIMIT_BYTES = 128 * 1024;
 const PREFLIGHT_MAX_AGE_S = 86400;

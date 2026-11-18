@@ -1,1 +1,5 @@
 # Local Worker secrets for `wrangler dev`. Copy to .dev.vars (gitignored); never commit real values.
+
+# Turnstile: Cloudflare's always-pass test keys, which work on any hostname. Production uses the widget's own sitekey from wrangler.jsonc and its secret as a Worker secret.
+TURNSTILE_SITEKEY=1x00000000000000000000AA
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA

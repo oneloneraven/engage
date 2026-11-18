@@ -144,10 +144,11 @@ test("a failed Turnstile check is a 400 that doesn't echo the message", async ()
   expect(fetches.discord()).toHaveLength(0);
 });
 
-test("a web submission without a token, or without a Turnstile secret, is refused", async () => {
+test("a web submission without a token, or without a Turnstile secret or sitekey, is refused", async () => {
   stubFetch();
   expect((await submit(post(webFeedback({ turnstileToken: undefined })))).status).toBe(400);
   expect((await submit(post(webFeedback()), { TURNSTILE_SECRET_KEY: undefined })).status).toBe(400);
+  expect((await submit(post(webFeedback()), { TURNSTILE_SITEKEY: undefined })).status).toBe(400);
   expect(await rows("SELECT id FROM items")).toHaveLength(0);
 });
 

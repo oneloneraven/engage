@@ -30,6 +30,7 @@ import { runRetention } from "./retention.js";
  *   GITHUB_APP_PRIVATE_KEY?: string,
  *   REPLY_ADDRESS_SECRET?: string,
  *   TURNSTILE_SECRET_KEY?: string,
+ *   TURNSTILE_SITEKEY?: string,
  *   INTAKE_WEB_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
  *   INTAKE_APP_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
  * }} Env

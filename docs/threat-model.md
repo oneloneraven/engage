@@ -39,6 +39,7 @@ Behind them:
 | Engage → GitHub | The Worker and the GitHub API | Issue drafts the owner has edited, and site rebuild triggers | A GitHub App with least privilege; drafts never pre-fill contact details or anything identifying, and message text is fenced so it can't render as markup |
 | Engage → Discord | The Worker and a product's webhook | The kind of item, the product's name and a link | No submitted content or identity, and mentions disabled |
 | Release job → GitHub API | `release.yml` and the release GitHub App | Short-lived App token (Contents and Workflows: read and write) to push release tags and create releases | Token minted only in the release job and scoped to this repository; App installed on this repository only; private key held as a repository secret |
+| Secret sync → production Worker | `sync-worker-secrets.yml` and the production Worker | `OWNER_EMAIL` and `TURNSTILE_SECRET_KEY`, piped on stdin to `wrangler secret put` | Stored only as secrets of the `production` GitHub environment, which only `main` and `v*` tags can use; the workflow is manual, runs on `main` only, fails on an empty value and never prints one |
 
 ## Assets
 
@@ -50,6 +51,7 @@ Behind them:
 | GitHub App key and webhook secret | Anyone holding them can create issues in product repositories, or forge issue events |
 | Per-product account secrets and Discord webhooks | Anyone holding them can clear account references, or post into the owner's notification channels |
 | Release App private key | Anyone holding it can mint tokens that push tags and, through Workflows, change workflow files |
+| `OWNER_EMAIL` | Whoever sets it decides who the Worker lets into the admin host |
 
 ## Actors
 
@@ -77,6 +79,7 @@ Behind them:
 | A flood of submissions or mail buries real items or runs up costs | Denial of service | Turnstile, per-IP rate limits and per-product daily caps for submissions; junk and blocklist for mail; retention clears junk after 30 days, in batches that stay inside the database's per-run query limit however large the backlog | Mitigated |
 | A message too big for a database row fails to store and is lost | Denial of service | A body over its share of the row limit is kept whole in R2 as an attachment, and only its start is stored in the row | Mitigated |
 | Leaked release token or App key used to alter workflow files | Elevation of privilege | The Workflows permission is needed because GitHub refuses a tag whose commit's workflow files differ from the default branch's. Tokens last one hour and are minted only in the release job; the key is a repository secret; the App is installed on this repository only | Accepted |
+| A workflow on `main` sets `OWNER_EMAIL` to another account | Elevation of privilege | Access still lets in only the identity stack's owner policy, so a changed `OWNER_EMAIL` alone opens nothing; `main` takes changes only through reviewed PRs, and only `main` and release tags can use the `production` environment's secrets | Mitigated |
 
 ## Known gaps
 
