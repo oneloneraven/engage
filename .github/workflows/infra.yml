@@ -44,6 +44,12 @@ jobs:
       - run: tofu validate
       - name: Plan
         run: tofu plan -no-color -input=false -out=tfplan
+      - name: Record IDs for the identity stack move (temporary)
+        if: github.event_name == 'pull_request'
+        run: |
+          tofu show -json | jq '[.values.root_module.resources[]
+            | select(.address == "cloudflare_zero_trust_access_application.admin" or .address == "cloudflare_zero_trust_access_policy.owner" or .address == "cloudflare_turnstile_widget.intake")
+            | {address, id: .values.id, name: .values.name, domain: .values.domain, aud: .values.aud, sitekey: .values.sitekey, mode: .values.mode, domains: .values.domains, session_duration: .values.session_duration}]'
       - name: Refuse unplanned deletes or replacements
         run: |
           DELETES=$(tofu show -json tfplan | jq -r '(.resource_changes // [])[] | select(.change.actions | index("delete")) | .address')
