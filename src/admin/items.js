@@ -33,6 +33,7 @@ import { recordAudit } from "../audit.js";
  *   appVersion: string | null,
  *   context: Record<string, unknown> | null,
  *   accountRef: string | null,
+ *   recipientLocal: string | null,
  *   authResult: { spf: string, dkim: string, dmarc: string } | null,
  *   messages: { id: string, direction: "in" | "out", fromAddr: string | null, bodyText: string, hasHtml: boolean, rfcMessageId: string | null, createdAt: string }[],
  *   attachments: { id: string, messageId: string, filename: string | null, contentType: string | null, size: number }[],
@@ -215,6 +216,7 @@ export async function getItem(env, id) {
     appVersion: /** @type {string | null} */ (row.app_version),
     context: parseJson(row.context),
     accountRef: /** @type {string | null} */ (row.account_ref),
+    recipientLocal: /** @type {string | null} */ (row.recipient_local),
     authResult: parseJson(row.auth_result),
     messages: messages.results.map(message => ({
       id: String(message.id),

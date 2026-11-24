@@ -100,9 +100,10 @@ test("hello@ with DMARC pass makes an email item, stores the message and pings o
   expect(fetches.discord()[0].body.content).toContain(`/items/${item.id}`);
 });
 
-test("an alias makes an email item the same way", async () => {
+test("an alias makes an email item the same way, recording the address it arrived at", async () => {
   await receive("support@climbinglogbook.com", helloEml);
   expect(await items()).toHaveLength(1);
+  expect((await items())[0].recipient_local).toBe("support");
   expect(fetches.discord()).toHaveLength(1);
 });
 
@@ -110,6 +111,7 @@ test("local parts and domains match without regard to case", async () => {
   const message = await receive("HeLLo@ClimbingLogbook.COM", helloEml);
   expect(message.rejected).toEqual([]);
   expect(await items()).toHaveLength(1);
+  expect((await items())[0].recipient_local).toBe("hello");
 });
 
 test("the product is chosen by the recipient's domain", async () => {
@@ -209,6 +211,7 @@ test("a valid reply is appended to its item, marks it unread, and pings as a rep
   expect(item.read_at).toBeNull();
   expect(item.last_activity_at).not.toBe(THEN);
   expect(item.subject).toBe("Question about grades");
+  expect(item.recipient_local).toBeNull();
 
   const [stored] = await messages();
   expect(stored).toMatchObject({
