@@ -38,19 +38,20 @@ function errorCode(error) {
 }
 
 /**
- * The address an email item arrived at, while it's still hello or one of the product's aliases; hello otherwise.
- * @param {string | null | undefined} recipientLocal
+ * The address an email item arrived at, or support for a form issue report, while it's still one of the product's
+ * aliases; hello otherwise.
+ * @param {{ kind?: string, recipientLocal?: string | null }} item
  * @param {import("../registry.js").Product} product
  */
-function fromLocal(recipientLocal, product) {
-  const local = recipientLocal?.toLowerCase();
+function fromLocal(item, product) {
+  const local = (item.recipientLocal ?? (item.kind === "issue" ? "support" : null))?.toLowerCase();
   return local && product.emailAliases.some(alias => alias.toLowerCase() === local) ? local : "hello";
 }
 
 /**
  * Sends a reply from the product's own address and stores it on the item's thread.
  * @param {OutboundEnv} env
- * @param {{ id: string, product: string, contactEmail: string | null, subject: string | null, recipientLocal?: string | null }} item
+ * @param {{ id: string, product: string, kind?: string, contactEmail: string | null, subject: string | null, recipientLocal?: string | null }} item
  * @param {import("../registry.js").Product} product
  * @param {string} text
  * @param {string} actor
@@ -67,7 +68,7 @@ export async function sendReply(env, item, product, text, actor) {
     .bind(item.id)
     .first();
   const inReplyTo = /** @type {string | undefined} */ (inbound?.rfc_message_id ?? undefined);
-  const fromAddress = `${fromLocal(item.recipientLocal, product)}@${product.emailDomain}`;
+  const fromAddress = `${fromLocal(item, product)}@${product.emailDomain}`;
 
   /** @type {{ messageId?: string } | undefined} */
   let result;
