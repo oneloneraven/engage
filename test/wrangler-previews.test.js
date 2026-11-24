@@ -9,13 +9,17 @@ test("PR previews repeat the preview environment's vars, since they inherit noth
   expect(previews.vars).toEqual(vars);
 });
 
-test("every environment, and PR previews, repeat the D1 binding", () => {
+test("production and e2e repeat the D1 binding", () => {
   const expected = wrangler.d1_databases;
   expect(expected).toHaveLength(1);
   expect(expected[0]).toMatchObject({ binding: "DB", database_name: "engage", migrations_dir: "migrations" });
-  for (const [name, environment] of Object.entries(wrangler.env)) {
-    expect(environment.d1_databases, name).toEqual(expected);
-  }
+  expect(wrangler.env.production.d1_databases).toEqual(expected);
+  expect(wrangler.env.e2e.d1_databases).toEqual(expected);
+});
+
+test("previews and PR previews leave the database ID for the Preview workflow, so they never bind production's", () => {
+  const expected = [{ binding: "DB", database_name: "engage-preview", database_id: "", migrations_dir: "migrations" }];
+  expect(wrangler.env.preview.d1_databases).toEqual(expected);
   expect(wrangler.env.preview.previews.d1_databases).toEqual(expected);
 });
 
