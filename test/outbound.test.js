@@ -35,7 +35,7 @@ async function seedItem({
   )
     .bind(ITEM_ID, kind, subject, contactEmail, recipientLocal, THEN, THEN, THEN)
     .run();
-  return { id: ITEM_ID, product: "cl", contactEmail, subject, recipientLocal };
+  return { id: ITEM_ID, product: "cl", kind, contactEmail, subject, recipientLocal };
 }
 
 async function seedInbound(id, rfcMessageId, createdAt) {
@@ -93,6 +93,27 @@ test("replies from hello@ when the address an item arrived at is no longer an al
     await sendReply(makeEnv({ EMAIL: email, REPLY_ADDRESS_SECRET: SECRET }), item, await product(), "Hi", ACTOR);
     expect(email.sent[0].from.email, String(recipientLocal)).toBe("hello@climbinglogbook.com");
   }
+});
+
+test("replies to a form issue report from support@, and to form feedback from hello@", async () => {
+  for (const [kind, expected] of [
+    ["issue", "support@climbinglogbook.com"],
+    ["feedback", "hello@climbinglogbook.com"],
+  ]) {
+    await resetItems();
+    const email = fakeEmail();
+    const item = await seedItem({ kind });
+    await sendReply(makeEnv({ EMAIL: email, REPLY_ADDRESS_SECRET: SECRET }), item, await product(), "Hi", ACTOR);
+    expect(email.sent[0].from.email, kind).toBe(expected);
+  }
+});
+
+test("replies to a form issue report from hello@ when the product has no support alias", async () => {
+  const email = fakeEmail();
+  const item = await seedItem({ kind: "issue" });
+  const withoutSupport = { ...(await product()), emailAliases: ["hello"] };
+  await sendReply(makeEnv({ EMAIL: email, REPLY_ADDRESS_SECRET: SECRET }), item, withoutSupport, "Hi", ACTOR);
+  expect(email.sent[0].from.email).toBe("hello@climbinglogbook.com");
 });
 
 test("sets a signed Reply-To that parses back to the item", async () => {
