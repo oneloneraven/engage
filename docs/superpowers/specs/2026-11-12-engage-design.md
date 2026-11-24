@@ -53,7 +53,7 @@ Decisions are marked **(Raven)** where the product owner made them, and **(desig
 |---|---|---|
 | CL feedback | `ravendarque/climbing-logbook` → now `oneloneraven/climbing-logbook` | Tables `issue_reports` and `feedback_submissions` (migrations 0018, 0019, 0023, 0040): message, optional contact email, user id, source page, section, app version, read/archived timestamps. Turnstile plus a D1 rate limit. `server/lib/support-notify.js` sends Discord pings with no submitted text, just a link. |
 | CL admin host | ADR-0034 | `admin.climbinglogbook.com` behind Cloudflare Access. The Worker re-checks `Cf-Access-Jwt-Assertion` (signature, audience, issuer, expiry) and fails closed (`server/lib/access.js`). |
-| Deaftly feedback | `oneloneraven/deaftly-website`, ADR-0004, `src/feedback.js` | Static Eleventy site served by a Worker. A no-JavaScript form; each submission becomes an issue in private `oneloneraven/deaftly-feedback`. Honeypot plus Workers rate limit, no email collected, retention deleted by hand monthly. |
+| Deaftly feedback | `oneloneraven/deaftly-website`, ADR-0004, `src/feedback.js` | Static Eleventy site served by a Worker. A no-JavaScript form. ADR-0004 planned for each submission to become an issue in a private repository, `deaftly-feedback`, which was never created. Honeypot plus Workers rate limit, no email collected, retention deleted by hand monthly. |
 | Analytics | CL #836 epic, #1521 | Grafana Cloud chosen for dashboards and alerting. Sources: Cloudflare GraphQL Analytics API, Workers Analytics Engine, Better Stack for uptime and status page. Web Analytics excludes EU visitors (CL ADR-0015). |
 | Bootstrap | `ravendarque/claude-project-bootstrap` → now `oneloneraven/project-bootstrap` | Sets up repositories: rulesets, labels, board, CI, tag-based releases, security docs. `cloudflare-opentofu` deploys run under `environment: production` (and `beta`); Android releases under `environment: release`. Org board-sync GitHub App (ADR-0007); a separate release App per repository. |
 | Email | CL `infra/email.tf` | Apex MX on Proton Pass (`hello@`); transactional mail through Resend. |
@@ -130,7 +130,7 @@ The webhook secret is verified on every delivery.
     - optional `context`: a product-specific object, validated against a schema stored in that product's registry entry **(design call)**. CL needs this for the reported username or entry and the error reference its "Report an issue" form already sends. Context fields are shown in the item view and are never copied into GitHub issues.
     - optional `accountRef`: an opaque account id from the product **(design call)**. When an account is deleted, the product calls `DELETE /v1/accounts/<product>/<accountRef>` (authenticated with a per-product secret), and Engage clears the reference. This replaces CL's `ON DELETE SET NULL`.
   - Unknown products are rejected. The server validates everything.
-- **No-JavaScript websites:** websites can also POST the form directly (`application/x-www-form-urlencoded`) and get a 303 to the product's thanks page. This keeps deaftly.com working without JavaScript.
+- **Plain form posts:** websites can also POST the form directly (`application/x-www-form-urlencoded`) and get a 303 to the product's thanks page. The form still needs JavaScript, because Turnstile does. Deaftly's feedback page is the one exception to deaftly.com's no-JavaScript rule, and shows a `<noscript>` message pointing at `hello@deaftly.com` instead (Deaftly ADR-0005).
 - **Contact details (Raven, D3):** an optional contact email on both forms. Without one, the form says plainly that it can't be answered.
 - **Spam protection:**
   - **Web (Raven, D3):** Turnstile, verified server-side, plus a per-IP rate limit.
@@ -220,9 +220,9 @@ The webhook secret is verified on every delivery.
 
 ### 5.7 Migration and removal (before launch)
 
-1. Import CL's `issue_reports` and `feedback_submissions` (including read/archived state) and the issues in `deaftly-feedback` into Engage, once, with a script.
+1. Import CL's `issue_reports` and `feedback_submissions` (including read/archived state) into Engage, once, with a script. Deaftly has no past feedback to import.
 2. Change the CL app and site, the Deaftly site and the Deaftly app to submit to the Engage API, keeping each product's own form UI.
-3. Remove CL's submission endpoints, tables (in a destructive migration), admin feedback pages and Discord code. Remove Deaftly's `feedback.js` and its token, and archive `deaftly-feedback` after deleting its issues.
+3. Remove CL's submission endpoints, tables (in a destructive migration), admin feedback pages and Discord code. Remove Deaftly's `feedback.js` and its token.
 4. Supersede CL ADR-0034's feedback scope and Deaftly-website ADR-0004 with ADRs pointing at Engage.
 5. Update both privacy pages and both records of processing.
 
