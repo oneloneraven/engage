@@ -92,7 +92,7 @@ test("Turnstile is sent the secret, the token and the client IP", async () => {
 });
 
 test("a form-encoded web submission redirects to the product's thanks page", async () => {
-  const fetches = stubFetch();
+  const fetches = stubFetch({ turnstileHostname: "deaftly.com" });
   const body = new URLSearchParams({
     product: "deaftly",
     kind: "feedback",
@@ -149,6 +149,24 @@ test("a web submission without a token, or without a Turnstile secret or sitekey
   expect((await submit(post(webFeedback({ turnstileToken: undefined })))).status).toBe(400);
   expect((await submit(post(webFeedback()), { TURNSTILE_SECRET_KEY: undefined })).status).toBe(400);
   expect((await submit(post(webFeedback()), { TURNSTILE_SITEKEY: undefined })).status).toBe(400);
+  expect(await rows("SELECT id FROM items")).toHaveLength(0);
+});
+
+test("a token solved on any of the product's own domains is accepted", async () => {
+  for (const hostname of ["climbinglogbook.com", "beta.climbinglogbook.com", "my.climbinglogbook.com"]) {
+    stubFetch({ turnstileHostname: hostname });
+    expect((await submit(post(webFeedback()))).status, hostname).toBe(201);
+  }
+});
+
+test("a token solved on another product's domain, or with no hostname, is refused and nothing is stored", async () => {
+  for (const turnstileHostname of ["deaftly.com", null]) {
+    const fetches = stubFetch({ turnstileHostname });
+    const response = await submit(post(webFeedback()));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: "verification-failed" });
+    expect(fetches.discord()).toHaveLength(0);
+  }
   expect(await rows("SELECT id FROM items")).toHaveLength(0);
 });
 

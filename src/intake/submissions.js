@@ -83,7 +83,10 @@ async function receive(request, env, ctx) {
   if (submission.hpx) {
     return isForm ? thanks(product) : json({ id }, 201);
   }
-  if (submission.source === "web" && !(await verifyTurnstile(submission.turnstileToken ?? "", ip, env))) {
+  if (
+    submission.source === "web" &&
+    !(await verifyTurnstile(submission.turnstileToken ?? "", ip, env, product.domains))
+  ) {
     return invalid("verification-failed");
   }
 

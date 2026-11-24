@@ -43,15 +43,19 @@ export function makeEnv(overrides = {}) {
   };
 }
 
-/** Stubs fetch for Turnstile (a token of "bad" fails) and Discord, recording every call. */
-export function stubFetch({ discordStatus = 204 } = {}) {
+/**
+ * Stubs fetch for Turnstile (a token of "bad" fails; a `turnstileHostname` of null leaves the hostname out) and Discord, recording every call.
+ * @param {{ discordStatus?: number, turnstileHostname?: string | null }} [options]
+ */
+export function stubFetch({ discordStatus = 204, turnstileHostname = "climbinglogbook.com" } = {}) {
   /** @type {{ url: string, body: any }[]} */
   const calls = [];
   const spy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
     const url = String(input instanceof Request ? input.url : input);
     const body = init?.body ? JSON.parse(String(init.body)) : undefined;
     calls.push({ url, body });
-    if (url === TURNSTILE_URL) return Response.json({ success: body.response !== "bad" });
+    if (url === TURNSTILE_URL)
+      return Response.json({ success: body.response !== "bad", hostname: turnstileHostname ?? undefined });
     if (url === DISCORD_URL) return new Response(null, { status: discordStatus });
     return new Response("unexpected", { status: 599 });
   });
