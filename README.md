@@ -14,5 +14,5 @@ See the [security policy](SECURITY.md).
 
 ## Licence
 
-Licensed under the [Ravendarque Noncommercial Licence](LICENSE.md), with its
+Licensed under the [One Lone Raven Noncommercial Licence](LICENSE.md), with its
 [schedule](LICENSE-SCHEDULE.md).
