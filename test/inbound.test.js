@@ -124,9 +124,24 @@ test("an unknown local part is rejected and nothing is stored", async () => {
   expect(fetches.discord()).toHaveLength(0);
 });
 
+test("support@ is an alias for Deaftly too", async () => {
+  await receive("support@deaftly.com", helloEml);
+  expect(await items()).toHaveLength(1);
+});
+
 test("an alias belongs to its own product only", async () => {
-  const message = await receive("support@deaftly.com", helloEml);
-  expect(message.rejected).toEqual([REJECTION]);
+  const aliases = "SELECT email_aliases FROM products WHERE slug = 'cl'";
+  const before = await baseEnv.DB.prepare(aliases).first("email_aliases");
+  await baseEnv.DB.prepare("UPDATE products SET email_aliases = ? WHERE slug = 'cl'").bind('["hello","press"]').run();
+  try {
+    await receive("press@climbinglogbook.com", helloEml);
+    expect(await items()).toHaveLength(1);
+    const message = await receive("press@deaftly.com", helloEml);
+    expect(message.rejected).toEqual([REJECTION]);
+    expect(await items()).toHaveLength(1);
+  } finally {
+    await baseEnv.DB.prepare("UPDATE products SET email_aliases = ? WHERE slug = 'cl'").bind(before).run();
+  }
 });
 
 test("an unknown domain is rejected", async () => {
