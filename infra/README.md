@@ -19,7 +19,7 @@ State lives in the R2 bucket `engage-tfstate`, never in git.
 |---|---|---|
 | `infra.yml` | PR touching `infra/` (plan); push to `main` (apply); manual | Format check, validate, plan; refuses any plan that deletes or replaces unless run by hand with `allow_deletes` ([Deleting resources](#deleting-resources)). Skips the repository's first push, before credentials exist |
 | `bootstrap-state.yml` | Manual | Creates the state bucket if it's missing; safe to re-run |
-| `preview.yml` | PR | Uploads a Preview named `pr-<n>` and comments its URL |
+| `preview.yml` | PR | Creates and migrates the PR's own D1 database `engage-pr-<n>`, uploads a Preview named `pr-<n>` bound to it and comments its URL; deletes both when the PR closes |
 | `deploy.yml` | `v*` tag | Deploys the tag (to beta when the project has one, otherwise production) |
 | `promote.yml` | Manual, with a tag | Deploys a released tag to production (beta projects only) |
 
@@ -100,6 +100,21 @@ phished. Sessions last 8 hours, with the binding, HttpOnly and SameSite
 cookie protections on. The Access application and its policy live in the
 central identity stack, coraxia; the audience tag is committed in `wrangler.jsonc` as
 `ACCESS_AUD`.
+
+### Preview databases
+
+Each PR's Preview gets its own D1 database, `engage-pr-<number>`, so unmerged
+code never runs against production data. The Preview workflow creates it if
+it's missing, applies the migrations, and writes a temporary
+`.wrangler-preview.jsonc` (never committed) that points the Preview's `DB`
+binding at it. `wrangler.jsonc` leaves `database_id` empty in `preview` and
+`previews` for that reason. When the PR closes, merged or not, the workflow
+deletes the database. Dependabot PRs get no Preview and no database.
+
+D1 Write is an account-wide permission: Cloudflare can't scope it to one
+database. The Preview token can read, change and delete every D1 database in
+the account, production's included, so it stays a repository secret that only
+the Preview workflow uses.
 
 ### Worker secrets
 
