@@ -146,7 +146,7 @@ The webhook secret is verified on every delivery.
 
 - **Apex MX moves to Cloudflare Email Routing on each product domain (Raven, D5).** This replaces Proton Pass for those domains and reverses CL #1693. No other addresses on those domains are in use, and none is a login or recovery address (Raven).
 - **Addresses:**
-  - `hello@<domain>` (and any aliases kept for old mail, such as `support@` on CL) routes to Engage's `email()` handler as an **email** item.
+  - `hello@<domain>` (and any aliases kept for old mail, such as `support@` on CL) routes to Engage's `email()` handler as an **email** item, which records the address it arrived at.
   - `reply+<itemId>.<sig>@<domain>` routes replies back onto the item they belong to. `sig` is a truncated HMAC of the item id, so nobody can forge a reply onto another item.
   - Anything else is rejected.
 - **Parsing:** `postal-mime`. Text and HTML bodies are stored. The HTML is kept as received and shown only on request, as its own document in a sandboxed frame whose policy lets it run no script and load nothing from elsewhere. Attachments go to R2 (25 MiB inbound cap), under the same retention as the item.
@@ -172,7 +172,7 @@ The webhook secret is verified on every delivery.
 - **States and actions (Raven):**
   - **Read / unread:** opening an item marks it read, and it can be marked unread again. A new inbound reply marks it unread.
   - **Star:** a free toggle.
-  - **Respond:** only possible when a contact email exists. Sent with the Email Sending binding from `hello@<product domain>`, with `Reply-To: reply+…`, plus `Message-ID`, `In-Reply-To` and `References` headers so it threads in their mail client. The sent message is stored on the thread. Plain-text composer.
+  - **Respond:** only possible when a contact email exists. Sent with the Email Sending binding from the address an email item arrived at, such as `support@<product domain>`, while it's still `hello@` or one of the product's aliases, and from `hello@<product domain>` otherwise and for form items, with `Reply-To: reply+…`, plus `Message-ID`, `In-Reply-To` and `References` headers so it threads in their mail client. The sent message is stored on the thread. Plain-text composer.
   - **Archive:** "dealt with". Leaves the inbox, can still be searched, and can be unarchived.
   - **Delete:** a hard delete of the item, thread, attachments and any testimonial excerpts, after a confirm step. Used for erasure requests and junk. The audit log keeps that a deletion happened, and the item id, but none of the content.
   - **Create GitHub issue:** see §5.4.

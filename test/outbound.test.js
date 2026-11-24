@@ -23,14 +23,19 @@ function fakeEmail({ messageId = "send-id-1", fail = false } = {}) {
   };
 }
 
-/** @param {{ kind?: string, subject?: string | null, contactEmail?: string | null }} [overrides] */
-async function seedItem({ kind = "feedback", subject = "Crash on save", contactEmail = "climber@example.org" } = {}) {
+/** @param {{ kind?: string, subject?: string | null, contactEmail?: string | null, recipientLocal?: string | null }} [overrides] */
+async function seedItem({
+  kind = "feedback",
+  subject = "Crash on save",
+  contactEmail = "climber@example.org",
+  recipientLocal = null,
+} = {}) {
   await env.DB.prepare(
-    "INSERT INTO items (id, product, kind, source, subject, contact_email, reply_owed_at, created_at, last_activity_at) VALUES (?, 'cl', ?, 'web', ?, ?, ?, ?, ?)",
+    "INSERT INTO items (id, product, kind, source, subject, contact_email, recipient_local, reply_owed_at, created_at, last_activity_at) VALUES (?, 'cl', ?, 'web', ?, ?, ?, ?, ?, ?)",
   )
-    .bind(ITEM_ID, kind, subject, contactEmail, THEN, THEN, THEN)
+    .bind(ITEM_ID, kind, subject, contactEmail, recipientLocal, THEN, THEN, THEN)
     .run();
-  return { id: ITEM_ID, product: "cl", contactEmail, subject };
+  return { id: ITEM_ID, product: "cl", contactEmail, subject, recipientLocal };
 }
 
 async function seedInbound(id, rfcMessageId, createdAt) {
@@ -69,6 +74,25 @@ test("sends from the product's own address, to the contact, with the given text"
     subject: "Re: Crash on save",
     text: "Thanks, fixed.",
   });
+});
+
+test("replies to an email item from the address it arrived at", async () => {
+  const email = fakeEmail();
+  const item = await seedItem({ kind: "email", recipientLocal: "support" });
+  await sendReply(makeEnv({ EMAIL: email, REPLY_ADDRESS_SECRET: SECRET }), item, await product(), "Hi", ACTOR);
+  expect(email.sent[0].from).toEqual({ name: "Climbing Logbook", email: "support@climbinglogbook.com" });
+  const stored = await env.DB.prepare("SELECT from_addr FROM messages WHERE direction = 'out'").first("from_addr");
+  expect(stored).toBe("support@climbinglogbook.com");
+});
+
+test("replies from hello@ when the address an item arrived at is no longer an alias, or wasn't recorded", async () => {
+  for (const recipientLocal of ["press", null]) {
+    await resetItems();
+    const email = fakeEmail();
+    const item = await seedItem({ kind: "email", recipientLocal });
+    await sendReply(makeEnv({ EMAIL: email, REPLY_ADDRESS_SECRET: SECRET }), item, await product(), "Hi", ACTOR);
+    expect(email.sent[0].from.email, String(recipientLocal)).toBe("hello@climbinglogbook.com");
+  }
 });
 
 test("sets a signed Reply-To that parses back to the item", async () => {

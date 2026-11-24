@@ -78,7 +78,7 @@ export function parseAuthResults(header) {
 /**
  * @param {InboundEnv} env
  * @param {InboundMessage} message
- * @returns {Promise<{ product: import("../registry.js").Product, itemId: string | null } | null>}
+ * @returns {Promise<{ product: import("../registry.js").Product, itemId: string | null, local: string } | null>}
  */
 async function route(env, message) {
   const recipient = message.to.trim().toLowerCase();
@@ -99,11 +99,11 @@ async function route(env, message) {
     const item = await env.DB.prepare("SELECT 1 AS found FROM items WHERE id = ? AND product = ?")
       .bind(itemId, product.slug)
       .first();
-    return item ? { product, itemId } : null;
+    return item ? { product, itemId, local } : null;
   }
 
   const accepted = local === "hello" || product.emailAliases.some(alias => alias.toLowerCase() === local);
-  return accepted ? { product, itemId: null } : null;
+  return accepted ? { product, itemId: null, local } : null;
 }
 
 /**
@@ -187,7 +187,7 @@ export async function handleInboundEmail(message, env, ctx) {
     message.setReject(REJECTION);
     return;
   }
-  const { product, itemId: replyItemId } = target;
+  const { product, itemId: replyItemId, local } = target;
 
   if (product.backupForwardTo) {
     try {
@@ -232,7 +232,7 @@ export async function handleInboundEmail(message, env, ctx) {
         .bind(now, itemId)
     : db
         .prepare(
-          "INSERT INTO items (id, product, kind, source, subject, contact_email, contact_name, auth_result, junk, created_at, last_activity_at) VALUES (?, ?, 'email', 'email', ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO items (id, product, kind, source, subject, contact_email, contact_name, recipient_local, auth_result, junk, created_at, last_activity_at) VALUES (?, ?, 'email', 'email', ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(
           itemId,
@@ -240,6 +240,7 @@ export async function handleInboundEmail(message, env, ctx) {
           subject,
           sender?.address ?? null,
           sender?.name ?? null,
+          local,
           JSON.stringify(auth),
           suspect ? 1 : 0,
           now,
