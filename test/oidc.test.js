@@ -92,6 +92,14 @@ test("expiry has 60 seconds of leeway", async () => {
   await expect(verifyActionsToken(await sign({ claims: { exp: NOW_S - 59 } }), options())).resolves.toBeTruthy();
 });
 
+test("a signature that isn't base64url is refused as malformed", async () => {
+  const [head, body] = (await sign()).split(".");
+  await expect(verifyActionsToken(`${head}.${body}.%%%`, options())).rejects.toMatchObject({
+    message: "oidc-invalid",
+    reason: "malformed",
+  });
+});
+
 test("garbage is refused as malformed", async () => {
   for (const token of ["", "a.b", "not.base64!.at-all"])
     await expect(verifyActionsToken(token, options())).rejects.toMatchObject({ message: "oidc-invalid" });

@@ -27,7 +27,11 @@ function decode(part) {
     .replace(/-/g, "+")
     .replace(/_/g, "/")
     .padEnd(Math.ceil(part.length / 4) * 4, "=");
-  return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  try {
+    return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  } catch {
+    throw invalid("malformed");
+  }
 }
 
 /** @param {string} part */
