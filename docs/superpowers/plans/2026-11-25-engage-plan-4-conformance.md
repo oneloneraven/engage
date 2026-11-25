@@ -54,7 +54,7 @@ Its own issue, branch and PR in `oneloneraven/project-bootstrap`, with `release:
 - [ ] **Step 2:** Run `pnpm test`. Expected: FAIL, because the file is missing.
 - [ ] **Step 3:** Write `conformance-rules.mjs` with `generateRequiredChecks(modulesDir) → Record<string, …>`. `--write` updates the file in place; `--check` exits 1 on drift. Write `rules.json` with the spec's checks.
   - Core-docs paths: the core manifest's `to` values for `SECURITY.md`, `CLAUDE.md`, `docs/privacy.md`, `docs/threat-model.md`, `docs/workflow.md` and `docs/definition-of-done.md`.
-  - Board sync: `step` is `"github:core:5-link"`, and `workflow` is `"project-status-sync.yml"`.
+  - Board sync: `step` is `"github:core:5"` (sub-steps such as `5-link` match it); ruleset and required checks `"github:core:4"`; labels `"github:core:3"`, and `workflow` is `"project-status-sync.yml"`.
   - Secrets: `names` is `["CLOUDFLARE_API_TOKEN"]`.
 - [ ] **Step 4:** Run `pnpm test`, then the identifier guard. Expected: PASS.
 - [ ] **Step 5:** Commit, open the draft PR with its label, then mark it ready.

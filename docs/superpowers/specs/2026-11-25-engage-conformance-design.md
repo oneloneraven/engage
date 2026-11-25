@@ -64,7 +64,7 @@ Bootstrap gains `conformance/rules.json`, published from its default branch. Eng
     { "id": "core-docs", "title": "Security policy and core docs", "kind": "files-present", "modules": ["core"],
       "paths": ["SECURITY.md", "CLAUDE.md", "docs/privacy.md", "docs/threat-model.md", "docs/workflow.md", "docs/definition-of-done.md"] },
     { "id": "dependabot", "title": "Dependabot", "kind": "dependabot", "modules": ["core"], "paths": [".github/dependabot.yml"] },
-    { "id": "board-sync", "title": "Board sync", "kind": "workflow-healthy", "modules": ["core"], "workflow": "project-status-sync.yml", "step": "github:core:5-link" },
+    { "id": "board-sync", "title": "Board sync", "kind": "workflow-healthy", "modules": ["core"], "workflow": "project-status-sync.yml", "step": "github:core:5" },
     { "id": "release-gate", "title": "Engage release gate", "kind": "engage-protection-rule", "modules": ["core"] },
     { "id": "no-cloudflare-secret", "title": "No long-lived Cloudflare secret", "kind": "secrets-absent",
       "modules": ["cloudflare-opentofu", "cloudflare-identity", "cloudflare-tofu-base"], "names": ["CLOUDFLARE_API_TOKEN"] }
@@ -78,7 +78,7 @@ The paths and names above are illustrative. Slice 1 settles them against the rea
 - **`kind` is the contract.** Engage implements each kind in code. The file chooses which checks run, for which modules, and with which parameters (`paths`, `names`, `workflow`). Engage reads those parameters from the file and hard-codes none of them.
 - **`modules: []`** means the check runs on every repository.
 - **`requiredChecks`** is each module's manifest `requiredChecks`, generated into the file by a bootstrap script. Bootstrap's test fails if the file and the manifests disagree. So Engage reads one file from bootstrap, never the manifests themselves.
-- **`step`** (optional) names the bootstrap step that sets the check up. If a repository's record marks that step as skipped, the cell is Skipped, shows the recorded reason, and doesn't count as needing you.
+- **`step`** (optional) names the bootstrap step that sets the check up, such as `github:core:5` for the board. If a repository's record marks that step, or one of its sub-steps (`github:core:5-link`), as skipped, the cell is Skipped, shows the recorded reason, and doesn't count as needing you.
 - **An unknown kind shows Unknown** with the reason "Engage doesn't know this check yet", never a pass. So a rule added to bootstrap before Engage supports it is visible, not silent.
 - **`version` is checked.** A version Engage doesn't support makes every cell Unknown, with that reason.
 - **Bootstrap tests the file.** Its schema test checks that every `modules` entry names a real module, and that every `id` is unique.
