@@ -1,14 +1,15 @@
 import { hmacHex, timingSafeEqual } from "../lib/hmac.js";
 import { json } from "../lib/http.js";
 import { log } from "../lib/log.js";
+import { handleProtectionRule } from "../releases/gate.js";
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024;
 
 /**
- * GitHub's webhook. Signed with the App's webhook secret; issue events flag or clear "reply owed" on linked items.
- * The issue's current state decides, not the event name, so repeats and late arrivals settle on the right answer.
+ * GitHub's webhook, signed with the App's webhook secret. Issue events flag or clear "reply owed" on linked items, and
+ * deployment protection rule events become pending releases.
  * @param {Request} request
- * @param {{ DB: import("../lib/db.js").Database, GITHUB_WEBHOOK_SECRET?: string, APP_ENV?: string, RELEASE_VERSION?: string }} env
+ * @param {{ DB: import("../lib/db.js").Database, GITHUB_WEBHOOK_SECRET?: string, ADMIN_HOST?: string, APP_ENV?: string, RELEASE_VERSION?: string }} env
  * @returns {Promise<Response>}
  */
 export async function handleGithubWebhook(request, env) {
@@ -23,14 +24,25 @@ export async function handleGithubWebhook(request, env) {
   const expected = `sha256=${await hmacHex(env.GITHUB_WEBHOOK_SECRET, body)}`;
   if (!timingSafeEqual(signature, expected)) return json({ error: "unauthorised" }, 401);
 
-  if (request.headers.get("X-GitHub-Event") !== "issues") return new Response(null, { status: 204 });
-  /** @type {{ issue?: { html_url?: string, state?: string } }} */
+  const event = request.headers.get("X-GitHub-Event");
+  if (event !== "issues" && event !== "deployment_protection_rule") return new Response(null, { status: 204 });
   let payload;
   try {
     payload = JSON.parse(body);
   } catch {
     return json({ error: "invalid-body" }, 400);
   }
+  if (event === "deployment_protection_rule") return handleProtectionRule(env, payload);
+  return handleIssue(env, payload);
+}
+
+/**
+ * The issue's current state decides, not the event name, so repeats and late arrivals settle on the right answer.
+ * @param {{ DB: import("../lib/db.js").Database }} env
+ * @param {{ issue?: { html_url?: string, state?: string } }} payload
+ * @returns {Promise<Response>}
+ */
+async function handleIssue(env, payload) {
   const url = payload.issue?.html_url;
   const state = payload.issue?.state;
   if (!url || (state !== "open" && state !== "closed")) return new Response(null, { status: 204 });
