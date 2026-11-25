@@ -193,7 +193,7 @@
   - A missing `CLOUDFLARE_BROKER_TOKEN` is a 503 `broker-not-configured`, and the event is logged.
 - [ ] **Step 2:** Implement. The release is spent before the mint. If the mint then fails, the release goes back to `approved` and the caller gets a 502, so a retry can still succeed.
 - [ ] **Step 3:** Run `pnpm test test/broker.test.js test/wrangler-previews.test.js`. Expected: PASS.
-- [ ] **Step 4:** Update `docs/threat-model.md` (a new trust boundary: GitHub OIDC to Engage, and Engage to the Cloudflare token API), `docs/data-protection.md` (no personal data, stated) and ADR-0005, "Engage brokers deploy credentials".
+- [ ] **Step 4:** Update `docs/threat-model.md` (a new trust boundary: GitHub OIDC to Engage, and Engage to the Cloudflare token API), `docs/data-protection.md` (no personal data, stated) and ADR-0008, "Engage brokers deploy credentials".
 - [ ] **Step 5:** Commit.
 
 ### Task 7: Turning it on
