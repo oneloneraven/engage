@@ -1,3 +1,4 @@
+import { failingRepositories } from "../conformance/read.js";
 import { adminLinks } from "./admin-links.js";
 import { recordAudit } from "../audit.js";
 import { readSignals } from "../signals/read.js";
@@ -389,10 +390,10 @@ const latestOf = row =>
 /**
  * @param {ItemsEnv} env
  * @param {Date} [now]
- * @returns {Promise<{ new: number, open: number, replyOwed: number, releasesWaiting: number, healthFailing: number, byProduct: Record<string, { name: string, colour: string | null, route: string | null, new: number, open: number, replyOwed: number, latestRelease: LatestRelease | null, signals: import("../signals/read.js").Signals | null }> }>}
+ * @returns {Promise<{ new: number, open: number, replyOwed: number, releasesWaiting: number, healthFailing: number, repositoriesFailing: number, noProductRepositoriesFailing: import("../conformance/read.js").FailingRepository[], byProduct: Record<string, { name: string, colour: string | null, route: string | null, new: number, open: number, replyOwed: number, latestRelease: LatestRelease | null, repositoriesFailing: import("../conformance/read.js").FailingRepository[], signals: import("../signals/read.js").Signals | null }> }>}
  */
 export async function counts(env, now = new Date()) {
-  const [perProduct, owed, waiting, latest, signals] = await Promise.all([
+  const [perProduct, owed, waiting, latest, signals, drift] = await Promise.all([
     env.DB.prepare(
       `SELECT products.slug AS slug, products.name AS name, products.colour AS colour, products.route AS route,
         COALESCE(SUM(CASE WHEN ${NEW} THEN 1 ELSE 0 END), 0) AS new_count,
@@ -411,8 +412,9 @@ export async function counts(env, now = new Date()) {
       ) WHERE n = 1`,
     ).all(),
     readSignals(env, now),
+    failingRepositories(env, now),
   ]);
-  /** @type {Record<string, { name: string, colour: string | null, route: string | null, new: number, open: number, replyOwed: number, latestRelease: LatestRelease | null, signals: import("../signals/read.js").Signals | null }>} */
+  /** @type {Record<string, { name: string, colour: string | null, route: string | null, new: number, open: number, replyOwed: number, latestRelease: LatestRelease | null, repositoriesFailing: import("../conformance/read.js").FailingRepository[], signals: import("../signals/read.js").Signals | null }>} */
   const byProduct = {};
   let totalNew = 0;
   let totalOpen = 0;
@@ -425,6 +427,7 @@ export async function counts(env, now = new Date()) {
       open: Number(row.open_count),
       replyOwed: Number(row.owed_count),
       latestRelease: latestOf(latest.results.find(release => release.product === row.slug)),
+      repositoriesFailing: drift.byProduct[String(row.slug)] ?? [],
       signals: signals[String(row.slug)] ?? null,
     };
     byProduct[String(row.slug)] = entry;
@@ -437,6 +440,8 @@ export async function counts(env, now = new Date()) {
     replyOwed: Number(owed?.n ?? 0),
     releasesWaiting: Number(waiting?.n ?? 0),
     healthFailing: Object.values(signals).filter(s => ["failing", "degraded"].includes(s.health.status)).length,
+    repositoriesFailing: drift.total,
+    noProductRepositoriesFailing: drift.noProduct,
     byProduct,
   };
 }

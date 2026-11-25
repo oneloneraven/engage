@@ -1,7 +1,7 @@
 import { recordAudit } from "../audit.js";
 
-const API = "https://api.github.com";
-const HEADERS = {
+export const API = "https://api.github.com";
+export const HEADERS = {
   Accept: "application/vnd.github+json",
   "X-GitHub-Api-Version": "2022-11-28",
   "User-Agent": "oneloneraven-engage",
