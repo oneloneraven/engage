@@ -1,8 +1,9 @@
-import { getCounts, listItems } from "../api.js";
-import { emptyState, failure, h, icon, link, loading, replace } from "../dom.js";
-import { formatToday, itemTitle, kindLabel, verdict, verdictSummary } from "../format.js";
+import { decideRelease, getCounts, listItems, listReleases } from "../api.js";
+import { emptyState, failure, guarded, h, icon, link, loading, replace } from "../dom.js";
+import { formatToday, itemTitle, kindLabel, verdict, verdictSummary, waitedFor } from "../format.js";
 
 const REPLY_ICON = ["M9 14 4 9l5-5", "M4 9h10a6 6 0 0 1 6 6v5"];
+const RELEASE_ICON = ["M12 3v12", "m8 11 4 4 4-4", "M4 17v3h16v-3"];
 const SEARCH_ICON = ["M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z", "m20 20-3.5-3.5"];
 
 let swept = false;
@@ -42,6 +43,39 @@ function needsRow(item, colour) {
 }
 
 /**
+ * @param {import("../api.js").Release} release
+ * @param {string} colour
+ * @param {() => void} onDecided
+ */
+function releaseRow(release, colour, onDecided) {
+  const href = `/releases/${encodeURIComponent(release.id)}`;
+  const title = `${release.productName} ${release.ref ?? release.sha.slice(0, 7)} is waiting to go to ${release.environment}`;
+  const status = h("div", { class: "status" });
+  const approve = guarded(h("button", { type: "button", class: "attention" }, "Approve release"), async () => {
+    replace(status);
+    try {
+      await decideRelease(release.id, "approve", "");
+      onDecided();
+    } catch (error) {
+      replace(status, failure(/** @type {Error} */ (error).message));
+    }
+  });
+  return h(
+    "li",
+    { class: "queue-row release-row", "data-colour": colour },
+    h("span", { class: "tile" }, icon(...RELEASE_ICON)),
+    h(
+      "div",
+      { class: "grow" },
+      link(href, title),
+      h("p", { class: "muted" }, `${release.repo}. Waiting ${waitedFor(release.createdAt)}.`),
+      status,
+    ),
+    h("div", { class: "buttons" }, h("a", { class: "button", href, "data-link": "" }, "Review"), approve),
+  );
+}
+
+/**
  * @param {string} slug
  * @param {{ name: string, colour: string | null, new: number, open: number }} product
  */
@@ -74,70 +108,79 @@ export function homePage(container) {
   container.append(root);
   let alive = true;
 
-  Promise.all([getCounts(), listItems({ state: "reply-owed" })])
-    .then(([counts, owed]) => {
-      if (!alive) return;
-      const sweep = !swept;
-      swept = true;
-      const summary = verdictSummary(counts.replyOwed);
-      replace(
-        root,
-        h(
-          "div",
-          { class: "home-top" },
-          h("p", { class: "muted" }, formatToday(new Date())),
-          h("a", { class: "button", href: "/inbox?search", "data-link": "" }, icon(...SEARCH_ICON), "Search messages"),
-        ),
-        h(
-          "section",
-          { class: "hero", "aria-labelledby": "verdict" },
+  const draw = () =>
+    Promise.all([getCounts(), listItems({ state: "reply-owed" }), listReleases({ state: "pending" })])
+      .then(([counts, owed, waiting]) => {
+        if (!alive) return;
+        const sweep = !swept;
+        swept = true;
+        const summary = verdictSummary(counts);
+        const colourOf = (/** @type {string} */ slug) => counts.byProduct[slug]?.colour ?? "";
+        replace(
+          root,
           h(
-            "h1",
-            { id: "verdict", class: "verdict" },
-            h("span", { class: `verdict-text${sweep ? " sweep" : ""}` }, verdict(counts.replyOwed)),
+            "div",
+            { class: "home-top" },
+            h("p", { class: "muted" }, formatToday(new Date())),
+            h(
+              "a",
+              { class: "button", href: "/inbox?search", "data-link": "" },
+              icon(...SEARCH_ICON),
+              "Search messages",
+            ),
           ),
-          summary && h("p", { class: "summary" }, summary),
-        ),
-        h(
-          "section",
-          { "aria-labelledby": "needs-you" },
-          h("h2", { id: "needs-you", class: "visually-hidden" }, "Needs you"),
-          owed.items.length === 0
-            ? emptyState("Nothing needs you. New feedback lands here and pings Discord.")
-            : h(
-                "ul",
-                { class: "queue" },
-                owed.items.map(item => needsRow(item, counts.byProduct[item.product]?.colour ?? "")),
-              ),
-          owed.next &&
-            h("p", null, link("/inbox?state=reply-owed", `See all ${counts.replyOwed} replies owed in the inbox`)),
-        ),
-        h(
-          "ul",
-          { class: "counts", "aria-label": "Message counts" },
-          countPill("/inbox?state=new", counts.new, "new"),
-          countPill("/inbox?state=open", counts.open, "open"),
-          countPill(
-            "/inbox?state=reply-owed",
-            counts.replyOwed,
-            counts.replyOwed === 1 ? "reply owed" : "replies owed",
+          h(
+            "section",
+            { class: "hero", "aria-labelledby": "verdict" },
+            h(
+              "h1",
+              { id: "verdict", class: "verdict" },
+              h("span", { class: `verdict-text${sweep ? " sweep" : ""}` }, verdict(counts)),
+            ),
+            summary && h("p", { class: "summary" }, summary),
           ),
-        ),
-        h(
-          "section",
-          { "aria-labelledby": "products" },
-          h("h2", { id: "products", class: "section-title" }, "Your products"),
+          h(
+            "section",
+            { "aria-labelledby": "needs-you" },
+            h("h2", { id: "needs-you", class: "visually-hidden" }, "Needs you"),
+            owed.items.length === 0 && waiting.releases.length === 0
+              ? emptyState("Nothing needs you. New feedback lands here and pings Discord.")
+              : h(
+                  "ul",
+                  { class: "queue" },
+                  waiting.releases.map(release => releaseRow(release, colourOf(release.product), draw)),
+                  owed.items.map(item => needsRow(item, colourOf(item.product))),
+                ),
+            owed.next &&
+              h("p", null, link("/inbox?state=reply-owed", `See all ${counts.replyOwed} replies owed in the inbox`)),
+          ),
           h(
             "ul",
-            { class: "cards" },
-            Object.entries(counts.byProduct).map(([slug, product]) => productPanel(slug, product)),
+            { class: "counts", "aria-label": "Message counts" },
+            countPill("/inbox?state=new", counts.new, "new"),
+            countPill("/inbox?state=open", counts.open, "open"),
+            countPill(
+              "/inbox?state=reply-owed",
+              counts.replyOwed,
+              counts.replyOwed === 1 ? "reply owed" : "replies owed",
+            ),
           ),
-        ),
-      );
-    })
-    .catch(error => {
-      if (alive) replace(root, h("h1", { class: "page-title" }, "Home"), failure(error.message));
-    });
+          h(
+            "section",
+            { "aria-labelledby": "products" },
+            h("h2", { id: "products", class: "section-title" }, "Your products"),
+            h(
+              "ul",
+              { class: "cards" },
+              Object.entries(counts.byProduct).map(([slug, product]) => productPanel(slug, product)),
+            ),
+          ),
+        );
+      })
+      .catch(error => {
+        if (alive) replace(root, h("h1", { class: "page-title" }, "Home"), failure(error.message));
+      });
+  draw();
 
   return {
     update() {},

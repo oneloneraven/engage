@@ -110,3 +110,28 @@ export const approveTestimonial = testimonialId =>
 /** @param {string} testimonialId */
 export const withdrawTestimonial = testimonialId =>
   request("POST", `/api/testimonials/${encodeURIComponent(testimonialId)}/withdraw`);
+
+/** @typedef {import("../releases/store.js").Release} Release */
+/** @typedef {{ release: Release, pulls: { number: number, title: string, url: string }[], checks: { conclusion: "success" | "failure" | "pending" | "unknown", url: string | null } }} ReleaseDetail */
+
+/**
+ * @param {{ state?: string }} [filter]
+ * @returns {Promise<{ releases: Release[] }>}
+ */
+export const listReleases = ({ state } = {}) =>
+  request("GET", `/api/releases${state ? `?state=${encodeURIComponent(state)}` : ""}`);
+
+/**
+ * @param {string} id
+ * @returns {Promise<ReleaseDetail>}
+ */
+export const getRelease = id => request("GET", `/api/releases/${encodeURIComponent(id)}`);
+
+/**
+ * @param {string} id
+ * @param {"approve" | "reject"} decision
+ * @param {string} note
+ * @returns {Promise<{ release: Release }>}
+ */
+export const decideRelease = (id, decision, note) =>
+  request("POST", `/api/releases/${encodeURIComponent(id)}/${decision}`, note ? { note } : {});
