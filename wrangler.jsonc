@@ -62,7 +62,7 @@
         { "pattern": "engage.oneloneraven.com/*", "zone_name": "oneloneraven.com" },
         { "pattern": "engage-api.oneloneraven.com/*", "zone_name": "oneloneraven.com" }
       ],
-      "triggers": { "crons": ["17 3 * * *"] }
+      "triggers": { "crons": ["17 3 * * *", "*/5 * * * *"] }
     },
     "preview": {
       "d1_databases": [
