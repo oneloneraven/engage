@@ -241,6 +241,20 @@ describe("health and usage", () => {
   });
 });
 
+describe("product admin links", () => {
+  it("links a report about a user to that user in the product's own admin, and other items to nothing", async () => {
+    const { noEmail, hostile } = ids();
+    await browser.url(`${CL_INBOX}/${noEmail}`);
+    const link = $(".product-admin a");
+    await expect(link).toHaveAttribute("href", "https://admin.climbinglogbook.com/users?q=alex_c");
+    await expect(link).toHaveAttribute("target", "_blank");
+    await expect(link).toHaveText(expect.stringContaining("Open in Climbing Logbook admin"));
+    await browser.url(`${CL_INBOX}/${hostile}`);
+    await $(".item-title").waitForExist();
+    await expect($(".product-admin a")).not.toBeExisting();
+  });
+});
+
 describe("product pages", () => {
   it("adds Climbing Logbook's Climbs after the foundation tabs, split by status and discipline", async () => {
     await browser.mock("**/api/products/climbing-logbook/climbs").then(mock =>

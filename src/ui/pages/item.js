@@ -115,6 +115,7 @@ export function mountItem(pane, id, hooks) {
     const header = h("header", { class: "item-header" });
     const toolbar = h("div", { class: "toolbar", role: "group", "aria-label": "Actions" });
     const toolbarNote = h("p", { class: "toolbar-note muted" });
+    const productAdmin = h("div", { class: "product-admin" });
     const actionError = h("div", { class: "status" });
     const banner = h("div", { class: "banner-slot" });
     const panels = h("div", { class: "panels" });
@@ -134,6 +135,7 @@ export function mountItem(pane, id, hooks) {
       header,
       toolbar,
       toolbarNote,
+      productAdmin,
       actionError,
       banner,
       panels,
@@ -484,6 +486,22 @@ export function mountItem(pane, id, hooks) {
       );
     }
 
+    function drawProductAdmin() {
+      if (!item) return;
+      const { adminLinks, context, productName } = item;
+      replace(
+        productAdmin,
+        adminLinks.map(({ field, url }) =>
+          h(
+            "a",
+            { class: "button", href: url, target: "_blank", rel: "noopener noreferrer" },
+            `Open in ${productName} admin`,
+            h("span", { class: "visually-hidden" }, ` for ${String(context?.[field] ?? "")}`),
+          ),
+        ),
+      );
+    }
+
     function drawDetails() {
       if (!item) return;
       const current = item;
@@ -525,6 +543,7 @@ export function mountItem(pane, id, hooks) {
       drawThread();
       drawAttachments();
       drawQuotes();
+      drawProductAdmin();
       drawDetails();
       return heading;
     }

@@ -209,6 +209,16 @@ describe("GET /api/items", () => {
 });
 
 describe("GET /api/items/:id", () => {
+  test("links a Climbing Logbook report to the reported user in its admin, and nothing else does", async () => {
+    await seed("reported", { kind: "issue", source: "app", context: JSON.stringify({ reportedUsername: "alex_c" }) });
+    await seed("plain");
+    const reported = await (await call("GET", "/api/items/reported")).json();
+    expect(reported.adminLinks).toEqual([
+      { field: "reportedUsername", url: "https://admin.climbinglogbook.com/users?q=alex_c" },
+    ]);
+    expect((await (await call("GET", "/api/items/plain")).json()).adminLinks).toEqual([]);
+  });
+
   test("returns the item and marks an unread one read, audited once", async () => {
     await seed("a");
     const first = await call("GET", "/api/items/a");
@@ -611,7 +621,7 @@ describe("unexpected errors", () => {
         get(target, key) {
           if (key === "prepare") {
             return (/** @type {string} */ sql) => {
-              if (sql.startsWith("SELECT *, (SELECT name FROM products"))
+              if (sql.startsWith("SELECT items.*, products.name AS product_name"))
                 throw new TypeError("private subject exploded");
               return target.prepare(sql);
             };
