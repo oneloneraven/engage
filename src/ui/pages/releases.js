@@ -1,6 +1,6 @@
-import { decideRelease, getRelease, listReleases } from "../api.js";
-import { emptyState, failure, guarded, h, link, loading, replace } from "../dom.js";
-import { formatTime, waitedFor } from "../format.js";
+import { decideRelease, getProduct, getRelease, listReleases } from "../api.js";
+import { emptyState, failure, guarded, h, link, loading, replace, setupState } from "../dom.js";
+import { formatDay, formatTime, releaseWord, waitedFor } from "../format.js";
 
 const NOTE_MAX = 1000;
 const CHECKS = {
@@ -11,69 +11,113 @@ const CHECKS = {
 };
 
 /** @param {import("../api.js").Release} release */
-const releaseTitle = release =>
-  `${release.productName} ${release.ref ?? release.sha.slice(0, 7)} to ${release.environment}`;
+const releaseTitle = release => `${release.ref ?? release.sha.slice(0, 7)} to ${release.environment}`;
 
 /**
+ * One product's releases, waiting first and then the rest, with the one open beside them.
  * @param {HTMLElement} container
- * @param {import("../router.js").RouteContext} context
+ * @param {import("../router.js").RouteContext} context its params start at the release id
+ * @param {{ product: { slug: string, name: string, route: string }, base: string }} options
  * @returns {import("../router.js").Page}
  */
-export function releasesPage(container, context) {
-  document.title = "Releases – Engage";
-  let releaseId = context.params[0] ?? null;
+export function releasesPage(container, context, { product, base }) {
+  document.title = `Releases – ${product.name} – Engage`;
+  let releaseId = context.params[0] || null;
   let alive = true;
-  const list = h("ul", { class: "rows" });
-  const listStatus = h("div", { class: "status" });
+  const lists = h("div", { class: "release-lists" });
+  const listStatus = h("div", { class: "status" }, loading());
   const detail = h("section", { class: "detail-pane", "aria-label": "Release" });
   const split = h(
     "div",
     { class: "split" },
     h(
       "section",
-      { class: "list-pane", "aria-label": "Releases waiting" },
-      h("h1", { class: "page-title" }, "Releases"),
+      { class: "list-pane", "aria-labelledby": "releases-title" },
+      h("h2", { id: "releases-title", class: "visually-hidden" }, "Releases"),
       listStatus,
-      list,
+      lists,
     ),
     detail,
   );
   container.append(split);
 
-  async function loadList() {
-    try {
-      const { releases } = await listReleases({ state: "pending" });
-      if (!alive) return;
-      replace(
-        list,
-        releases.map(release =>
+  /** @param {import("../api.js").Release} release */
+  const row = release =>
+    h(
+      "li",
+      { "data-id": release.id },
+      h(
+        "a",
+        {
+          class: "row-link",
+          href: `${base}/${encodeURIComponent(release.id)}`,
+          "data-link": "",
+          ...(release.id === releaseId && { "aria-current": "true" }),
+        },
+        h(
+          "span",
+          { class: "row-body" },
           h(
-            "li",
-            { "data-id": release.id },
+            "span",
+            { class: "row-top" },
+            h("span", { class: "row-title" }, releaseTitle(release)),
             h(
-              "a",
-              {
-                class: "row-link",
-                href: `/releases/${encodeURIComponent(release.id)}`,
-                "data-link": "",
-                ...(release.id === releaseId && { "aria-current": "true" }),
-              },
-              h(
-                "span",
-                { class: "row-body" },
-                h(
-                  "span",
-                  { class: "row-top" },
-                  h("span", { class: "row-title" }, releaseTitle(release)),
-                  h("span", { class: "row-time" }, waitedFor(release.createdAt)),
-                ),
-                h("span", { class: "row-tags" }, h("span", { class: "row-product" }, release.repo)),
-              ),
+              "span",
+              { class: "row-time" },
+              release.state === "pending" ? waitedFor(release.createdAt) : formatDay(release.createdAt),
             ),
           ),
+          h(
+            "span",
+            { class: "row-tags" },
+            release.state !== "pending" && h("span", { class: "row-state" }, releaseWord(release.state)),
+            h("span", { class: "row-product" }, release.repo),
+          ),
         ),
+      ),
+    );
+
+  async function loadList() {
+    try {
+      const [{ releases }, { gated }] = await Promise.all([
+        listReleases({ product: product.slug }),
+        getProduct(product.route),
+      ]);
+      if (!alive) return;
+      const waiting = releases.filter(release => release.state === "pending");
+      const earlier = releases.filter(release => release.state !== "pending");
+      if (gated.length === 0 && releases.length === 0) {
+        split.classList.add("unset");
+        replace(
+          listStatus,
+          setupState(
+            `Releases waiting for your approval before they go out, and the ones you've decided, for ${product.name}'s repositories.`,
+            "No repositories are gated yet.",
+            "the release gate",
+            "release-gate.md",
+          ),
+        );
+        replace(lists);
+        if (releaseId === null) replace(detail);
+        return;
+      }
+      replace(listStatus);
+      replace(
+        lists,
+        h(
+          "section",
+          { "aria-labelledby": "waiting-title" },
+          h("h3", { id: "waiting-title", class: "col-title" }, "Waiting"),
+          waiting.length ? h("ul", { class: "rows" }, waiting.map(row)) : emptyState("Nothing is waiting to go out."),
+        ),
+        earlier.length > 0 &&
+          h(
+            "section",
+            { "aria-labelledby": "earlier-title" },
+            h("h3", { id: "earlier-title", class: "col-title" }, "Earlier"),
+            h("ul", { class: "rows" }, earlier.map(row)),
+          ),
       );
-      replace(listStatus, releases.length === 0 && emptyState("Nothing is waiting to go out."));
     } catch (error) {
       if (alive) replace(listStatus, failure(/** @type {Error} */ (error).message));
     }
@@ -90,11 +134,15 @@ export function releasesPage(container, context) {
     try {
       const { release, pulls, checks } = await getRelease(id);
       if (!alive || id !== releaseId) return;
+      if (release.product !== product.slug) {
+        replace(detail, failure(`That release isn't one of ${product.name}'s.`));
+        return;
+      }
       const heading = h("h2", { class: "item-title", tabindex: "-1" }, releaseTitle(release));
       const status = h("div", { class: "status" });
       replace(
         detail,
-        h("p", { class: "back" }, link("/releases", "Back to releases")),
+        h("p", { class: "back" }, link(base, "Back to releases")),
         h(
           "header",
           { class: "item-header" },
@@ -193,10 +241,10 @@ export function releasesPage(container, context) {
 
   return {
     update(next) {
-      const nextId = next.params[0] ?? null;
+      const nextId = next.params[0] || null;
       if (nextId === releaseId) return;
       releaseId = nextId;
-      for (const li of list.children) {
+      for (const li of lists.querySelectorAll("li[data-id]")) {
         const a = li.querySelector("a");
         if (li.getAttribute("data-id") === releaseId) a?.setAttribute("aria-current", "true");
         else a?.removeAttribute("aria-current");

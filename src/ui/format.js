@@ -125,3 +125,29 @@ export function itemHeading(item) {
  */
 export const betaText = (beta, now = Date.now()) =>
   `Beta ${beta.version}, ${waitedFor(beta.since, now)} ahead of production`;
+
+const MONITOR_WORDS = {
+  up: "Up",
+  down: "Down",
+  recovering: "Recovering",
+  incident: "Open incident",
+  paused: "Paused",
+  pending: "Waiting for its first check",
+  maintenance: "In maintenance",
+  missing: "Not in Better Stack",
+  unknown: "Unknown",
+};
+
+/** @param {string} status */
+export const monitorWord = status => MONITOR_WORDS[/** @type {keyof typeof MONITOR_WORDS} */ (status)] ?? "Unknown";
+
+const RELEASE_WORDS = {
+  pending: "Waiting",
+  approved: "Approved",
+  rejected: "Rejected",
+  expired: "Expired",
+  spent: "Went out",
+};
+
+/** @param {string} state */
+export const releaseWord = state => RELEASE_WORDS[/** @type {keyof typeof RELEASE_WORDS} */ (state)] ?? state;

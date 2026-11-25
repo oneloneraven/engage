@@ -12,6 +12,8 @@ const LEFT_OUT = new Set(["paused", "pending", "maintenance"]);
  * @typedef {{ id: string, name: string, url: string }} MonitorConfig
  * @typedef {"healthy" | "degraded" | "failing" | "unmonitored" | "unknown"} HealthStatus
  * @typedef {{ status: HealthStatus, reason: string | null, link: string | null }} Health
+ * @typedef {"up" | "down" | "recovering" | "incident" | "paused" | "pending" | "maintenance" | "missing" | "unknown"} MonitorStatus
+ * @typedef {{ name: string, url: string, status: MonitorStatus }} MonitorState
  * @typedef {{ statuses: Map<string, string>, incidents: Set<string> }} BetterStackView
  */
 
@@ -91,6 +93,27 @@ function judge(monitors, view) {
   return { status: "healthy", reason: null, link: null };
 }
 
+const PASSED_THROUGH = new Set(["up", "down", "paused", "pending", "maintenance"]);
+
+/**
+ * Each monitor as Better Stack last saw it, or unknown when it couldn't be asked.
+ * @param {MonitorConfig[]} monitors
+ * @param {BetterStackView | null} view
+ * @returns {MonitorState[]}
+ */
+function monitorStates(monitors, view) {
+  return monitors.map(({ name, url, id }) => {
+    const raw = view?.statuses.get(id);
+    /** @type {MonitorStatus} */
+    let status = "unknown";
+    if (view && raw === undefined) status = "missing";
+    else if (raw === "validating") status = "recovering";
+    else if (raw && PASSED_THROUGH.has(raw)) status = /** @type {MonitorStatus} */ (raw);
+    if (status === "up" && view?.incidents.has(id)) status = "incident";
+    return { name, url, status };
+  });
+}
+
 /**
  * @param {unknown} raw
  * @returns {MonitorConfig[] | null} null when the config can't be read
@@ -136,9 +159,9 @@ export async function refreshHealth(env, now) {
 
   const checkedAt = now.toISOString();
   const upsert = env.DB.prepare(
-    `INSERT INTO health_state (product, status, reason, link, checked_at) VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO health_state (product, status, reason, link, monitors, checked_at) VALUES (?, ?, ?, ?, ?, ?)
      ON CONFLICT (product) DO UPDATE SET status = excluded.status, reason = excluded.reason, link = excluded.link,
-       checked_at = excluded.checked_at`,
+       monitors = excluded.monitors, checked_at = excluded.checked_at`,
   );
   const statements = configs.map(({ slug, monitors }) => {
     /** @type {Health} */
@@ -150,7 +173,8 @@ export async function refreshHealth(env, now) {
     else if (view) health = judge(monitors, view);
     else health = { status: "unknown", reason: unavailable, link: null };
     log(env, "info", "health.checked", { product: slug, status: health.status });
-    return upsert.bind(slug, health.status, health.reason, health.link, checkedAt);
+    const states = monitors ? monitorStates(monitors, view) : [];
+    return upsert.bind(slug, health.status, health.reason, health.link, JSON.stringify(states), checkedAt);
   });
   if (statements.length) await env.DB.batch(statements);
 }

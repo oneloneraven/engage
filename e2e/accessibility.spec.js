@@ -19,8 +19,11 @@ const PAGES = [
   { name: "Item with consent", path: ids => `/items/${ids.consent}`, ready: ".item-title" },
   { name: "Junk", path: () => "/climbing-logbook/inbox?state=junk", ready: "ul.rows li:first-child" },
   { name: "Search", path: () => "/search?q=export", ready: ".search-results li:first-child" },
-  { name: "Releases", path: () => "/releases", ready: "ul.rows li:first-child" },
-  { name: "Release", path: () => `/releases/${SHARED_RELEASE}`, ready: "h2.item-title" },
+  { name: "Releases", path: () => "/climbing-logbook/releases", ready: "ul.rows li:first-child" },
+  { name: "Release", path: () => `/climbing-logbook/releases/${SHARED_RELEASE}`, ready: "h2.item-title" },
+  { name: "Health", path: () => "/climbing-logbook/health", ready: ".monitors li" },
+  { name: "Usage", path: () => "/climbing-logbook/usage", ready: ".usage svg.sparkline" },
+  { name: "Health not set up", path: () => "/deaftly/health", ready: ".setup-state" },
   { name: "Not found", path: () => "/no-such-page", ready: "h1.page-title" },
 ];
 

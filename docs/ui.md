@@ -72,7 +72,7 @@ The fill colours pass 3:1 against every background in both themes (lowest: light
 ```
 Desktop
 ┌──────────────────────────────────────────────────────────────────────┐
-│ ▲ Engage   Inbox 4  Releases 1  Junk               [ Search messages ] │
+│ ▲ Engage                                           [ Search messages ] │
 ├──────────────────────────────────────────────────────────────────────┤
 │ Wednesday 25 November                                                │
 │ 4 things need you.                                                   │
@@ -93,15 +93,17 @@ Desktop
 
 ### The shell
 
-- **No rail.** A sticky top bar runs the full width: the wordmark with its fire tile (a link to Home), then, inside a product, the product switcher (its colour square and name, opening a list of every product), then Releases with the number waiting in an `--attention` badge, and Search at the far end. The current page has a light tint behind it and `aria-current="page"`.
-- **Below 768px** the pages sit behind a menu button (`aria-expanded`), and search keeps only its icon.
+- **No rail.** A sticky top bar runs the full width: the wordmark with its fire tile (a link to Home), then, inside a product, the product switcher (its colour square and name, opening a list of every product), and Search at the far end. Releases live in each product's hub, and Home shows every release waiting on its product's card.
+- **Below 768px** search keeps only its icon.
 - Main content is left-aligned with a fluid side margin, capped at 74rem on Home. Nothing is centred except empty states.
-- Releases leaves the bar when each product hub gets its own Releases page (#128).
 
 ### Product hub
 
-- `/<route>` (for example `/climbing-logbook`) is a product's hub: its colour square and name as the page's `h1`, its health pill, then a tab bar of its pages (Overview, Inbox), with the current tab underlined in the product colour. Below 768px the tabs become one menu button naming the current page.
+- `/<route>` (for example `/climbing-logbook`) is a product's hub: its colour square and name as the page's `h1`, its health pill, then a tab bar of its foundation pages (Overview, Inbox, Releases, Health, Usage), with the current tab underlined in the product colour. Below 768px the tabs become one menu button naming the current page.
 - **Overview** is the product's card from Home, full width.
+- Every foundation page shows for every product. A page that isn't set up says what it would show and links to the runbook that turns it on, in a dashed box: "No repositories are gated yet.", "No monitors yet.", "No usage source yet."
+- **Health** (`/<route>/health`): the health reason and when it was last checked, then one row per configured monitor with a status dot, its name, its status (Up, Down, Recovering, Open incident, Paused, Waiting for its first check, In maintenance, Not in Better Stack, Unknown) and Open in Better Stack. Every monitor is Unknown while the last check is over 15 minutes old.
+- **Usage** (`/<route>/usage`): one card per engagement figure, each with its 30-day number, its change, and a 90-day sparkline in the product colour.
 - `/items/<id>`, the address Discord pings and older links use, opens the item inside its product's inbox. The old `/inbox?product=<slug>` goes to that product's inbox, and any other `/inbox` to Search.
 
 ### Search
@@ -114,7 +116,7 @@ Desktop
 2. **One card per product, in a single column**, in registry order. Order never changes with how busy a product is. A card with something that needs you has a 4px `--attention` edge on its left.
    - **Header:** the product's colour square and name (a link to its inbox until its hub lands), and its health pill.
    - **Left, Needs you:** that product's rows, most urgent first: failing or degraded health, releases waiting, then up to three replies owed with "See all n replies owed in the inbox" beyond that. Each row has a 44px icon tile, a bold title, one line of context in `--muted`, and its actions: Review and Approve release for a release, Reply for a reply owed, and Open in Better Stack for health. A release row sits on an `--attention` tint. Under the rows, chips for new and open messages. With nothing to do: "Nothing needs you here."
-   - **Right, How it's doing:** the engagement block, the health reason when it's Unknown, and the beta badge. With no engagement source: "No usage figures yet."
+   - **Right, How it's doing:** the engagement block, the health reason when it's Unknown, the beta badge, and the latest release approved ("Latest release: v1.14.0 to production, 20 Nov 2026.", linking to it). With no engagement source: "No usage figures yet."
    - The two sides sit side by side from 1024px wide and stack below. The card keeps its soft radial glow of the product colour from the top-right corner.
    - The health pill also says Not monitored (no monitors configured) or Unknown (the source couldn't be read, or the last check is over 15 minutes old). Neither is ever shown as Healthy.
    - The engagement number is in display type with its label beneath, then the sparkline in the product colour, then the change. A product with a source but no data yet says "No data yet". The change appears only once both 30-day windows have at least 25 days of data.
@@ -142,9 +144,9 @@ Desktop
 
 A view of each product's inbox, at `/<route>/inbox?state=junk`, with a link back to the inbox. The inbox layout without the filter chips. Each row has Not junk and Delete for good. Junk uses `--danger` only on the delete action, never on the rows.
 
-### Releases (for Module 2)
+### Releases
 
-The Releases page, its top-bar entry and the release rows on each product's card. A list shaped like the inbox: one row per release waiting, showing the product colour, the repository, the environment, the version and how long it's been waiting. The open release shows the PRs included since the last approved release, CI status and a link to the run, with Approve release (primary) and Reject (outlined, with an optional note). Its exact design is settled when Module 2 is built, within this direction.
+Each product's releases, at `/<route>/releases` and `/<route>/releases/<id>`, plus the release rows on its card. A list shaped like the inbox: Waiting first, each row with the version, the environment, the repository and how long it's been waiting; then Earlier, with the date and its state (Approved, Rejected, Expired, Went out). The open release shows the PRs included since the last approved release, CI status and a link to the run, with Approve release (primary) and Reject (outlined, with an optional note). `/releases/<id>`, which Discord pings link to, opens the release in its product's hub, and `/releases` goes to Home.
 
 ## Components
 

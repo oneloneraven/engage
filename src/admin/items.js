@@ -367,13 +367,27 @@ export async function deleteItems(env, ids, actor) {
   ]);
 }
 
+/** @typedef {{ id: string, ref: string | null, sha: string, environment: string, at: string }} LatestRelease */
+
+/** @param {Record<string, unknown> | undefined} row @returns {LatestRelease | null} */
+const latestOf = row =>
+  row
+    ? {
+        id: String(row.id),
+        ref: row.ref == null ? null : String(row.ref),
+        sha: String(row.sha),
+        environment: String(row.environment),
+        at: String(row.at),
+      }
+    : null;
+
 /**
  * @param {ItemsEnv} env
  * @param {Date} [now]
- * @returns {Promise<{ new: number, open: number, replyOwed: number, releasesWaiting: number, healthFailing: number, byProduct: Record<string, { name: string, colour: string | null, route: string | null, new: number, open: number, replyOwed: number, signals: import("../signals/read.js").Signals | null }> }>}
+ * @returns {Promise<{ new: number, open: number, replyOwed: number, releasesWaiting: number, healthFailing: number, byProduct: Record<string, { name: string, colour: string | null, route: string | null, new: number, open: number, replyOwed: number, latestRelease: LatestRelease | null, signals: import("../signals/read.js").Signals | null }> }>}
  */
 export async function counts(env, now = new Date()) {
-  const [perProduct, owed, waiting, signals] = await Promise.all([
+  const [perProduct, owed, waiting, latest, signals] = await Promise.all([
     env.DB.prepare(
       `SELECT products.slug AS slug, products.name AS name, products.colour AS colour, products.route AS route,
         COALESCE(SUM(CASE WHEN ${NEW} THEN 1 ELSE 0 END), 0) AS new_count,
@@ -384,9 +398,16 @@ export async function counts(env, now = new Date()) {
     ).all(),
     env.DB.prepare("SELECT COUNT(*) AS n FROM items WHERE reply_owed_at IS NOT NULL AND junk = 0").first(),
     env.DB.prepare("SELECT COUNT(*) AS n FROM releases WHERE state = 'pending'").first(),
+    env.DB.prepare(
+      `SELECT product, id, ref, sha, environment, at FROM (
+        SELECT product, id, ref, sha, environment, COALESCE(spent_at, decided_at) AS at,
+          ROW_NUMBER() OVER (PARTITION BY product ORDER BY COALESCE(spent_at, decided_at) DESC) AS n
+        FROM releases WHERE state IN ('approved', 'spent')
+      ) WHERE n = 1`,
+    ).all(),
     readSignals(env, now),
   ]);
-  /** @type {Record<string, { name: string, colour: string | null, route: string | null, new: number, open: number, replyOwed: number, signals: import("../signals/read.js").Signals | null }>} */
+  /** @type {Record<string, { name: string, colour: string | null, route: string | null, new: number, open: number, replyOwed: number, latestRelease: LatestRelease | null, signals: import("../signals/read.js").Signals | null }>} */
   const byProduct = {};
   let totalNew = 0;
   let totalOpen = 0;
@@ -398,6 +419,7 @@ export async function counts(env, now = new Date()) {
       new: Number(row.new_count),
       open: Number(row.open_count),
       replyOwed: Number(row.owed_count),
+      latestRelease: latestOf(latest.results.find(release => release.product === row.slug)),
       signals: signals[String(row.slug)] ?? null,
     };
     byProduct[String(row.slug)] = entry;

@@ -194,6 +194,33 @@ test("malformed health config is unknown, and doesn't stop other products", asyn
   expect(await stateOf("cl")).toMatchObject({ status: "healthy" });
 });
 
+/** @param {string} slug */
+const monitorsOf = async slug =>
+  JSON.parse(
+    String(
+      (await baseEnv.DB.prepare("SELECT monitors FROM health_state WHERE product = ?").bind(slug).first())?.monitors,
+    ),
+  );
+
+test("each monitor's own state is kept for the Health page", async () => {
+  stubBetterStack({ monitors: [monitorPage({ 101: "validating", 102: "up" })], incidents: incidentPage(["102"]) });
+  await refreshHealth(testEnv(), NOW);
+  expect(await monitorsOf("cl")).toEqual([
+    { name: "Climbing Logbook app", url: MONITORS[0].url, status: "recovering" },
+    { name: "Climbing Logbook beta", url: MONITORS[1].url, status: "incident" },
+  ]);
+  expect(await monitorsOf("deaftly")).toEqual([]);
+});
+
+test("monitors Better Stack doesn't have are missing, and all are unknown when it can't be asked", async () => {
+  stubBetterStack({ monitors: [monitorPage({ 101: "paused" })] });
+  await refreshHealth(testEnv(), NOW);
+  expect((await monitorsOf("cl")).map((/** @type {any} */ m) => m.status)).toEqual(["paused", "missing"]);
+  stubBetterStack({ fail: 500 });
+  await refreshHealth(testEnv(), NOW);
+  expect((await monitorsOf("cl")).map((/** @type {any} */ m) => m.status)).toEqual(["unknown", "unknown"]);
+});
+
 test("each cron runs only its own jobs", async () => {
   await resetItems();
   await baseEnv.DB.exec(
