@@ -26,7 +26,7 @@
 ## Review Focus
 
 1. **A webhook for a repository no product registers.** Expect 204 and nothing stored. Without this, any repository that installs the App could fill the Releases list. *(Task 2 test.)*
-2. **The same `deployment_protection_rule` delivered twice** (GitHub retries). Expect one release, not two. *(Task 2 test: unique key on `run_id` + `environment`.)*
+2. **The same `deployment_protection_rule` delivered twice** (GitHub retries). Expect one release, not two. A re-run of the same job after a rejection or a spent credential is a new request, and needs a new pending release. *(Task 1 and Task 2 tests: a partial unique index on pending releases only.)*
 3. **An OIDC token that's valid but for a different SHA, environment or run than the approved release.** Expect 403 and no mint. *(Task 6 test.)*
 4. **Approving a release whose run GitHub has already cancelled or timed out.** Expect GitHub's 4xx to come back as a plain error ("GitHub no longer waits on this run: start it again."), with the release marked `expired` rather than left pending. *(Task 3 test.)*
 5. **The broker called twice for one approved run** (a retried job). Expect the second call to be refused with 409, so a credential is never minted twice. *(Task 6 test.)*
@@ -67,12 +67,13 @@
 
 - [ ] **Step 1:** Write the migration.
   - `release_repos(repo TEXT PRIMARY KEY, product TEXT NOT NULL REFERENCES products(slug), environments TEXT NOT NULL, token_policy TEXT NOT NULL DEFAULT '{}')`. `environments` is a JSON array.
-  - `releases(id TEXT PRIMARY KEY, repo, product, environment, sha, ref, run_id INTEGER, callback_url, installation_id INTEGER, state TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending','approved','rejected','expired','spent')), note, created_at, decided_at, decided_by, spent_at, UNIQUE (run_id, environment))`.
+  - `releases(id TEXT PRIMARY KEY, repo, product, environment, sha, ref, run_id INTEGER, callback_url, installation_id INTEGER, state TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending','approved','rejected','expired','spent')), note, created_at, decided_at, decided_by, spent_at)`, with `CREATE UNIQUE INDEX releases_pending ON releases (run_id, environment) WHERE state = 'pending'`. Only pending releases are de-duplicated, so a re-run of a job that was rejected or already deployed gets a release of its own.
   - Seed rows for `oneloneraven/climbing-logbook` (production, beta, infra), `oneloneraven/deaftly-website` (production, beta, infra) and `oneloneraven/deaftly` (release), with `token_policy` left `{}` until Task 6.
 - [ ] **Step 2: Write the failing tests.**
-  - `createRelease` twice with the same `runId` and `environment` returns `created: false` the second time, and `listReleases` holds one.
+  - `createRelease` twice with the same `runId` and `environment` while the first is pending returns `created: false` the second time, and `listReleases` holds one.
+  - After the first is rejected or spent, the same `runId` and `environment` creates a new pending release.
   - `decideRelease` on a release that isn't `pending` throws `release-not-pending`.
-  - `spendRelease` matches only an `approved` release with identical `repo`, `environment`, `sha` and `runId`. It sets `spent`, and a second call returns `null`.
+  - `spendRelease` matches only an `approved` release with identical `repo`, `environment`, `sha` and `runId` (the newest, if a re-run produced several). It sets `spent`, and a second call returns `null`.
   - Every decision writes an audit event, `release.approved`, `release.rejected` or `release.expired`, with `target_type` `release`.
 - [ ] **Step 3:** Implement the registry and store. Ids come from `src/lib/ids.js`. `spendRelease` is one `UPDATE … WHERE state = 'approved' AND … RETURNING *`, so two concurrent spends can't both win.
 - [ ] **Step 4:** Run `pnpm test test/releases-store.test.js`. Expected: PASS.
