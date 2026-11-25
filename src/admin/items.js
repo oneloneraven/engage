@@ -370,22 +370,23 @@ export async function deleteItems(env, ids, actor) {
 /**
  * @param {ItemsEnv} env
  * @param {Date} [now]
- * @returns {Promise<{ new: number, open: number, replyOwed: number, releasesWaiting: number, healthFailing: number, byProduct: Record<string, { name: string, colour: string | null, new: number, open: number, signals: import("../signals/read.js").Signals | null }> }>}
+ * @returns {Promise<{ new: number, open: number, replyOwed: number, releasesWaiting: number, healthFailing: number, byProduct: Record<string, { name: string, colour: string | null, route: string | null, new: number, open: number, replyOwed: number, signals: import("../signals/read.js").Signals | null }> }>}
  */
 export async function counts(env, now = new Date()) {
   const [perProduct, owed, waiting, signals] = await Promise.all([
     env.DB.prepare(
-      `SELECT products.slug AS slug, products.name AS name, products.colour AS colour,
+      `SELECT products.slug AS slug, products.name AS name, products.colour AS colour, products.route AS route,
         COALESCE(SUM(CASE WHEN ${NEW} THEN 1 ELSE 0 END), 0) AS new_count,
-        COALESCE(SUM(CASE WHEN ${OPEN} THEN 1 ELSE 0 END), 0) AS open_count
+        COALESCE(SUM(CASE WHEN ${OPEN} THEN 1 ELSE 0 END), 0) AS open_count,
+        COALESCE(SUM(CASE WHEN items.reply_owed_at IS NOT NULL AND items.junk = 0 THEN 1 ELSE 0 END), 0) AS owed_count
       FROM products LEFT JOIN items ON items.product = products.slug
-      GROUP BY products.slug, products.name, products.colour ORDER BY products.slug`,
+      GROUP BY products.slug, products.name, products.colour, products.route ORDER BY products.slug`,
     ).all(),
     env.DB.prepare("SELECT COUNT(*) AS n FROM items WHERE reply_owed_at IS NOT NULL AND junk = 0").first(),
     env.DB.prepare("SELECT COUNT(*) AS n FROM releases WHERE state = 'pending'").first(),
     readSignals(env, now),
   ]);
-  /** @type {Record<string, { name: string, colour: string | null, new: number, open: number, signals: import("../signals/read.js").Signals | null }>} */
+  /** @type {Record<string, { name: string, colour: string | null, route: string | null, new: number, open: number, replyOwed: number, signals: import("../signals/read.js").Signals | null }>} */
   const byProduct = {};
   let totalNew = 0;
   let totalOpen = 0;
@@ -393,8 +394,10 @@ export async function counts(env, now = new Date()) {
     const entry = {
       name: String(row.name),
       colour: row.colour == null ? null : String(row.colour),
+      route: row.route == null ? null : String(row.route),
       new: Number(row.new_count),
       open: Number(row.open_count),
+      replyOwed: Number(row.owed_count),
       signals: signals[String(row.slug)] ?? null,
     };
     byProduct[String(row.slug)] = entry;

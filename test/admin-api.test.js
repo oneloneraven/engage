@@ -520,6 +520,8 @@ describe("GET /api/counts", () => {
     expect(counts.byProduct.cl.new).toBe(1);
     expect(counts.byProduct.cl.colour).toBe("gold");
     expect(counts.byProduct.deaftly.colour).toBe("flame");
+    expect(counts.byProduct.cl.route).toBe("climbing-logbook");
+    expect(counts.byProduct.cl.replyOwed).toBe(0);
   });
 
   test("carries each product's signals and how many products are unhealthy", async () => {

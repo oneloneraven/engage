@@ -1,10 +1,10 @@
 import { getCounts } from "./api.js";
-import { h, replace } from "./dom.js";
+import { h, icon, replace } from "./dom.js";
+
+const SEARCH_ICON = ["M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z", "m20 20-3.5-3.5"];
 
 /** @type {HTMLElement | null} */
 let nav = null;
-/** @type {{ slug: string, name: string, colour: string }[]} */
-let products = [];
 let newCount = 0;
 let releasesWaiting = 0;
 
@@ -18,79 +18,77 @@ function navLink(href, current, ...children) {
 }
 
 /**
- * Builds the page frame and returns the element the router renders into.
+ * Builds the page frame, a full-width top bar over the page, and returns the element the router renders
+ * into.
  * @returns {{ main: HTMLElement, highlight: (path: string, query: URLSearchParams) => void }}
  */
 export function mountShell() {
   const app = /** @type {HTMLElement} */ (document.getElementById("app"));
   const menu = h(
     "button",
-    { type: "button", class: "menu-toggle", "aria-expanded": "false", "aria-controls": "rail" },
+    { type: "button", class: "menu-toggle", "aria-expanded": "false", "aria-controls": "site-nav" },
     "Menu",
   );
-  nav = h("nav", { "aria-label": "Main" });
-  const rail = h("div", { id: "rail", class: "rail" }, nav);
+  nav = h("nav", { id: "site-nav", class: "site-nav", "aria-label": "Main" });
   const main = h("main", { id: "main", tabindex: "-1" });
+  const closeMenu = () => {
+    menu.setAttribute("aria-expanded", "false");
+    nav?.classList.remove("open");
+  };
   menu.addEventListener("click", () => {
     const open = menu.getAttribute("aria-expanded") !== "true";
     menu.setAttribute("aria-expanded", String(open));
-    rail.classList.toggle("open", open);
+    nav?.classList.toggle("open", open);
   });
-  rail.addEventListener("click", event => {
-    if (event.target instanceof Element && event.target.closest("a")) {
-      menu.setAttribute("aria-expanded", "false");
-      rail.classList.remove("open");
-    }
+  nav.addEventListener("click", event => {
+    if (event.target instanceof Element && event.target.closest("a")) closeMenu();
   });
   app.append(
     h("a", { class: "skip", href: "#main" }, "Skip to content"),
     h(
       "div",
       { class: "frame" },
-      h("header", { class: "bar" }, h("span", { class: "brand" }, "Engage"), menu),
-      rail,
+      h(
+        "header",
+        { class: "bar" },
+        h("a", { class: "brand", href: "/", "data-link": "" }, "Engage"),
+        nav,
+        h(
+          "a",
+          { class: "button search-link", href: "/inbox?search", "data-link": "" },
+          icon(...SEARCH_ICON),
+          h("span", { class: "search-label" }, "Search messages"),
+        ),
+        menu,
+      ),
       main,
     ),
   );
   let lastPath = "/";
-  let lastQuery = new URLSearchParams();
   getCounts()
     .then(counts => {
-      products = Object.entries(counts.byProduct).map(([slug, { name, colour }]) => ({
-        slug,
-        name,
-        colour: colour ?? "",
-      }));
       newCount = counts.new;
       releasesWaiting = counts.releasesWaiting;
-      draw(lastPath, lastQuery);
+      draw(lastPath);
     })
     .catch(() => {});
 
-  /**
-   * @param {string} path
-   * @param {URLSearchParams} query
-   */
-  function draw(path, query) {
+  /** @param {string} path */
+  function draw(path) {
     if (!nav) return;
     lastPath = path;
-    lastQuery = query;
-    const inInbox = path === "/inbox" || path.startsWith("/items/");
-    const product = query.get("product");
     replace(
       nav,
-      h("span", { class: "brand rail-brand" }, "Engage"),
       h(
         "ul",
         { class: "nav-list" },
-        h("li", null, navLink("/", path === "/", "Home")),
         h(
           "li",
           null,
           navLink(
             "/inbox",
-            inInbox && !product,
-            h("span", { class: "nav-label" }, "Inbox"),
+            path === "/inbox" || path.startsWith("/items/"),
+            "Inbox",
             newCount > 0 &&
               h("span", { class: "badge" }, String(newCount), h("span", { class: "visually-hidden" }, " new")),
           ),
@@ -101,7 +99,7 @@ export function mountShell() {
           navLink(
             "/releases",
             path === "/releases" || path.startsWith("/releases/"),
-            h("span", { class: "nav-label" }, "Releases"),
+            "Releases",
             releasesWaiting > 0 &&
               h(
                 "span",
@@ -113,26 +111,8 @@ export function mountShell() {
         ),
         h("li", null, navLink("/junk", path === "/junk", "Junk")),
       ),
-      products.length > 0 && h("h2", { class: "nav-heading" }, "Products"),
-      products.length > 0 &&
-        h(
-          "ul",
-          { class: "nav-list" },
-          products.map(({ slug, name, colour }) =>
-            h(
-              "li",
-              { "data-colour": colour },
-              navLink(
-                `/inbox?product=${encodeURIComponent(slug)}`,
-                inInbox && product === slug,
-                h("span", { class: "swatch", "aria-hidden": "true" }),
-                name,
-              ),
-            ),
-          ),
-        ),
     );
   }
-  draw("/", lastQuery);
-  return { main, highlight: draw };
+  draw("/");
+  return { main, highlight: path => draw(path) };
 }

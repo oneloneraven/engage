@@ -48,7 +48,7 @@ Measured contrast (WCAG 2.2 AA needs 4.5:1 for body text and 3:1 for large text 
 
 ### Product colours
 
-Each product has its own fire colour, used for its square in the rail, its filter chip, its avatar tint in the inbox, its product panel's glow and its sparkline. A product's colour is never the only way to tell it apart: its name is always beside it.
+Each product has its own fire colour, used for its square on its hub card, its filter chip, its avatar tint in the inbox, its card's glow and its sparkline. A product's colour is never the only way to tell it apart: its name is always beside it.
 
 | Product colour | Dark | Light | Dark text | Light text |
 |---|---|---|---|---|
@@ -70,52 +70,49 @@ The fill colours pass 3:1 against every background in both themes (lowest: light
 ## Layout
 
 ```
-Desktop (≥ 1200px)
-┌────────────┬────────────────────────────────────────────────────────┐
-│ ▲ Engage   │ Wednesday 25 November          [ Search messages  / ] │
-│            │                                                        │
-│ Home       │ 3 things need you.                                     │
-│ Inbox    4 │ ━━━━━━━━━━━━━━━━ (fire, sweeps once)                   │
-│ Releases 1 │ A release is waiting and two people are owed a reply.  │
-│ Junk       │ ┌────────────────────────────────────────────────────┐ │
-│            │ │ ⬇ CL 1.14.0 is waiting for production [Review][Approve]│
-│ Products   │ │ ↩ The map is blank                          [Reply]│ │
-│ ■ Climbing │ │ ↩ App closes when I rotate                  [Reply]│ │
-│ ■ Deaftly  │ └────────────────────────────────────────────────────┘ │
-│            │ (4 new) (27 open) (2 replies owed)                     │
-│            │ Your products                                          │
-│            │ ┌ Climbing Logbook  Healthy ┐ ┌ Deaftly       Healthy ┐ │
-│            │ │ 38 weekly climbers  ╱╲╱╱  │ │ 126 downloads   ╱╲╱╱  │ │
-│            │ │ 3 new  22 open  Beta ahead│ │ 1 new  5 open         │ │
-│            │ └───────────────────────────┘ └───────────────────────┘ │
-└────────────┴────────────────────────────────────────────────────────┘
+Desktop
+┌──────────────────────────────────────────────────────────────────────┐
+│ ▲ Engage   Inbox 4  Releases 1  Junk               [ Search messages ] │
+├──────────────────────────────────────────────────────────────────────┤
+│ Wednesday 25 November                                                │
+│ 4 things need you.                                                   │
+│ ━━━━━━━━━━━━━━━━ (fire, sweeps once)                                 │
+│ Climbing Logbook has 3 and Deaftly has 1.                            │
+│ ┃┌ ■ Climbing Logbook                               ● Degraded ────┐ │
+│ ┃│ Needs you                          │ How it's doing             │ │
+│ ┃│ ⬇ v2.146.0 waiting  [Review][Approve] │ 38                     │ │
+│ ┃│ ♥ Beta is recovering   [Better Stack] │ People who logged… ╱╲╱ │ │
+│ ┃│ ↩ The map is blank          [Reply]   │ Up 12% on last month   │ │
+│ ┃│ (4 new) (22 open)                     │ Beta v2.146.0, 9 days… │ │
+│ ┃└────────────────────────────────────────────────────────────────┘ │
+│ ┃┌ ■ Deaftly                                   ● Not monitored ─────┐ │
+│ ┃│ ↩ Feedback from Sam         [Reply]   │ 126 downloads   ╱╲╱╱   │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### The shell
 
-- **Rail** (desktop, 232–260px): the wordmark with its fire tile, then the pages, then the products. Inbox carries a count of new items in an `--accent` badge; Releases carries the number waiting in an `--attention` badge. Products show their colour square and filter the inbox. The current page has a `--raised`-strength light tint behind it and `aria-current="page"`.
-- **Below 1200px** the rail becomes a top bar: the wordmark, the badges, and a menu button (`aria-expanded`) that opens the full navigation as a sheet.
-- Main content is left-aligned with a fluid side margin (`clamp(1.25rem, 5vw, 4.5rem)`), capped at 74rem on Home. Nothing is centred except empty states.
+- **No rail.** A sticky top bar runs the full width: the wordmark with its fire tile (a link to Home), the pages, and a search button at the far end that opens the inbox with its search box focused. Inbox carries a count of new items in an `--accent` badge; Releases carries the number waiting in an `--attention` badge. The current page has a light tint behind it and `aria-current="page"`.
+- **Below 768px** the pages sit behind a menu button (`aria-expanded`), and search keeps only its icon.
+- Main content is left-aligned with a fluid side margin, capped at 74rem on Home. Nothing is centred except empty states.
+- Product hubs (`docs/superpowers/specs/2026-11-25-engage-product-hubs-design.md`) add a product switcher to the bar and replace the Inbox, Releases and Junk links as they land.
 
-### Home
+### Home: the central hub
 
-1. A slim top row: today's date in `--muted`, and a search button that takes you to the inbox with its search box focused.
-2. **The verdict**, the fire underline and one plain sentence that says what the things are ("A release is waiting and two people are owed a reply. Everything else is quiet."). With nothing to do: "All clear." and "Nothing needs you. New feedback lands here and pings Discord."
-3. **Needs you:** one panel holding a row per thing, most urgent first (failing health, releases waiting, replies owed, conformance failures as those modules arrive). Each row has a 44px icon tile tinted in its kind's colour, a bold title, one line of context in `--muted`, and its actions on the right: the primary action as a filled button, a secondary one outlined. A release row sits on an `--attention` tint. Actions:
-   - Release waiting: Review (opens the approval page) and Approve release.
-   - Reply owed: Reply, which opens the item with the composer open (`/items/<id>?reply`).
-   - Failing or degraded health: the product and its status as the title, the reason as context, and Open in Better Stack (outlined, in a new tab) when there's a link.
-
-   The verdict's number is the number of rows here. Nothing else adds rows: there's no "worth quoting" signal, so Quote stays in the item toolbar.
-4. **Counts** as three pills: a display-type number and a plain label (new, open, replies owed), each linking to the inbox with that filter.
-5. **Your products:** a responsive grid (`repeat(auto-fit, minmax(min(100%, 26rem), 1fr))`) of product panels. Each panel: name, a health pill (dot plus word: Healthy, Degraded, Failing), one engagement number with its 30-day sparkline and change ("up 12% on last month"), then chips for new and open counts and a beta badge. The panel has a soft radial glow of its product colour from the top-right corner.
-   - The health pill also says Not monitored (no monitors configured) or Unknown (the source couldn't be read, or the last check is over 15 minutes old). Neither is ever shown as Healthy. Under the name, a muted line gives the reason for anything other than Healthy or Not monitored.
-   - The engagement number is in display type with its label beneath, then the sparkline in the product colour, then the change. A product with no engagement source leaves the block out; one with a source but no data yet says "No data yet". The change appears only once both 30-day windows have at least 25 days of data.
+1. **The verdict**: today's date in `--muted`, then the number of things that need you across every product, the fire underline, and one sentence per product ("Climbing Logbook has 3 and Deaftly has 1. Beyond Borders is quiet."). With nothing to do: "All clear." and "Nothing needs you. New feedback lands here and pings Discord."
+2. **One card per product, in a single column**, in registry order. Order never changes with how busy a product is. A card with something that needs you has a 4px `--attention` edge on its left.
+   - **Header:** the product's colour square and name (a link to its inbox until its hub lands), and its health pill.
+   - **Left, Needs you:** that product's rows, most urgent first: failing or degraded health, releases waiting, then up to three replies owed with "See all n replies owed in the inbox" beyond that. Each row has a 44px icon tile, a bold title, one line of context in `--muted`, and its actions: Review and Approve release for a release, Reply for a reply owed, and Open in Better Stack for health. A release row sits on an `--attention` tint. Under the rows, chips for new and open messages. With nothing to do: "Nothing needs you here."
+   - **Right, How it's doing:** the engagement block, the health reason when it's Unknown, and the beta badge. With no engagement source: "No usage figures yet."
+   - The two sides sit side by side from 1024px wide and stack below. The card keeps its soft radial glow of the product colour from the top-right corner.
+   - The health pill also says Not monitored (no monitors configured) or Unknown (the source couldn't be read, or the last check is over 15 minutes old). Neither is ever shown as Healthy.
+   - The engagement number is in display type with its label beneath, then the sparkline in the product colour, then the change. A product with a source but no data yet says "No data yet". The change appears only once both 30-day windows have at least 25 days of data.
    - The beta badge appears only when beta runs a different version from production: "Beta v1.15.0, 3 days ahead of production". It's outlined, and takes the `--attention` tint once beta has been ahead for longer than the product's `beta_amber_days` (7 by default).
 
 ### Inbox
 
-- **Three panes from 1200px:** rail, message list (22–32rem, a third of the width) and the open item. **Two panes from 768px:** list and item, under the top bar. **One pane below 768px:** the list, then the item with a back link.
+- **Two panes from 768px**, under the top bar: the message list (22–32rem, a third of the width) and the open item. **One pane below 768px:** the list, then the item with a back link.
 - **List header:** the page title with the new count beside it; the search field with a "More filters" icon button at its end (kind and archived); then one row of filter chips (`aria-pressed`): All, one chip per product with its colour square, and Reply owed. This replaces the four stacked selects.
 - **Rows:** a 36px avatar in the product's tint showing the sender's initial (a "?" when there's no name), the subject (weight 700 when unread), the time, one line of preview in `--muted` (the first line of what they wrote, cut short; left out when there's no text or it only repeats the subject), then small tags (Reply owed, Issue report, Starred). A tag never repeats the title: a row titled "Issue report" has no Issue report tag. The open row sits on `--raised`. No dividers; rows are separated by space and the selection tint.
 - `/inbox` and `/items/<id>` are the same split layout: the list stays put while items open beside it, and `/items/<id>` stays a link you can share with yourself. With nothing open, the item pane says how many are new and unread, and opens nothing by itself, because opening an item marks it read. On a phone, the list shows first.
@@ -136,7 +133,7 @@ The inbox layout without the filter chips. Each row has Not junk and Delete for 
 
 ### Releases (for Module 2)
 
-The Releases page, its rail entry and Home's release rows arrive with Module 2, not before. A list shaped like the inbox: one row per release waiting, showing the product colour, the repository, the environment, the version and how long it's been waiting. The open release shows the PRs included since the last approved release, CI status and a link to the run, with Approve release (primary) and Reject (outlined, with an optional note). Its exact design is settled when Module 2 is built, within this direction.
+The Releases page, its top-bar entry and the release rows on each product's card. A list shaped like the inbox: one row per release waiting, showing the product colour, the repository, the environment, the version and how long it's been waiting. The open release shows the PRs included since the last approved release, CI status and a link to the run, with Approve release (primary) and Reject (outlined, with an optional note). Its exact design is settled when Module 2 is built, within this direction.
 
 ## Components
 
