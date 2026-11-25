@@ -81,7 +81,8 @@ function itemSql(item, now) {
 const DAY_MS = 86_400_000;
 
 /**
- * Home's signals: Climbing Logbook healthy, with 60 days of visits and beta nine days ahead; Deaftly not monitored.
+ * Home's signals: Climbing Logbook healthy, with 60 days of visits and beta nine days ahead; Deaftly not monitored, with
+ * no engagement source.
  * @param {Date} now
  */
 function signalsSql(now) {
@@ -96,6 +97,7 @@ function signalsSql(now) {
   ]);
   return [
     `UPDATE products SET engagement = ${sql(engagement)} WHERE slug = 'cl';`,
+    "UPDATE products SET engagement = '[]' WHERE slug = 'deaftly';",
     insert("health_state", {
       product: "cl",
       status: "healthy",
