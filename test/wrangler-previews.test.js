@@ -23,10 +23,11 @@ test("previews and PR previews leave the database ID for the Preview workflow, s
   expect(wrangler.env.preview.previews.d1_databases).toEqual(expected);
 });
 
-test("every environment, and PR previews, repeat both intake rate limiters with their own namespaces", () => {
+test("every environment, and PR previews, repeat every rate limiter with their own namespaces", () => {
   const expected = [
     { name: "INTAKE_WEB_LIMITER", simple: { limit: 5, period: 60 } },
     { name: "INTAKE_APP_LIMITER", simple: { limit: 3, period: 60 } },
+    { name: "ACCOUNT_LIMITER", simple: { limit: 60, period: 60 } },
   ];
   const configs = {
     default: wrangler,

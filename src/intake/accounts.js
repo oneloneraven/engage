@@ -29,7 +29,7 @@ async function secretMatches(presented, expected) {
  * @returns {Promise<Response>}
  */
 export async function handleAccountDelete(request, env, productSlug, accountRef) {
-  if (await isLimited(env.INTAKE_APP_LIMITER, `account:${clientIp(request)}`)) {
+  if (await isLimited(env.ACCOUNT_LIMITER, `account-ip:${clientIp(request)}`)) {
     return json({ error: "rate-limited" }, 429);
   }
   const product = await getProduct(env, productSlug);
@@ -41,6 +41,9 @@ export async function handleAccountDelete(request, env, productSlug, accountRef)
   }
   const presented = /^Bearer (.+)$/.exec(request.headers.get("Authorization") ?? "")?.[1];
   if (!presented || !(await secretMatches(presented, secret))) return forbidden();
+  if (await isLimited(env.ACCOUNT_LIMITER, `account-product:${product.slug}`)) {
+    return json({ error: "rate-limited" }, 429);
+  }
 
   await env.DB.prepare("UPDATE items SET account_ref = NULL WHERE product = ? AND account_ref = ?")
     .bind(product.slug, accountRef)

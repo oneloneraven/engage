@@ -39,6 +39,7 @@ export function makeEnv(overrides = {}) {
     ACCOUNT_SECRET_CL: "cl-account-secret",
     INTAKE_WEB_LIMITER: makeLimiter(),
     INTAKE_APP_LIMITER: makeLimiter(),
+    ACCOUNT_LIMITER: makeLimiter(),
     ...overrides,
   };
 }
