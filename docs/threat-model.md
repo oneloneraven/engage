@@ -37,6 +37,8 @@ Behind them:
 | Inbound mail → email handler | Any sender and the Worker | Email to `hello@`, its aliases and `reply+` addresses, with attachments | Mail to any other address is rejected; `reply+` addresses carry an HMAC of the item id ([ADR-0006](adr/0006-signed-reply-addresses.md)); SPF, DKIM and DMARC results are recorded and failing mail goes to junk with no ping; blocked senders go straight to junk |
 | GitHub → webhook | GitHub and `POST /v1/github/webhook` | Issue close and reopen events, and deployment protection rule requests | `X-Hub-Signature-256` verified in constant time against the webhook secret; a release is stored only for a repository and environment in `release_repos`, and its run id comes only from a callback URL on `api.github.com` |
 | Engage → GitHub | The Worker and the GitHub API | Issue drafts the owner has edited, site rebuild triggers, and the owner's release decisions (sent only to the stored repository and run of a pending release) | A GitHub App with least privilege; drafts never pre-fill contact details or anything identifying, and message text is fenced so it can't render as markup |
+| Deploy job → broker | A product's GitHub Actions job and `POST /v1/deploy-credentials` | A GitHub Actions OIDC token | RS256 signature checked against GitHub's published keys, with issuer, audience `engage` and expiry checked; only an approved, unspent release matching the token's repository, environment, commit and run yields anything; per-IP rate limit; refusals never say why ([ADR-0008](adr/0008-engage-brokers-deploy-credentials.md)) |
+| Engage → Cloudflare token API | The broker and Cloudflare | Requests for account API tokens under a repository's stored policy | The parent token can only create tokens; minted tokens expire in 55 minutes; every mint is audited without the token |
 | Engage → Discord | The Worker and a product's webhook | The kind of item (or that a release waits), the product's name and a link | No submitted content or identity, and mentions disabled |
 | Release job → GitHub API | `release.yml` and the release GitHub App | Short-lived App token (Contents and Workflows: read and write) to push release tags and create releases | Token minted only in the release job and scoped to this repository; App installed on this repository only; private key held as a repository secret |
 | PR Preview → Cloudflare | `preview.yml`, run with the Preview token on a pull request, and Cloudflare | Unmerged code, uploaded as a Preview, and its own D1 database | Each Preview binds only its PR's database, `engage-pr-<n>`, created and migrated by the workflow and deleted when the PR closes; no Preview binding names the production database. Pull requests from forks and Dependabot get no Preview and no token |
@@ -51,6 +53,7 @@ Behind them:
 | Reply-address secret | Anyone holding it can post replies onto any item |
 | GitHub App key and webhook secret | Anyone holding them can create issues in product repositories, or forge issue events and release requests (a forged request only adds a release for the owner to reject) |
 | Per-product account secrets and Discord webhooks | Anyone holding them can clear account references, or post into the owner's notification channels |
+| `CLOUDFLARE_BROKER_TOKEN` | Anyone holding it can mint Cloudflare tokens for the whole account |
 | Release App private key | Anyone holding it can mint tokens that push tags and, through Workflows, change workflow files |
 | `OWNER_EMAIL` | Whoever sets it decides who the Worker lets into the admin host |
 
@@ -69,6 +72,7 @@ Behind them:
 | Threat | Category | Mitigation | Status |
 |---|---|---|---|
 | A forged reply address posts mail onto someone else's item | Spoofing | Reply addresses carry a truncated HMAC of the item id; anything that doesn't verify is rejected | Mitigated |
+| A stolen or replayed OIDC token buys a deploy credential | Spoofing | Tokens expire within minutes; a credential needs an approved release for exactly that run, and each release yields one credential | Mitigated |
 | A forged webhook clears or sets a "reply owed" flag | Spoofing | Every delivery's signature is verified against the webhook secret | Mitigated |
 | A forged sender address gets mail treated as genuine | Spoofing | SPF, DKIM and DMARC results are recorded and shown; failing mail goes to junk | Mitigated |
 | A testimonial misquotes the person | Tampering | The server accepts an excerpt only if it is a faithful subsequence of the original; attribution follows the person's credit choice; published only with recorded consent, and withdrawable | Mitigated |

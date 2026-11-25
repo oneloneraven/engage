@@ -28,6 +28,7 @@ test("every environment, and PR previews, repeat every rate limiter with their o
     { name: "INTAKE_WEB_LIMITER", simple: { limit: 5, period: 60 } },
     { name: "INTAKE_APP_LIMITER", simple: { limit: 3, period: 60 } },
     { name: "ACCOUNT_LIMITER", simple: { limit: 60, period: 60 } },
+    { name: "BROKER_LIMITER", simple: { limit: 30, period: 60 } },
   ];
   const configs = {
     default: wrangler,

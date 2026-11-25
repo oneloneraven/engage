@@ -16,3 +16,4 @@ old one's status becomes "Superseded by ADR-NNNN".
 | [0005](0005-content-free-notifications.md) | Content-free notifications |
 | [0006](0006-signed-reply-addresses.md) | Signed reply addresses |
 | [0007](0007-show-inbound-html-only-in-a-sandbox.md) | Show inbound HTML only in a sandbox |
+| [0008](0008-engage-brokers-deploy-credentials.md) | Engage brokers deploy credentials |

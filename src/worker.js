@@ -1,5 +1,6 @@
 import { routeAdmin } from "./admin/router.js";
 import { handleGithubWebhook } from "./github/webhook.js";
+import { handleDeployCredentials } from "./releases/broker.js";
 import { adminIdentity } from "./lib/access.js";
 import { handleAccountDelete } from "./intake/accounts.js";
 import { handleInboundEmail } from "./email/inbound.js";
@@ -34,6 +35,9 @@ import { runRetention } from "./retention.js";
  *   INTAKE_WEB_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
  *   INTAKE_APP_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
  *   ACCOUNT_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
+ *   BROKER_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
+ *   CLOUDFLARE_BROKER_TOKEN?: string,
+ *   CLOUDFLARE_ACCOUNT_ID?: string,
  * }} Env
  */
 
@@ -59,6 +63,7 @@ function decodeSegments(...segments) {
 async function routePublic(request, env, ctx) {
   const { pathname } = new URL(request.url);
   if (pathname === "/v1/github/webhook") return handleGithubWebhook(request, env);
+  if (pathname === "/v1/deploy-credentials" && request.method === "POST") return handleDeployCredentials(request, env);
   if (pathname === "/v1/submissions" && ["POST", "OPTIONS"].includes(request.method)) {
     return handleSubmission(request, env, ctx);
   }
