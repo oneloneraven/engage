@@ -46,7 +46,7 @@ export async function handleDeployCredentials(request, env, options = {}) {
     claims = await verifyActionsToken(presented, { audience: AUDIENCE, ...options });
   } catch (error) {
     log(env, "warn", "broker.token-refused", {
-      reason: /** @type {{ reason?: string }} */ (error).reason ?? "unknown",
+      errorName: /** @type {{ reason?: string }} */ (error).reason ?? "unknown",
     });
     return refuse("unauthorised", 401);
   }
@@ -55,7 +55,7 @@ export async function handleDeployCredentials(request, env, options = {}) {
   if (!gated?.environments.includes(claims.environment)) return refuse("forbidden", 403);
   const policies = /** @type {{ policies?: unknown[] }} */ (gated.tokenPolicy).policies;
   if (!Array.isArray(policies) || policies.length === 0) {
-    log(env, "error", "broker.no-token-policy", { repo: gated.repo });
+    log(env, "error", "broker.no-token-policy", { product: gated.product });
     return refuse("broker-not-configured", 503);
   }
 
