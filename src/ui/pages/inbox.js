@@ -152,7 +152,7 @@ export function inboxPage(container, context) {
             "span",
             { class: "row-tags" },
             h("span", { class: "row-product" }, item.productName),
-            !title.startsWith(kind) && h("span", { class: "tag" }, kind),
+            (item.subject?.trim() || !title.startsWith(kind)) && h("span", { class: "tag" }, kind),
             item.replyOwedAt && h("span", { class: "tag owed" }, "Reply owed"),
             item.starred && h("span", { class: "tag" }, "Starred"),
             item.archivedAt && h("span", { class: "tag" }, "Archived"),
