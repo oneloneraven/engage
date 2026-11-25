@@ -187,7 +187,7 @@ const parseJson = value => (value === null || value === undefined ? null : JSON.
  */
 export async function getItem(env, id) {
   const row = await env.DB.prepare(
-    `SELECT *, (SELECT COUNT(*) FROM messages WHERE item_id = ?1) AS message_count FROM items WHERE id = ?1`,
+    `SELECT *, (SELECT name FROM products WHERE products.slug = items.product) AS product_name, (SELECT COUNT(*) FROM messages WHERE item_id = ?1) AS message_count FROM items WHERE id = ?1`,
   )
     .bind(id)
     .first();

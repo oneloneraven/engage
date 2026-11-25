@@ -272,11 +272,23 @@ export function mountItem(pane, id, hooks) {
       const heading = h("h1", { class: "item-title", tabindex: "-1" }, itemHeading(current));
       replace(
         header,
+        h(
+          "ul",
+          { class: "item-chips", "aria-label": "About this item" },
+          h("li", null, current.productName),
+          h(
+            "li",
+            null,
+            current.source === "email"
+              ? kindLabel(current.kind)
+              : `${kindLabel(current.kind)} from the ${sourceLabel(current.source).toLowerCase()}`,
+          ),
+        ),
         heading,
         h(
           "p",
           { class: "muted" },
-          `${current.productName} · ${kindLabel(current.kind)} · Received `,
+          "Received ",
           h("time", { datetime: current.createdAt }, formatTime(current.createdAt)),
         ),
       );

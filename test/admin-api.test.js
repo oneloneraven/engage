@@ -574,7 +574,8 @@ describe("unexpected errors", () => {
         get(target, key) {
           if (key === "prepare") {
             return (/** @type {string} */ sql) => {
-              if (sql.startsWith("SELECT *, (SELECT COUNT")) throw new TypeError("private subject exploded");
+              if (sql.startsWith("SELECT *, (SELECT name FROM products"))
+                throw new TypeError("private subject exploded");
               return target.prepare(sql);
             };
           }
