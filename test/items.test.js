@@ -198,6 +198,7 @@ test("counts use the plan definitions and list every product, zeros included", a
     new: 2,
     open: 2,
     replyOwed: 1,
+    releasesWaiting: 0,
     byProduct: {
       cl: { name: "Climbing Logbook", colour: "gold", new: 1, open: 2 },
       deaftly: { name: "Deaftly", colour: "flame", new: 1, open: 0 },
@@ -208,6 +209,7 @@ test("counts use the plan definitions and list every product, zeros included", a
     new: 0,
     open: 0,
     replyOwed: 0,
+    releasesWaiting: 0,
     byProduct: {
       cl: { name: "Climbing Logbook", colour: "gold", new: 0, open: 0 },
       deaftly: { name: "Deaftly", colour: "flame", new: 0, open: 0 },
