@@ -45,7 +45,7 @@ const authSentence = authResult => `SPF ${authResult.spf}, DKIM ${authResult.dki
  * Mounts one item's header, actions and thread into a pane.
  * @param {HTMLElement} pane
  * @param {string} id
- * @param {{ backHref: string, onChanged: () => void, onGone: () => void }} hooks
+ * @param {{ backHref: string, openReply?: boolean, onChanged: () => void, onGone: () => void }} hooks
  * @returns {{ destroy: () => void }}
  */
 export function mountItem(pane, id, hooks) {
@@ -491,6 +491,10 @@ export function mountItem(pane, id, hooks) {
 
     drawHeader()?.focus();
     draw();
+    if (hooks.openReply) {
+      const opener = /** @type {HTMLButtonElement | null} */ (toolbar.querySelector("button.primary[aria-expanded]"));
+      if (opener && !opener.disabled) togglePanel(replyPanel.root, opener);
+    }
   }
 
   /**

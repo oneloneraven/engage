@@ -19,16 +19,24 @@ describe("home", () => {
   it("says what needs you, from the real data", async () => {
     await browser.url("/");
     await expect($("h1")).toHaveText("1 thing needs you.");
-    const needsRow = $(`a[href="/items/${SHARED_OWED}"]`);
+    const needsRow = $(`a[href="/items/${SHARED_OWED}"]`).parentElement();
     await expect(needsRow).toHaveText(expect.stringContaining("The map is blank"));
     await expect(needsRow).toHaveText(expect.stringContaining("Climbing Logbook"));
   });
 
-  it("says all green when nothing is owed", async () => {
+  it("opens the item with the reply composer ready from a needs-you row", async () => {
+    await browser.url("/");
+    await $(`a[href="/items/${SHARED_OWED}?reply"]`).click();
+    await $("#reply-text").waitForExist();
+    await expect($("#reply-text")).toBeFocused();
+    expect(await browser.getUrl()).toContain(`/items/${SHARED_OWED}?reply`);
+  });
+
+  it("says all clear when nothing is owed", async () => {
     await browser.mock("**/api/counts").then(mock => mock.respond({ new: 0, open: 0, replyOwed: 0, byProduct: {} }));
     await browser.mock("**/api/items*").then(mock => mock.respond({ items: [], next: null }));
     await browser.url("/");
-    await expect($("h1")).toHaveText("All green.");
+    await expect($("h1")).toHaveText("All clear.");
     await expect($("section[aria-labelledby=needs-you] .empty")).toHaveText(
       "Nothing needs you. New feedback lands here and pings Discord.",
     );
@@ -50,17 +58,18 @@ describe("home", () => {
     await browser.url("/");
     await expect($("h1")).toHaveText("2 things need you.");
     for (const [label, state, count] of [
-      ["New", "new", "3"],
-      ["Open", "open", "5"],
-      ["Reply owed", "reply-owed", "2"],
+      ["new", "new", "3"],
+      ["open", "open", "5"],
+      ["replies owed", "reply-owed", "2"],
     ]) {
       const link = $(`.counts a[href="/inbox?state=${state}"]`);
       await expect(link).toHaveText(expect.stringContaining(label));
       await expect(link).toHaveText(expect.stringContaining(count));
     }
-    await expect($('a[data-product="cl"]')).toHaveText(expect.stringContaining("Climbing Logbook"));
-    await expect($('a[data-product="cl"]')).toHaveText(expect.stringContaining("2 new · 3 open"));
-    await expect($('a[data-product="deaftly"]')).toHaveText(expect.stringContaining("1 new · 2 open"));
+    await expect($('article[data-product="cl"]')).toHaveText(expect.stringContaining("Climbing Logbook"));
+    await expect($('article[data-product="cl"] a[href="/inbox?product=cl&state=new"]')).toHaveText("2 new");
+    await expect($('article[data-product="cl"] a[href="/inbox?product=cl&state=open"]')).toHaveText("3 open");
+    await expect($('article[data-product="deaftly"] a[href="/inbox?product=deaftly&state=new"]')).toHaveText("1 new");
     await browser.mockRestoreAll();
   });
 });

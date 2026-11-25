@@ -24,9 +24,26 @@ export function formatSize(bytes) {
 
 /** @param {number} replyOwed */
 export function verdict(replyOwed) {
-  if (replyOwed <= 0) return "All green.";
+  if (replyOwed <= 0) return "All clear.";
   return replyOwed === 1 ? "1 thing needs you." : `${replyOwed} things need you.`;
 }
+
+/** @param {number} replyOwed */
+export function verdictSummary(replyOwed) {
+  if (replyOwed <= 0) return "";
+  const who = replyOwed === 1 ? "Someone is owed a reply." : `${replyOwed} people are owed a reply.`;
+  return `${who} Everything else is quiet.`;
+}
+
+const TODAY = new Intl.DateTimeFormat("en-GB", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  timeZone: "Europe/London",
+});
+
+/** @param {Date} date */
+export const formatToday = date => TODAY.format(date);
 
 /**
  * A list row has no message text, so it is named by its subject or, failing that, what it is and who it is from.
