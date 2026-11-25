@@ -207,7 +207,7 @@ Three consequences, all design calls recorded here:
 - [ ] **Step 1: Write the failing tests** in CL:
   - an Access JWT from a service token whose `common_name` is in `USAGE_SERVICE_TOKENS` (comma-separated client ids: Engage now, Grafana with CL #1521) passes for `GET /-/api/admin/usage` only
   - a service token not in the list gets 403 everywhere
-  - the same token gets 403 on every other admin route and method
+  - an allowed token gets 403 on every other admin route and method
   - an owner-email JWT still passes everywhere, as now
 - [ ] **Step 2: Implement** allowed service tokens in `verifyAccessRequest`, limited by route in `admin.js`. Fail closed when `USAGE_SERVICE_TOKENS` is unset or empty.
 - [ ] **Step 3: Add** a `cloudflare_zero_trust_access_service_token` and a service-auth policy on the admin application in `infra/`. The token's id and secret go to Engage's secrets, not CL's.
