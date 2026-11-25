@@ -210,7 +210,7 @@ describe("inbox", () => {
     await browser.waitUntil(async () => !(await row(hostile).isExisting()));
     await expect(row(consent)).toBeExisting();
     await expect(row(email)).toBeExisting();
-    await $(".filter-chips").$("button=More").click();
+    await $(".search-row").$("button=More filters").click();
     await $("#filter-kind").selectByAttribute("value", "email");
     await browser.waitUntil(async () => !(await row(consent).isExisting()));
     await expect(row(email)).toBeExisting();
@@ -251,7 +251,7 @@ describe("item", () => {
   it("disables replying, with the reason, when there is no contact email", async () => {
     await openItem(ids().noEmail);
     await expect(toolbarButton("Reply")).toBeDisabled();
-    await expect($("#reason-reply")).toHaveText("No contact email");
+    await expect($("#reason-reply")).toHaveText("No contact email.");
   });
 
   it("sends a reply and appends it to the thread", async () => {
@@ -333,7 +333,7 @@ describe("item", () => {
   it("disables quoting, with the reason, when there is no consent", async () => {
     await openItem(ids().noEmail);
     await expect(toolbarButton("Quote")).toBeDisabled();
-    await expect($("#reason-quote")).toHaveText("No consent to quote");
+    await expect($("#reason-quote")).toHaveText("No consent to quote.");
   });
 
   it("saves a selected quote and approves it", async () => {

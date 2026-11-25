@@ -115,16 +115,17 @@ Desktop (≥ 1200px)
 
 ### Inbox
 
-- **Three panes from 1200px:** rail, message list (22–26rem) and the open item. **Two panes from 768px:** list and item, under the top bar. **One pane below 768px:** the list, then the item with a back link.
-- **List header:** the page title with the new count beside it, a search field, and one wrapping row of filter chips (`aria-pressed`): All, one chip per product with its colour square, Reply owed, and a "More" chip for kind and archived. This replaces the four stacked selects.
-- **Rows:** a 36px avatar in the product's tint showing the sender's initial (a "?" when there's no name), the subject (weight 700 when unread), the time, one line of preview in `--muted`, then small tags (Reply owed, Issue report, Starred). The open row sits on `--raised`. No dividers; rows are separated by space and the selection tint.
+- **Three panes from 1200px:** rail, message list (22–32rem, a third of the width) and the open item. **Two panes from 768px:** list and item, under the top bar. **One pane below 768px:** the list, then the item with a back link.
+- **List header:** the page title with the new count beside it; the search field with a "More filters" icon button at its end (kind and archived); then one row of filter chips (`aria-pressed`): All, one chip per product with its colour square, and Reply owed. This replaces the four stacked selects.
+- **Rows:** a 36px avatar in the product's tint showing the sender's initial (a "?" when there's no name), the subject (weight 700 when unread), the time, one line of preview in `--muted`, then small tags (Reply owed, Issue report, Starred). A tag never repeats the title: a row titled "Issue report" has no Issue report tag. The open row sits on `--raised`. No dividers; rows are separated by space and the selection tint.
 - `/inbox` and `/items/<id>` are the same split layout: the list stays put while items open beside it, and `/items/<id>` stays a link you can share with yourself. With nothing open, the item pane says how many are new and unread, and opens nothing by itself, because opening an item marks it read. On a phone, the list shows first.
 - The chips map onto the inbox's existing filters (product, state and kind): Reply owed is the reply-owed state, and "More" holds kind and the archived view. Search is the inbox's existing search.
 
 ### Item
 
-- **Header:** chips for the product, the kind and source ("Issue report from the app"), and any state ("Reply owed: the linked issue closed 2 days ago"); then the subject in display type; then the toolbar.
-- **Toolbar:** Reply (primary), Create GitHub issue or View issue #n, Quote, Star, Archive, and Delete pushed to the far end with a `--danger` border. Delete confirms inline, as now.
+- **Header:** chips for the product, the kind and source ("Issue report from the app"), and any state ("Reply owed: the linked issue closed 2 days ago"); then the subject in display type; then the toolbar. When it arrived, where from and who sent it all sit together in Details, under the thread.
+- **Toolbar:** one row. Text buttons for the actions that need words: Reply (primary) and Create GitHub issue or View issue #n. Then 44px icon buttons where the meaning is obvious: Star (filled when starred), Archive, Quote, and Delete pushed to the far end in `--danger`. Each icon button has its name as its accessible name and tooltip. Delete confirms inline, as now.
+  - An unavailable action is disabled in place, never as a filled primary, and the reasons sit in one muted line under the toolbar ("No contact email. No consent to quote."), so they don't move the buttons.
 - **Thread:** messages in a ≤72ch column. Theirs sit on `--surface` with a `--line` border; yours sit on an `--accent` tint with an `--accent` border at 22%. Each has a one-line header (who and how, then the time) in `--muted`.
 - **Composer:** docked at the bottom of the item pane, on `--surface`. Its label says who it goes to and from which address ("Reply to Alex from hello@climbinglogbook.com"). Actions: Discard and Send reply.
 - **Formatted view** of inbound HTML stays as it is now: on request, in a sandboxed frame on a white page, captioned "Formatted view".

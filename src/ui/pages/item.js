@@ -9,13 +9,17 @@ import {
   sendReply,
   withdrawTestimonial,
 } from "../api.js";
-import { failure, guarded, h, loading, replace } from "../dom.js";
+import { failure, guarded, h, icon, loading, replace } from "../dom.js";
 import { formatSize, formatTime, itemHeading, kindLabel, sourceLabel } from "../format.js";
 
 /** @typedef {import("../api.js").ItemDetail} ItemDetail */
 
 const NO_CONTACT = "No contact email";
 const NO_CONSENT = "No consent to quote";
+const STAR_ICON = ["M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z"];
+const ARCHIVE_ICON = ["M3 4h18v4H3z", "M5 8v11h14V8", "M10 12h4"];
+const QUOTE_ICON = ["M4 18v-5c0-4 2-6.5 5-7.5", "M4 13h5v5H4z", "M14 18v-5c0-4 2-6.5 5-7.5", "M14 13h5v5h-5z"];
+const DELETE_ICON = ["M4 7h16", "M9 7V4h6v3", "M6 7l1 13h10l1-13", "M10 11v6", "M14 11v6"];
 const REPLY_MAX = 10_000;
 
 /**
@@ -28,6 +32,20 @@ function button(text, onClick, variant = "secondary") {
   element.addEventListener("click", onClick);
   return element;
 }
+
+/**
+ * A square button whose meaning its icon carries; its name stays its accessible name and tooltip.
+ * @param {string} label
+ * @param {string[]} paths
+ * @param {string} [variant]
+ */
+const iconButton = (label, paths, variant = "secondary") =>
+  h(
+    "button",
+    { type: "button", class: `icon-button ${variant}`, title: label },
+    icon(...paths),
+    h("span", { class: "visually-hidden" }, label),
+  );
 
 /**
  * @param {string} id
@@ -75,6 +93,7 @@ export function mountItem(pane, id, hooks) {
   function build() {
     const header = h("header", { class: "item-header" });
     const toolbar = h("div", { class: "toolbar", role: "group", "aria-label": "Actions" });
+    const toolbarNote = h("p", { class: "toolbar-note muted" });
     const actionError = h("div", { class: "status" });
     const banner = h("div", { class: "banner-slot" });
     const panels = h("div", { class: "panels" });
@@ -93,6 +112,7 @@ export function mountItem(pane, id, hooks) {
       h("p", { class: "back" }, h("a", { href: hooks.backHref, "data-link": "" }, "Back to the inbox")),
       header,
       toolbar,
+      toolbarNote,
       actionError,
       banner,
       panels,
@@ -165,16 +185,16 @@ export function mountItem(pane, id, hooks) {
     }
 
     /**
-     * A disabled action says why, next to it, in words.
+     * A disabled action says why, in words, in the one line under the toolbar.
      * @param {HTMLButtonElement} control
      * @param {string | null} reason
      * @param {string} reasonId
      */
     function withReason(control, reason, reasonId) {
-      if (!reason) return control;
+      if (!reason) return null;
       control.disabled = true;
       control.setAttribute("aria-describedby", reasonId);
-      return h("span", { class: "action" }, control, h("span", { class: "reason", id: reasonId }, reason));
+      return h("span", { class: "reason", id: reasonId }, `${reason}.`);
     }
 
     function drawToolbar() {
@@ -204,44 +224,37 @@ export function mountItem(pane, id, hooks) {
             });
             return opener;
           })();
-      const quote = h(
-        "button",
-        { type: "button", class: "secondary", "aria-expanded": String(!quotePanel.root.hidden) },
-        "Quote",
-      );
+      const quote = iconButton("Quote", QUOTE_ICON);
+      quote.setAttribute("aria-expanded", String(!quotePanel.root.hidden));
       quote.addEventListener("click", () => {
         togglePanel(quotePanel.root, quote);
         quotePanel.show(selectedText);
       });
-      const star = h("button", { type: "button", class: "secondary", "aria-pressed": String(current.starred) }, "Star");
+      const star = iconButton("Star", STAR_ICON);
+      star.setAttribute("aria-pressed", String(current.starred));
       guarded(star, () => run(async () => adopt(await patchItem(id, { starred: !current.starred }))));
-      const archive = guarded(
-        h("button", { type: "button", class: "secondary" }, current.archivedAt ? "Unarchive" : "Archive"),
-        () => run(async () => adopt(await patchItem(id, { archived: !current.archivedAt }))),
+      const archive = guarded(iconButton(current.archivedAt ? "Unarchive" : "Archive", ARCHIVE_ICON), () =>
+        run(async () => adopt(await patchItem(id, { archived: !current.archivedAt }))),
       );
       const consented = current.kind === "feedback" && current.quoteConsent;
+      const remove = iconButton("Delete", DELETE_ICON, "danger");
+      remove.addEventListener("click", () => {
+        confirmingDelete = true;
+        drawToolbar();
+        /** @type {HTMLElement | null} */ (toolbar.querySelector("[data-keep]"))?.focus();
+      });
+      const reasons = [
+        withReason(reply, current.contactEmail ? null : NO_CONTACT, "reason-reply"),
+        withReason(quote, consented ? null : NO_CONSENT, "reason-quote"),
+      ].filter(Boolean);
+      replace(toolbarNote, ...reasons.flatMap((reason, n) => (n ? [" ", reason] : [reason])));
+      toolbarNote.hidden = reasons.length === 0;
       replace(
         toolbar,
-        withReason(reply, current.contactEmail ? null : NO_CONTACT, "reason-reply"),
+        reply,
         issue,
-        withReason(quote, consented ? null : NO_CONSENT, "reason-quote"),
-        star,
-        archive,
-        confirmingDelete
-          ? deleteConfirmation()
-          : h(
-              "span",
-              { class: "push" },
-              button(
-                "Delete",
-                () => {
-                  confirmingDelete = true;
-                  drawToolbar();
-                  /** @type {HTMLElement | null} */ (toolbar.querySelector("[data-keep]"))?.focus();
-                },
-                "danger",
-              ),
-            ),
+        h("span", { class: "icon-group" }, star, archive, quote),
+        confirmingDelete ? deleteConfirmation() : h("span", { class: "push" }, remove),
       );
     }
 
@@ -285,12 +298,6 @@ export function mountItem(pane, id, hooks) {
           ),
         ),
         heading,
-        h(
-          "p",
-          { class: "muted" },
-          "Received ",
-          h("time", { datetime: current.createdAt }, formatTime(current.createdAt)),
-        ),
       );
       return heading;
     }
@@ -462,6 +469,7 @@ export function mountItem(pane, id, hooks) {
       const current = item;
       /** @type {[string, string | null][]} */
       const rows = [
+        ["Received", formatTime(current.createdAt)],
         ["Source", sourceLabel(current.source)],
         ["Page or section", current.sourcePage || current.section || null],
         ["App version", current.appVersion],

@@ -698,6 +698,15 @@ main {
   margin-top: 0.75rem;
 }
 
+.search-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search-row .field {
+  flex: 1;
+}
+
 .filter-chips {
   display: flex;
   flex-wrap: wrap;
@@ -950,20 +959,45 @@ button:disabled {
 .toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0;
+  padding: 0.5rem 0 0;
 }
 
-.action {
+.icon-group {
   display: inline-flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.25rem;
 }
 
-.reason {
+.icon-button {
+  width: 44px;
+  padding: 0;
+}
+
+.icon-button[aria-pressed="true"] {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--text) 14%, transparent);
+  color: var(--attention-text);
+}
+
+.icon-button[aria-pressed="true"] svg {
+  fill: currentColor;
+}
+
+.icon-button[aria-pressed="true"]:hover {
+  background: var(--raised);
+}
+
+button.primary:disabled {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--text) 14%, transparent);
+  color: var(--text);
+  font-weight: 400;
+}
+
+.toolbar-note {
+  margin-top: 0.5rem;
   font-size: 0.875rem;
-  color: var(--muted);
 }
 
 .push {
@@ -1108,7 +1142,7 @@ button:disabled {
 
 @media (min-width: 48rem) {
   .split {
-    grid-template-columns: clamp(20rem, 30vw, 26rem) minmax(0, 1fr);
+    grid-template-columns: clamp(22rem, 34vw, 32rem) minmax(0, 1fr);
   }
 
   .list-pane {
