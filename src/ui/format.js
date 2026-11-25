@@ -22,11 +22,11 @@ export function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** @typedef {{ replyOwed?: number, releasesWaiting?: number, healthFailing?: number }} Waiting */
+/** @typedef {{ replyOwed?: number, releasesWaiting?: number, healthFailing?: number, repositoriesFailing?: number }} Waiting */
 
 /** @param {Waiting} waiting */
-export function verdict({ replyOwed = 0, releasesWaiting = 0, healthFailing = 0 }) {
-  const total = replyOwed + releasesWaiting + healthFailing;
+export function verdict({ replyOwed = 0, releasesWaiting = 0, healthFailing = 0, repositoriesFailing = 0 }) {
+  const total = replyOwed + releasesWaiting + healthFailing + repositoriesFailing;
   if (total <= 0) return "All clear.";
   return total === 1 ? "1 thing needs you." : `${total} things need you.`;
 }
@@ -47,6 +47,13 @@ export function hubSummary(products) {
     sentences.push(`${listOf(quiet.map(product => product.name))} ${quiet.length === 1 ? "is" : "are"} quiet.`);
   return sentences.join(" ");
 }
+
+/**
+ * One sentence naming the repositories outside any product that have drifted from bootstrap. Empty when none have.
+ * @param {string[]} names
+ */
+export const driftSummary = names =>
+  names.length === 0 ? "" : `${listOf(names)} ${names.length === 1 ? "has" : "have"} drifted from bootstrap.`;
 
 const HEALTH_WORDS = {
   healthy: "Healthy",
@@ -151,3 +158,11 @@ const RELEASE_WORDS = {
 
 /** @param {string} state */
 export const releaseWord = state => RELEASE_WORDS[/** @type {keyof typeof RELEASE_WORDS} */ (state)] ?? state;
+
+const CELL_WORDS = { pass: "Pass", fail: "Fail", unknown: "Unknown", skipped: "Skipped", "n/a": "Doesn't apply" };
+
+/** @param {string} status */
+export const cellWord = status => CELL_WORDS[/** @type {keyof typeof CELL_WORDS} */ (status)] ?? "Unknown";
+
+/** @param {number} failing */
+export const checksFailing = failing => (failing === 1 ? "1 check failing" : `${failing} checks failing`);

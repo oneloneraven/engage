@@ -14,6 +14,7 @@ let products = [];
 export function mountShell() {
   const app = /** @type {HTMLElement} */ (document.getElementById("app"));
   const switcher = h("div", { class: "switcher-slot" });
+  const repositories = h("a", { class: "bar-link", href: "/repositories", "data-link": "" }, "Repositories");
   const main = h("main", { id: "main", tabindex: "-1" });
   app.append(
     h("a", { class: "skip", href: "#main" }, "Skip to content"),
@@ -25,6 +26,7 @@ export function mountShell() {
         { class: "bar" },
         h("a", { class: "brand", href: "/", "data-link": "" }, "Engage"),
         switcher,
+        repositories,
         h(
           "a",
           { class: "button search-link", href: "/search", "data-link": "", "aria-label": "Search messages" },
@@ -51,6 +53,8 @@ export function mountShell() {
   /** @param {string} path */
   function draw(path) {
     lastPath = path;
+    if (path === "/repositories") repositories.setAttribute("aria-current", "page");
+    else repositories.removeAttribute("aria-current");
     const route = path.split("/")[1] ?? "";
     const current = products.find(product => product.route === route);
     replace(

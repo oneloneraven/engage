@@ -241,6 +241,105 @@ describe("health and usage", () => {
   });
 });
 
+describe("repositories", () => {
+  const FAILING = {
+    lastRun: { finishedAt: "2026-11-26T03:20:00.000Z", rulesVersion: 1, stale: false },
+    lastError: null,
+    checks: [
+      { id: "ruleset", title: "Default branch ruleset" },
+      { id: "labels", title: "Labels" },
+    ],
+    repositories: [
+      {
+        repo: "oneloneraven/climbing-logbook",
+        name: "climbing-logbook",
+        product: "cl",
+        checkedAt: "2026-11-26T03:20:00.000Z",
+        stale: false,
+        failing: 1,
+        cells: {
+          ruleset: {
+            status: "fail",
+            reason: "`e2e` isn't a required check",
+            link: "https://github.com/oneloneraven/climbing-logbook/settings/rules",
+          },
+          labels: { status: "n/a", reason: "Doesn't apply", link: null },
+        },
+      },
+    ],
+  };
+
+  it("lists every repository against each check, with a word in every cell", async () => {
+    await browser.url("/repositories");
+    await expect($('a[href="/repositories"][aria-current="page"]')).toBeExisting();
+    const row = $('tr[id="oneloneraven/engage"]');
+    await row.waitForExist();
+    const words = await row.$$(".cell .cell-word").map(cell => cell.getText());
+    expect(words).toEqual(["Pass", "Pass"]);
+    await expect($(".run-line")).toHaveText(expect.stringContaining("against bootstrap's rules, version 1."));
+  });
+
+  it("opens a failing cell's reason and where to fix it", async () => {
+    await browser.mock("**/api/repositories").then(mock => mock.respond(FAILING));
+    await browser.url("/repositories");
+    await $('tr[id="oneloneraven/climbing-logbook"] .cell[data-status="fail"]').click();
+    await expect($(".cell-detail h2")).toHaveText("climbing-logbook: Default branch ruleset");
+    await expect($(".cell-detail code")).toHaveText("e2e");
+    await expect($(".cell-detail a")).toHaveAttribute(
+      "href",
+      "https://github.com/oneloneraven/climbing-logbook/settings/rules",
+    );
+    await expect($('tr[id="oneloneraven/climbing-logbook"] .cell[data-status="n/a"] .cell-word')).toHaveText(
+      "Doesn't apply",
+    );
+    await browser.mockRestoreAll();
+  });
+
+  it("puts a failing repository on its product's card, and drift outside a product on Home's own card", async () => {
+    await browser.mock("**/api/counts").then(mock =>
+      mock.respond({
+        new: 0,
+        open: 0,
+        replyOwed: 0,
+        releasesWaiting: 0,
+        repositoriesFailing: 2,
+        noProductRepositoriesFailing: [{ repo: "oneloneraven/engage", name: "engage", failing: 2, stale: false }],
+        byProduct: {
+          cl: {
+            name: "Climbing Logbook",
+            route: "climbing-logbook",
+            new: 0,
+            open: 0,
+            replyOwed: 0,
+            repositoriesFailing: [
+              { repo: "oneloneraven/climbing-logbook", name: "climbing-logbook", failing: 1, stale: false },
+            ],
+          },
+        },
+      }),
+    );
+    await browser.mock("**/api/items*").then(mock => mock.respond({ items: [], next: null }));
+    await browser.mock("**/api/releases*").then(mock => mock.respond({ releases: [] }));
+    await browser.url("/");
+    await expect($("h1")).toHaveText("2 things need you.");
+    await expect($(".summary")).toHaveText("Climbing Logbook has 1. engage has drifted from bootstrap.");
+    await expect($('article[data-product="cl"] .repository-row .grow a')).toHaveText(
+      "climbing-logbook has 1 check failing",
+    );
+    await expect($('article[data-product="cl"] .repository-row .grow a')).toHaveAttribute(
+      "href",
+      "/repositories#oneloneraven/climbing-logbook",
+    );
+    await expect($(".repositories-card .repository-row .grow a")).toHaveText("engage has 2 checks failing");
+    await browser.mockRestoreAll();
+  });
+
+  it("says every repository matches when none outside a product has drifted", async () => {
+    await browser.url("/");
+    await expect($(".repositories-card .quiet")).toHaveText("Every repository matches bootstrap.");
+  });
+});
+
 describe("product admin links", () => {
   it("links a report about a user to that user in the product's own admin, and other items to nothing", async () => {
     const { noEmail, hostile } = ids();

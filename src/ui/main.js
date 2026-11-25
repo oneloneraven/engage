@@ -7,6 +7,7 @@ import {
   releaseRedirectPage,
   releasesRedirectPage,
 } from "./pages/hub.js";
+import { repositoriesPage } from "./pages/repositories.js";
 import { searchPage } from "./pages/search.js";
 import { createRouter } from "./router.js";
 import { mountShell } from "./shell.js";
@@ -18,6 +19,7 @@ const router = createRouter({
   routes: [
     { key: "home", pattern: /^\/$/, mount: homePage },
     { key: "search", pattern: /^\/search$/, mount: searchPage },
+    { key: "repositories", pattern: /^\/repositories$/, mount: repositoriesPage },
     { key: "item-redirect", pattern: /^\/items\/([^/]+)$/, mount: itemRedirectPage },
     { key: "inbox-redirect", pattern: /^\/inbox$/, mount: inboxRedirectPage },
     { key: "releases-redirect", pattern: /^\/releases$/, mount: releasesRedirectPage },
