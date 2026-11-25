@@ -16,6 +16,9 @@ import { formatSize, formatTime, itemHeading, kindLabel, sourceLabel } from "../
 
 const NO_CONTACT = "No contact email";
 const NO_CONSENT = "No consent to quote";
+const REPLY_ICON = ["M9 14 4 9l5-5", "M4 9h10a6 6 0 0 1 6 6v5"];
+const GITHUB_MARK =
+  "M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.37A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z";
 const STAR_ICON = ["M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z"];
 const ARCHIVE_ICON = ["M3 4h18v4H3z", "M5 8v11h14V8", "M10 12h4"];
 const QUOTE_ICON = ["M4 18v-5c0-4 2-6.5 5-7.5", "M4 13h5v5H4z", "M14 18v-5c0-4 2-6.5 5-7.5", "M14 13h5v5h-5z"];
@@ -33,17 +36,35 @@ function button(text, onClick, variant = "secondary") {
   return element;
 }
 
+/** GitHub's mark, filled, for the actions that open or create a GitHub issue. */
+function githubMark() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  for (const [name, value] of Object.entries({
+    viewBox: "0 0 16 16",
+    width: "20",
+    height: "20",
+    fill: "currentColor",
+    "aria-hidden": "true",
+    focusable: "false",
+  }))
+    svg.setAttribute(name, value);
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", GITHUB_MARK);
+  svg.append(path);
+  return svg;
+}
+
 /**
  * A square button whose meaning its icon carries; its name stays its accessible name and tooltip.
  * @param {string} label
- * @param {string[]} paths
+ * @param {string[] | SVGElement} paths
  * @param {string} [variant]
  */
 const iconButton = (label, paths, variant = "secondary") =>
   h(
     "button",
     { type: "button", class: `icon-button ${variant}`, title: label },
-    icon(...paths),
+    Array.isArray(paths) ? icon(...paths) : paths,
     h("span", { class: "visually-hidden" }, label),
   );
 
@@ -200,24 +221,26 @@ export function mountItem(pane, id, hooks) {
     function drawToolbar() {
       if (!item) return;
       const current = item;
-      const reply = h(
-        "button",
-        { type: "button", class: "primary", "aria-expanded": String(!replyPanel.root.hidden) },
-        "Reply",
-      );
+      const reply = iconButton("Reply", REPLY_ICON, "primary");
+      reply.setAttribute("aria-expanded", String(!replyPanel.root.hidden));
       reply.addEventListener("click", () => togglePanel(replyPanel.root, reply));
+      const issueLabel = `View GitHub issue #${current.issueNumber}`;
       const issue = current.issueUrl
         ? h(
             "a",
-            { class: "button secondary", href: current.issueUrl, target: "_blank", rel: "noopener noreferrer" },
-            `View GitHub issue #${current.issueNumber}`,
+            {
+              class: "button icon-button secondary",
+              href: current.issueUrl,
+              target: "_blank",
+              rel: "noopener noreferrer",
+              title: issueLabel,
+            },
+            githubMark(),
+            h("span", { class: "visually-hidden" }, issueLabel),
           )
         : (() => {
-            const opener = h(
-              "button",
-              { type: "button", class: "secondary", "aria-expanded": String(!draftPanel.root.hidden) },
-              "Create GitHub issue",
-            );
+            const opener = iconButton("Create GitHub issue", githubMark());
+            opener.setAttribute("aria-expanded", String(!draftPanel.root.hidden));
             opener.addEventListener("click", async () => {
               togglePanel(draftPanel.root, opener);
               if (!draftPanel.root.hidden) await draftPanel.open(id);
@@ -251,9 +274,7 @@ export function mountItem(pane, id, hooks) {
       toolbarNote.hidden = reasons.length === 0;
       replace(
         toolbar,
-        reply,
-        issue,
-        h("span", { class: "icon-group" }, star, archive, quote),
+        h("span", { class: "icon-group" }, reply, issue, star, archive, quote),
         confirmingDelete ? deleteConfirmation() : h("span", { class: "push" }, remove),
       );
     }

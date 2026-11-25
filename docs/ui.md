@@ -124,7 +124,7 @@ Desktop (≥ 1200px)
 ### Item
 
 - **Header:** chips for the product, the kind and source ("Issue report from the app"), and any state ("Reply owed: the linked issue closed 2 days ago"); then the subject in display type; then the toolbar. When it arrived, where from and who sent it all sit together in Details, under the thread.
-- **Toolbar:** one row. Text buttons for the actions that need words: Reply (primary) and Create GitHub issue or View issue #n. Then 44px icon buttons where the meaning is obvious: Star (filled when starred), Archive, Quote, and Delete pushed to the far end in `--danger`. Each icon button has its name as its accessible name and tooltip. Delete confirms inline, as now.
+- **Toolbar:** one row of 44px icon buttons, so it fits however narrow the item pane gets: Reply (filled, primary), Create GitHub issue or View GitHub issue #n (GitHub's mark), Star (filled when starred), Archive, Quote, and Delete pushed to the far end in `--danger`. Each has its name as its accessible name and tooltip. Delete confirms inline, as now.
   - An unavailable action is disabled in place, never as a filled primary, and the reasons sit in one muted line under the toolbar ("No contact email. No consent to quote."), so they don't move the buttons.
 - **Thread:** messages in a ≤72ch column. Theirs sit on `--surface` with a `--line` border; yours sit on an `--accent` tint with an `--accent` border at 22%. Each has a one-line header (who and how, then the time) in `--muted`.
 - **Composer:** docked at the bottom of the item pane, on `--surface`. Its label says who it goes to and from which address ("Reply to Alex from hello@climbinglogbook.com"). Actions: Discard and Send reply.
