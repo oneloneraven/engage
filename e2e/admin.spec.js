@@ -186,6 +186,15 @@ describe("releases", () => {
 });
 
 describe("inbox", () => {
+  it("shows the first line of what they wrote under each row, as text", async () => {
+    const { noEmail, hostile } = ids();
+    await browser.url("/inbox");
+    await listLoaded();
+    await expect(row(noEmail).$(".row-preview")).toHaveText("I could not find the export button.");
+    await expect(row(hostile).$(".row-preview")).toHaveText("<img src=x onerror=alert(1)>");
+    await expect(row(hostile).$("img")).not.toBeExisting();
+  });
+
   it("filters by search text, and keeps the filter across a reload", async () => {
     const { unread, star } = ids();
     await browser.url("/inbox");

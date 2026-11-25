@@ -148,6 +148,7 @@ export function inboxPage(container, context) {
             ),
             h("span", { class: "row-time" }, formatDay(item.lastActivityAt)),
           ),
+          item.preview && h("span", { class: "row-preview" }, item.preview),
           h(
             "span",
             { class: "row-tags" },
