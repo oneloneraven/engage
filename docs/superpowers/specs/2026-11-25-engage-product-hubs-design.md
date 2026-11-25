@@ -71,6 +71,10 @@ Engage tries to show every product at once on every page. The rail, the list and
 - **Product pages:** a product can add pages for what only it has, such as Climbing Logbook's breakdown of climbs by status and discipline. Each is a small module registered against the product's `route`, `{ path, title, mount }`, and appears as a tab after the foundation pages. Foundation pages never need product code.
 - **Inbox:** the list and the open item side by side, as now, but with the rail's width back: list 26–32rem, and the item gets the rest. No product chips: the filters are All, Reply owed and More filters (kind, archived, junk).
 
+### What stays in each product
+
+Each product's own admin keeps every action on that product's own data: users, entries, invites and moderation. Engage holds no credentials that can change a product's data. At most it reads aggregate figures. Product pages in a hub show figures and link out. An item that's about something in the product, such as a reported entry or user, links to it in the product's admin (#132). Climbing Logbook's entry moderation moves to its admin's Users page (oneloneraven/climbing-logbook#1712).
+
 ### Search
 
 The top bar's search goes to `/search?q=`, which lists matching items from every product, each with its product's colour square and name. Opening one goes to the item in its product's inbox.
@@ -86,6 +90,7 @@ A registry row (slug, `route: beyond-borders`, domains, colour) gives it a card 
 - A fixed set of foundation pages, always shown, plus pages unique to each product.
 - Actionable things on the left of a card, analytics on the right.
 - Product routes are the base repository's name.
+- Products keep acting on their own data in their own admin; Engage links to it.
 
 ## Calls made here, for review
 
@@ -102,7 +107,8 @@ A registry row (slug, `route: beyond-borders`, domains, colour) gives it a card 
 ## Delivery
 
 1. Registry `route`, the top bar, and the central hub with per-product cards; the rail goes (#127).
-2. Product hub: tabs, Overview and Inbox under `/<product>`, the `/items/<id>` redirect, and search (issue to follow).
+2. Product hub: tabs, Overview and Inbox under `/<product>`, the `/items/<id>` redirect, and search (#130).
 3. Releases, Health and Usage pages, with their "isn't set up" states (#128).
-4. Product pages: the registration contract, with Climbing Logbook's breakdown as the first (issue to follow).
+4. Product pages: the registration contract, with Climbing Logbook's breakdown as the first (#131).
 5. Beyond Borders' registry row (#129); its onboarding is tracked separately.
+6. A link from an item to its product's own admin (#132).
