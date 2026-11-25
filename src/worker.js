@@ -1,3 +1,4 @@
+import { runConformance } from "./conformance/run.js";
 import { routeAdmin } from "./admin/router.js";
 import { handleGithubWebhook } from "./github/webhook.js";
 import { handleDeployCredentials } from "./releases/broker.js";
@@ -53,7 +54,7 @@ import { refreshVersions } from "./signals/versions.js";
 
 /** @type {Record<string, ((env: Env, now: Date) => Promise<unknown>)[]>} */
 const CRON_JOBS = {
-  "17 3 * * *": [runRetention, snapshotMetrics],
+  "17 3 * * *": [runRetention, snapshotMetrics, runConformance],
   "*/5 * * * *": [refreshHealth, refreshVersions],
 };
 
