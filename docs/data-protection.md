@@ -8,7 +8,7 @@ updates it in the same PR.
 
 | Processor | What it receives | Purpose | Location |
 |---|---|---|---|
-| Cloudflare (Workers, D1, R2, Email Routing, Email Sending, Turnstile, Access) | Everything Engage stores and sends: items, messages, attachments, testimonials, the blocklist and the audit log; inbound and outbound mail; web submitters' IP addresses and browser signals for Turnstile; the owner's sign-in | Hosting, storage, mail in and out, bot protection, admin sign-in | Cloudflare's global network; D1 and R2 aren't pinned to a jurisdiction |
+| Cloudflare (Workers, D1, R2, Email Routing, Email Sending, Turnstile, Access) | Everything Engage stores and sends: items, messages, attachments, testimonials, the blocklist, releases and the audit log; inbound and outbound mail; web submitters' IP addresses and browser signals for Turnstile; the owner's sign-in | Hosting, storage, mail in and out, bot protection, admin sign-in | Cloudflare's global network; D1 and R2 aren't pinned to a jurisdiction |
 | GitHub | Only what the owner deliberately puts in an issue after editing and redacting a draft, never contact details; the issue numbers of linked items | Tracking reported problems in each product's repository | United States |
 | Proton (only for a product with backup forwarding turned on; none is) | A copy of every inbound email to that product | A backup mailbox while Engage is new | Switzerland |
 
@@ -27,6 +27,7 @@ isn't a processor.
 | Web submitters' IP address and browser signals | Bot protection and rate limiting | Legitimate interests | Not stored by Engage; held by Cloudflare only as long as Turnstile and the rate limiter need | Cloudflare |
 | Blocked senders: an email address or domain | Keeping repeat spam out of the inbox | Legitimate interests | Kept indefinitely: there is no way to remove an entry yet | The owner |
 | Audit log: the owner's email, the action, the target's id and time | Accountability for every change | Legitimate interests | Kept indefinitely; never holds item content, and a deleted item leaves only its id | The owner |
+| Releases: the repository, environment, commit, run, the decision, the owner's email as the decider and an optional note | Gating deploys on the owner's approval | Legitimate interests | Kept indefinitely, like the audit log; holds no personal data about anyone but the owner | The owner |
 
 ## Gaps to settle
 
