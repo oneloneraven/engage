@@ -9,8 +9,8 @@ import { sentenceFor } from "./errors.js";
  * @typedef {{ version: string, production: string, since: string, amber: boolean }} BetaSignal
  * @typedef {{ health: HealthSignal, engagement: EngagementSignal | null, beta: BetaSignal | null }} Signals
  * @typedef {{ id: string, ref: string | null, sha: string, environment: string, at: string }} LatestRelease
- * @typedef {{ name: string, colour: string | null, route?: string | null, new: number, open: number, replyOwed: number, latestRelease?: LatestRelease | null, signals?: Signals | null }} ProductCounts
- * @typedef {{ new: number, open: number, replyOwed: number, releasesWaiting: number, healthFailing?: number, byProduct: Record<string, ProductCounts> }} Counts
+ * @typedef {{ name: string, colour: string | null, route?: string | null, new: number, open: number, replyOwed: number, latestRelease?: LatestRelease | null, repositoriesFailing?: import("../conformance/read.js").FailingRepository[], signals?: Signals | null }} ProductCounts
+ * @typedef {{ new: number, open: number, replyOwed: number, releasesWaiting: number, healthFailing?: number, repositoriesFailing?: number, noProductRepositoriesFailing?: import("../conformance/read.js").FailingRepository[], byProduct: Record<string, ProductCounts> }} Counts
  */
 
 class ApiError extends Error {
@@ -163,5 +163,11 @@ export const decideRelease = (id, decision, note) =>
  * @param {string} path
  * @returns {Promise<any>}
  */
+/** @typedef {import("../conformance/read.js").Conformance} Conformance */
+/** @typedef {import("../conformance/read.js").FailingRepository} FailingRepository */
+
+/** @returns {Promise<Conformance>} */
+export const getRepositories = () => request("GET", "/api/repositories");
+
 export const getProductPage = (route, path) =>
   request("GET", `/api/products/${encodeURIComponent(route)}/${encodeURIComponent(path)}`);

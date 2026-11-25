@@ -93,7 +93,7 @@ Desktop
 
 ### The shell
 
-- **No rail.** A sticky top bar runs the full width: the wordmark with its fire tile (a link to Home), then, inside a product, the product switcher (its colour square and name, opening a list of every product), and Search at the far end. Releases live in each product's hub, and Home shows every release waiting on its product's card.
+- **No rail.** A sticky top bar runs the full width: the wordmark with its fire tile (a link to Home), then, inside a product, the product switcher (its colour square and name, opening a list of every product), Repositories, and Search at the far end. Releases live in each product's hub, and Home shows every release waiting on its product's card.
 - **Below 768px** search keeps only its icon.
 - Main content is left-aligned with a fluid side margin, capped at 74rem on Home. Nothing is centred except empty states.
 
@@ -114,10 +114,10 @@ Desktop
 
 ### Home: the central hub
 
-1. **The verdict**: today's date in `--muted`, then the number of things that need you across every product, the fire underline, and one sentence per product ("Climbing Logbook has 3 and Deaftly has 1. Beyond Borders is quiet."). With nothing to do: "All clear." and "Nothing needs you. New feedback lands here and pings Discord."
+1. **The verdict**: today's date in `--muted`, then the number of things that need you across every product, the fire underline, and one sentence per product ("Climbing Logbook has 3 and Deaftly has 1. Beyond Borders is quiet."), then one naming repositories outside any product that have drifted from bootstrap ("engage has drifted from bootstrap."). With nothing to do: "All clear." and "Nothing needs you. New feedback lands here and pings Discord."
 2. **One card per product, in a single column**, in registry order. Order never changes with how busy a product is. A card with something that needs you has a 4px `--attention` edge on its left.
    - **Header:** the product's colour square and name (a link to its inbox until its hub lands), and its health pill.
-   - **Left, Needs you:** that product's rows, most urgent first: failing or degraded health, releases waiting, then up to three replies owed with "See all n replies owed in the inbox" beyond that. Each row has a 44px icon tile, a bold title, one line of context in `--muted`, and its actions: Review and Approve release for a release, Reply for a reply owed, and Open in Better Stack for health. A release row sits on an `--attention` tint. Under the rows, chips for new and open messages. With nothing to do: "Nothing needs you here."
+   - **Left, Needs you:** that product's rows, most urgent first: failing or degraded health, releases waiting, the product's repositories that have drifted from bootstrap ("deaftly-website has 2 checks failing", with Review), then up to three replies owed with "See all n replies owed in the inbox" beyond that. Each row has a 44px icon tile, a bold title, one line of context in `--muted`, and its actions: Review and Approve release for a release, Reply for a reply owed, and Open in Better Stack for health. A release row sits on an `--attention` tint. Under the rows, chips for new and open messages. With nothing to do: "Nothing needs you here."
    - **Right, How it's doing:** the engagement block, the health reason when it's Unknown, the beta badge, and the latest release approved ("Latest release: v1.14.0 to production, 20 Nov 2026.", linking to it). With no engagement source: "No usage figures yet."
    - The two sides sit side by side from 1024px wide and stack below. The card keeps its soft radial glow of the product colour from the top-right corner.
    - The health pill also says Not monitored (no monitors configured) or Unknown (the source couldn't be read, or the last check is over 15 minutes old). Neither is ever shown as Healthy.
@@ -146,6 +146,16 @@ Desktop
 ### Junk
 
 A view of each product's inbox, at `/<route>/inbox?state=junk`, with a link back to the inbox. The inbox layout without the filter chips. Each row has Not junk and Delete for good. Junk uses `--danger` only on the delete action, never on the rows.
+
+### Repositories
+
+`/repositories`, linked from the top bar: every repository against bootstrap's checks, from the daily conformance run.
+
+- The first line says when it last ran and with which rules version. It says when that's over 36 hours old, or when the last run didn't finish and why.
+- **From 768px, a grid.** Repositories are grouped by product in registry order, then "No product", with a column per check in the rules file's order. The row header links to the repository on GitHub and says how many checks are failing.
+- **Each cell is a button** with a mark and a word: Pass, Fail, Unknown, Skipped or Doesn't apply. Colour is never the only signal; Fail also sits on a `--danger` tint. Opening a cell shows its reason, with quoted names as code, and "Fix in GitHub" under the grid.
+- **Below 768px, one card per repository**, listing only its failing and unknown checks with their reasons and links.
+- Only Fail needs you. Each failing repository is one row on its product's card, or on Home's **Repositories** card after the product cards when it belongs to no product. With none: "Every repository matches bootstrap."
 
 ### Releases
 

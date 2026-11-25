@@ -3,10 +3,12 @@ import { emptyState, failure, guarded, h, icon, link, loading, replace } from ".
 import {
   betaText,
   changeText,
+  checksFailing,
   formatCount,
   formatDay,
   formatToday,
   healthWord,
+  driftSummary,
   hubSummary,
   itemTitle,
   kindLabel,
@@ -18,6 +20,12 @@ import { sparkline } from "../sparkline.js";
 const REPLY_ICON = ["M9 14 4 9l5-5", "M4 9h10a6 6 0 0 1 6 6v5"];
 const RELEASE_ICON = ["M12 3v12", "m8 11 4 4 4-4", "M4 17v3h16v-3"];
 const HEALTH_ICON = ["M3 12h4l3-8 4 16 3-8h4"];
+const REPO_ICON = [
+  "M6 3v12",
+  "M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+  "M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+  "M18 9a9 9 0 0 1-9 9",
+];
 const UNHEALTHY = ["failing", "degraded"];
 const OWED_SHOWN = 3;
 
@@ -85,6 +93,35 @@ function releaseRow(release, releases, onDecided) {
       status,
     ),
     h("div", { class: "buttons" }, h("a", { class: "button", href, "data-link": "" }, "Review"), approve),
+  );
+}
+
+/** @param {import("../api.js").FailingRepository} repository */
+function repositoryRow(repository) {
+  const href = `/repositories#${repository.repo}`;
+  const title = `${repository.name} has ${checksFailing(repository.failing)}`;
+  return h(
+    "li",
+    { class: "queue-row repository-row" },
+    h("span", { class: "tile" }, icon(...REPO_ICON)),
+    h(
+      "div",
+      { class: "grow" },
+      link(href, title),
+      h(
+        "p",
+        { class: "muted" },
+        repository.stale
+          ? "It doesn't match what bootstrap set up. Last checked over 36 hours ago."
+          : "It doesn't match what bootstrap set up.",
+      ),
+    ),
+    h(
+      "a",
+      { class: "button", href, "data-link": "" },
+      "Review",
+      h("span", { class: "visually-hidden" }, ` ${repository.name}`),
+    ),
   );
 }
 
@@ -157,6 +194,7 @@ export function productCard(slug, product, needs, redraw) {
   const rows = [
     unhealthy && healthRow(product),
     ...needs.releases.map(release => releaseRow(release, `${hub}/releases`, redraw)),
+    ...(product.repositoriesFailing ?? []).map(repositoryRow),
     ...needs.owed.slice(0, OWED_SHOWN).map(item => owedRow(item, inbox)),
   ].filter(Boolean);
   const titleId = `product-${slug}`;
@@ -231,6 +269,37 @@ export function productCard(slug, product, needs, redraw) {
 }
 
 /**
+ * The repositories that belong to no product, after the product cards: which have drifted from bootstrap.
+ * @param {import("../api.js").FailingRepository[]} failing
+ */
+function repositoriesCard(failing) {
+  return h(
+    "li",
+    null,
+    h(
+      "article",
+      {
+        class: `card hub-card repositories-card${failing.length ? " needs" : ""}`,
+        "aria-labelledby": "repositories-card-title",
+      },
+      h(
+        "div",
+        { class: "card-head" },
+        h("h2", { class: "product-name", id: "repositories-card-title" }, link("/repositories", "Repositories")),
+      ),
+      h(
+        "section",
+        { class: "hub-needs", "aria-label": "Repositories: needs you" },
+        h("h3", { class: "col-title" }, "Needs you"),
+        failing.length
+          ? h("ul", { class: "queue" }, failing.map(repositoryRow))
+          : h("p", { class: "quiet" }, "Every repository matches bootstrap."),
+      ),
+    ),
+  );
+}
+
+/**
  * Every product with what needs you, for the hub and each product's overview.
  * @returns {Promise<{ counts: import("../api.js").Counts, products: { slug: string, product: ProductCounts, needs: { owed: ItemSummary[], releases: Release[] }, count: number }[] }>}
  */
@@ -246,7 +315,12 @@ export async function loadHub() {
       releases: waiting.releases.filter(release => release.product === slug),
     };
     const unhealthy = UNHEALTHY.includes(product.signals?.health.status ?? "") ? 1 : 0;
-    return { slug, product, needs, count: unhealthy + needs.releases.length + (product.replyOwed ?? 0) };
+    return {
+      slug,
+      product,
+      needs,
+      count: unhealthy + needs.releases.length + (product.replyOwed ?? 0) + (product.repositoriesFailing?.length ?? 0),
+    };
   });
   return { counts, products };
 }
@@ -267,7 +341,13 @@ export function homePage(container) {
         if (!alive) return;
         const sweep = !swept;
         swept = true;
-        const summary = hubSummary(products.map(({ product, count }) => ({ name: product.name, needs: count })));
+        const unowned = counts.noProductRepositoriesFailing ?? [];
+        const summary = [
+          hubSummary(products.map(({ product, count }) => ({ name: product.name, needs: count }))),
+          driftSummary(unowned.map(repository => repository.name)),
+        ]
+          .filter(Boolean)
+          .join(" ");
         replace(
           root,
           h(
@@ -287,6 +367,7 @@ export function homePage(container) {
                 "ul",
                 { class: "hub-cards", "aria-label": "Your products" },
                 products.map(({ slug, product, needs }) => productCard(slug, product, needs, draw)),
+                repositoriesCard(unowned),
               ),
         );
       })

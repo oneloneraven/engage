@@ -142,6 +142,27 @@ function signalsSql(now) {
   ];
 }
 
+/**
+ * Conformance: two checks, every repository passing, so the real counts aren't changed. Failures are mocked per test.
+ * @param {Date} now
+ */
+function conformanceSql(now) {
+  const at = now.toISOString();
+  return [
+    "DELETE FROM conformance_results;",
+    "DELETE FROM conformance_checks;",
+    "DELETE FROM conformance_runs;",
+    insert("conformance_checks", { id: "ruleset", title: "Default branch ruleset", position: 0 }),
+    insert("conformance_checks", { id: "labels", title: "Labels", position: 1 }),
+    insert("conformance_runs", { started_at: at, finished_at: at, rules_version: 1, complete: 1, error: null }),
+    ...["oneloneraven/climbing-logbook", "oneloneraven/engage"].flatMap(repo =>
+      ["ruleset", "labels"].map(check_id =>
+        insert("conformance_results", { repo, check_id, status: "pass", reason: "", link: null, checked_at: at }),
+      ),
+    ),
+  ];
+}
+
 /** The fixture rows every e2e run starts from. Each browser gets its own items, so parallel browsers never meet. */
 export function seedSql(now = new Date()) {
   const statements = [
@@ -153,6 +174,7 @@ export function seedSql(now = new Date()) {
     "DELETE FROM health_state;",
     "DELETE FROM deployed_versions;",
     "DELETE FROM metric_snapshots;",
+    ...conformanceSql(now),
     ...signalsSql(now),
     insert("releases", {
       id: SHARED_RELEASE,
