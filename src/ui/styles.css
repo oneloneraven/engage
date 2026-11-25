@@ -977,7 +977,9 @@ button:disabled {
   gap: 0.25rem;
 }
 
-.icon-button {
+button.icon-button,
+.button.icon-button {
+  flex: none;
   width: 44px;
   padding: 0;
 }
