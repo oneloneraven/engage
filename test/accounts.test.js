@@ -67,16 +67,40 @@ test("an unknown product is a 403, the same as a wrong secret", async () => {
   expect((await handleAccountDelete(del("cl-account-secret"), makeEnv(), "nope", "acct-1")).status).toBe(403);
 });
 
-test("a limited caller gets a 429 before the secret is checked", async () => {
+test("a caller limited by IP gets a 429 before the secret is checked", async () => {
   const limiter = makeLimiter(false);
   const response = await handleAccountDelete(
     del("cl-account-secret"),
-    makeEnv({ INTAKE_APP_LIMITER: limiter }),
+    makeEnv({ ACCOUNT_LIMITER: limiter }),
     "cl",
     "acct-1",
   );
   expect(response.status).toBe(429);
-  expect(limiter.keys).toEqual(["account:203.0.113.9"]);
+  expect(limiter.keys).toEqual(["account-ip:203.0.113.9"]);
+  expect(await refs()).toMatchObject({ A: "acct-1" });
+});
+
+test("an authenticated call is limited by product, not by the shared egress IP", async () => {
+  const limiter = makeLimiter();
+  await handleAccountDelete(del("cl-account-secret"), makeEnv({ ACCOUNT_LIMITER: limiter }), "cl", "acct-1");
+  expect(limiter.keys).toEqual(["account-ip:203.0.113.9", "account-product:cl"]);
+});
+
+test("a wrong secret never spends the product's allowance", async () => {
+  const limiter = makeLimiter();
+  await handleAccountDelete(del("wrong"), makeEnv({ ACCOUNT_LIMITER: limiter }), "cl", "acct-1");
+  expect(limiter.keys).toEqual(["account-ip:203.0.113.9"]);
+});
+
+test("a product over its allowance gets a 429 and changes nothing", async () => {
+  const byKey = { limit: async ({ key }) => ({ success: !key.startsWith("account-product:") }) };
+  const response = await handleAccountDelete(
+    del("cl-account-secret"),
+    makeEnv({ ACCOUNT_LIMITER: byKey }),
+    "cl",
+    "acct-1",
+  );
+  expect(response.status).toBe(429);
   expect(await refs()).toMatchObject({ A: "acct-1" });
 });
 

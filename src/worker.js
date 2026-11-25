@@ -33,6 +33,7 @@ import { runRetention } from "./retention.js";
  *   TURNSTILE_SITEKEY?: string,
  *   INTAKE_WEB_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
  *   INTAKE_APP_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
+ *   ACCOUNT_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
  * }} Env
  */
 
