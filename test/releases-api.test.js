@@ -118,6 +118,30 @@ describe("reading releases", () => {
     expect((await (await call("GET", "/api/counts")).json()).releasesWaiting).toBe(1);
   });
 
+  test("filters by product, and each product's latest release out is in the counts", async () => {
+    const out = await seed({ runId: 40, ref: "v1.13.0" });
+    await decideRelease(makeEnv(), out, "approved", "owner@example.com", null);
+    await seed({ runId: 41, ref: "v1.14.0" });
+    await baseEnv.DB.exec("UPDATE releases SET created_at = '2026-11-01T00:00:00.000Z' WHERE run_id = 40");
+    await createRelease(makeEnv(), {
+      repo: "oneloneraven/deaftly",
+      product: "deaftly",
+      environment: "release",
+      sha: "d-sha",
+      ref: "v2.0.0",
+      runId: 50,
+      callbackUrl: "https://api.github.com/repos/oneloneraven/deaftly/actions/runs/50/deployment_protection_rule",
+      installationId: 7,
+    });
+    const cl = (await (await call("GET", "/api/releases?product=cl")).json()).releases;
+    expect(cl.map((/** @type {any} */ r) => r.ref)).toEqual(["v1.14.0", "v1.13.0"]);
+    const waiting = (await (await call("GET", "/api/releases?product=deaftly&state=pending")).json()).releases;
+    expect(waiting.map((/** @type {any} */ r) => r.ref)).toEqual(["v2.0.0"]);
+    const { byProduct } = await (await call("GET", "/api/counts")).json();
+    expect(byProduct.cl.latestRelease).toMatchObject({ id: out, ref: "v1.13.0", environment: "production" });
+    expect(byProduct.deaftly.latestRelease).toBeNull();
+  });
+
   test("a release's detail lists the PRs since the last one out to that environment, and its checks", async () => {
     const earlier = await seed({ sha: "old-sha", runId: 41 });
     await decideRelease(baseEnv, earlier, "approved", "owner@example.test");

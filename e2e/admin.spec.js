@@ -152,23 +152,33 @@ describe("home", () => {
 });
 
 describe("releases", () => {
-  it("shows a waiting release in the top bar, on its product's card and on its own page", async () => {
+  it("shows a waiting release on its product's card and in its product's releases", async () => {
     await browser.url("/");
-    const badge = $('a[href="/releases"] .badge');
-    await badge.waitForExist();
-    expect(await badge.getProperty("textContent")).toBe("1 waiting");
-    const title = $(`article[data-product="cl"] .release-row .grow a[href="/releases/${SHARED_RELEASE}"]`);
+    await expect($('a[href="/releases"]')).not.toBeExisting();
+    const title = $(
+      `article[data-product="cl"] .release-row .grow a[href="/climbing-logbook/releases/${SHARED_RELEASE}"]`,
+    );
     await expect(title).toHaveText("v1.14.0 is waiting to go to production");
     await title.click();
-    await expect($("h2.item-title")).toHaveText("Climbing Logbook v1.14.0 to production");
+    await expect($("h2.item-title")).toHaveText("v1.14.0 to production");
     await expect($(".panel").$("button=Approve release")).toBeExisting();
+    await expect($(`.list-pane li[data-id="${SHARED_RELEASE}"] a`)).toHaveAttribute("aria-current", "true");
+  });
+
+  it("sends the old release links from Discord to the release in its product's hub", async () => {
+    await browser.url(`/releases/${SHARED_RELEASE}`);
+    await expect($("h2.item-title")).toHaveText("v1.14.0 to production");
+    expect(new URL(await browser.getUrl()).pathname).toBe(`/climbing-logbook/releases/${SHARED_RELEASE}`);
+    await browser.url("/releases");
+    await $("h1.verdict").waitForExist();
+    expect(new URL(await browser.getUrl()).pathname).toBe("/");
   });
 
   it("asks before rejecting, and shows GitHub's answer when the run no longer waits", async () => {
     await browser
       .mock(`**/api/releases/${SHARED_RELEASE}/reject`, { method: "post" })
       .then(mock => mock.respond({ error: "release-expired" }, { statusCode: 409 }));
-    await browser.url(`/releases/${SHARED_RELEASE}`);
+    await browser.url(`/climbing-logbook/releases/${SHARED_RELEASE}`);
     await $(".panel").$("button=Reject").click();
     await expect($(".confirm")).toHaveText(expect.stringContaining("Reject this release?"));
     await $("button=Keep it waiting").click();
@@ -182,11 +192,52 @@ describe("releases", () => {
   it("approves with a note", async () => {
     const approve = await browser.mock(`**/api/releases/${SHARED_RELEASE}/approve`, { method: "post" });
     approve.respond({ release: { id: SHARED_RELEASE, state: "approved" } });
-    await browser.url(`/releases/${SHARED_RELEASE}`);
+    await browser.url(`/climbing-logbook/releases/${SHARED_RELEASE}`);
     await $("#release-note").setValue("Ship it");
     await $(".panel").$("button=Approve release").click();
     await browser.waitUntil(async () => approve.calls.length > 0);
     expect(approve.calls[0].postData).toBe(JSON.stringify({ note: "Ship it" }));
+  });
+});
+
+describe("health and usage", () => {
+  it("lists each monitor with its status", async () => {
+    await browser.url("/climbing-logbook/health");
+    const monitor = $('.monitors li[data-status="up"]');
+    await expect(monitor.$(".monitor-name")).toHaveText("Climbing Logbook app");
+    await expect(monitor.$(".monitor-status")).toHaveText("Up");
+  });
+
+  it("shows each usage figure with its 90-day line", async () => {
+    await browser.url("/climbing-logbook/usage");
+    await expect($(".usage .engagement .metric .muted")).toHaveText(
+      "Visits in the last 30 days, excluding EU visitors",
+    );
+    await expect($(".usage svg.sparkline")).toBeExisting();
+  });
+
+  it("shows every foundation page for a product with nothing set up, saying how to turn it on", async () => {
+    await browser.mock("**/api/products/deaftly").then(mock =>
+      mock.respond({
+        slug: "deaftly",
+        health: { status: "unmonitored", reason: null, link: null, checkedAt: null, monitors: [] },
+        usage: [],
+        gated: [],
+      }),
+    );
+    await browser.mock("**/api/releases*").then(mock => mock.respond({ releases: [] }));
+    for (const [page, text] of [
+      ["releases", "No repositories are gated yet."],
+      ["health", "No monitors yet."],
+      ["usage", "No usage source yet."],
+    ]) {
+      await browser.url(`/deaftly/${page}`);
+      await expect($(".setup-state")).toHaveText(expect.stringContaining(text));
+      await expect($(".setup-state a")).toHaveAttribute("href", expect.stringContaining("/docs/runbooks/"));
+    }
+    const tabs = await $$(".hub-tabs a").map(a => a.getText());
+    expect(tabs).toEqual(["Overview", "Inbox", "Releases", "Health", "Usage"]);
+    await browser.mockRestoreAll();
   });
 });
 

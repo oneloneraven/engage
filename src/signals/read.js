@@ -2,6 +2,7 @@ const DAY_MS = 86_400_000;
 const STALE_MS = 15 * 60_000;
 const WINDOW_DAYS = 30;
 const MIN_DAYS = 25;
+const USAGE_DAYS = 90;
 /** How each source's numbers add up: a flow sums over the window, a level is read as it stands, a total grows forever. */
 const SHAPES = /** @type {Record<string, "flow" | "level" | "total">} */ ({
   "web-visits": "flow",
@@ -15,6 +16,9 @@ const SHAPES = /** @type {Record<string, "flow" | "level" | "total">} */ ({
  * @typedef {{ label: string, value: number | null, series: Point[], change: number | null }} EngagementSignal
  * @typedef {{ version: string, production: string, since: string, amber: boolean }} BetaSignal
  * @typedef {{ health: HealthSignal, engagement: EngagementSignal | null, beta: BetaSignal | null }} Signals
+ * @typedef {{ name: string, url: string, status: string }} MonitorState
+ * @typedef {EngagementSignal & { primary: boolean }} UsageMetric
+ * @typedef {{ health: HealthSignal & { monitors: MonitorState[] }, usage: UsageMetric[], gated: { repo: string, environments: string[] }[] }} ProductDetail
  */
 
 /** @param {number} ms */
@@ -47,21 +51,22 @@ function healthOf(row, now) {
 }
 
 /**
- * The panel's entry: the one marked primary, or the first.
+ * Every engagement entry that names a known source, with the primary one marked: the one so marked, or the first.
  * @param {unknown} raw
- * @returns {{ source: string, metric: string, label: string } | null}
+ * @returns {{ source: string, metric: string, label: string, primary: boolean }[]}
  */
-function primaryOf(raw) {
-  try {
-    const entries = JSON.parse(String(raw));
-    if (!Array.isArray(entries)) return null;
-    const entry = entries.find(e => e?.primary === true) ?? entries[0];
-    return entry && typeof entry.metric === "string" && SHAPES[entry.source]
-      ? { source: entry.source, metric: entry.metric, label: String(entry.label ?? entry.metric) }
-      : null;
-  } catch {
-    return null;
-  }
+function entriesOf(raw) {
+  const valid = arrayIn(raw).filter(e => typeof e?.metric === "string" && SHAPES[e.source]);
+  const primary = Math.max(
+    0,
+    valid.findIndex(e => e.primary === true),
+  );
+  return valid.map((e, n) => ({
+    source: String(e.source),
+    metric: String(e.metric),
+    label: String(e.label ?? e.metric),
+    primary: n === primary,
+  }));
 }
 
 /**
@@ -83,14 +88,16 @@ function windowSum(byDay, end) {
 
 /**
  * @param {"flow" | "level" | "total"} shape
- * @param {{ day: string, value: number }[]} rows oldest first, covering the last 61 days
+ * @param {{ day: string, value: number }[]} rows oldest first, covering at least the last 61 days
  * @param {number} yesterday ms
+ * @param {number} [days] how many days the series covers; the value and change are always over the 30-day window
  * @returns {Omit<EngagementSignal, "label">}
  */
-function engagementOf(shape, rows, yesterday) {
+function engagementOf(shape, rows, yesterday, days = WINDOW_DAYS) {
   const windowStart = dayOf(yesterday - (WINDOW_DAYS - 1) * DAY_MS);
+  const seriesStart = dayOf(yesterday - (days - 1) * DAY_MS);
   if (shape === "level") {
-    const series = rows.filter(row => row.day >= windowStart);
+    const series = rows.filter(row => row.day >= seriesStart);
     const latest = series.at(-1);
     if (!latest) return { value: null, series: [], change: null };
     const before = rows.find(row => row.day === dayOf(Date.parse(latest.day) - WINDOW_DAYS * DAY_MS));
@@ -106,12 +113,12 @@ function engagementOf(shape, rows, yesterday) {
       if (previous !== undefined) daily.set(row.day, Math.max(0, row.value - previous));
     }
   }
-  const series = [...daily].filter(([d]) => d >= windowStart).map(([d, value]) => ({ day: d, value }));
+  const series = [...daily].filter(([d]) => d >= seriesStart).map(([d, value]) => ({ day: d, value }));
   if (!series.length) return { value: null, series: [], change: null };
   const current = windowSum(daily, yesterday);
   const previous = windowSum(daily, yesterday - WINDOW_DAYS * DAY_MS);
   return {
-    value: series.reduce((sum, point) => sum + point.value, 0),
+    value: series.filter(point => point.day >= windowStart).reduce((sum, point) => sum + point.value, 0),
     series,
     change: current !== null && previous !== null ? percent(current, previous) : null,
   };
@@ -139,7 +146,7 @@ export async function readSignals(env, now) {
   const signals = {};
   for (const row of products.results) {
     const slug = String(row.slug);
-    const primary = primaryOf(row.engagement);
+    const primary = entriesOf(row.engagement).find(entry => entry.primary);
     /** @type {EngagementSignal | null} */
     let engagement = null;
     if (primary) {
@@ -169,4 +176,67 @@ export async function readSignals(env, now) {
     };
   }
   return signals;
+}
+
+/**
+ * @param {unknown} raw JSON text
+ * @param {(parsed: any) => unknown} pick
+ * @returns {any[]} the picked array, or empty when the text or the pick isn't one
+ */
+function arrayIn(raw, pick = parsed => parsed) {
+  try {
+    const value = pick(JSON.parse(String(raw)));
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * One product's Health and Usage pages and which of its repositories are gated, read from what the cron jobs stored.
+ * Monitors are the configured ones, each unknown until checked or while the last check is stale.
+ * @param {{ DB: import("../lib/db.js").Database }} env
+ * @param {string} slug
+ * @param {Date} now
+ * @returns {Promise<ProductDetail | null>}
+ */
+export async function readProduct(env, slug, now) {
+  const yesterday = Date.parse(dayOf(now.getTime())) - DAY_MS;
+  const since = dayOf(yesterday - USAGE_DAYS * DAY_MS);
+  const [product, health, snapshots, repos] = await Promise.all([
+    env.DB.prepare("SELECT health_sources, engagement FROM products WHERE slug = ?").bind(slug).first(),
+    env.DB.prepare("SELECT status, reason, link, monitors, checked_at FROM health_state WHERE product = ?")
+      .bind(slug)
+      .first(),
+    env.DB.prepare(
+      "SELECT metric, day, value FROM metric_snapshots WHERE product = ? AND day >= ? AND day <= ? ORDER BY day",
+    )
+      .bind(slug, since, dayOf(yesterday))
+      .all(),
+    env.DB.prepare("SELECT repo, environments FROM release_repos WHERE product = ? ORDER BY repo").bind(slug).all(),
+  ]);
+  if (!product) return null;
+  const fresh = health && now.getTime() - Date.parse(String(health.checked_at)) <= STALE_MS;
+  /** @type {MonitorState[]} */
+  const stored = fresh ? arrayIn(health.monitors) : [];
+  const monitors = arrayIn(product.health_sources, parsed => parsed?.betterStack?.monitors).map(m => {
+    const name = String(m.name);
+    const url = String(m.url);
+    return { name, url, status: stored.find(s => s.name === name && s.url === url)?.status ?? "unknown" };
+  });
+  const usage = entriesOf(product.engagement).map(entry => {
+    const rows = snapshots.results
+      .filter(s => s.metric === entry.metric)
+      .map(s => ({ day: String(s.day), value: Number(s.value) }));
+    return {
+      label: entry.label,
+      primary: entry.primary,
+      ...engagementOf(SHAPES[entry.source], rows, yesterday, USAGE_DAYS),
+    };
+  });
+  const gated = repos.results.map(row => ({
+    repo: String(row.repo),
+    environments: arrayIn(row.environments).map(String),
+  }));
+  return { health: { ...healthOf(health ?? undefined, now), monitors }, usage, gated };
 }

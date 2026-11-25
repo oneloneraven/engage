@@ -8,7 +8,8 @@ import { sentenceFor } from "./errors.js";
  * @typedef {{ label: string, value: number | null, series: { day: string, value: number }[], change: number | null }} EngagementSignal
  * @typedef {{ version: string, production: string, since: string, amber: boolean }} BetaSignal
  * @typedef {{ health: HealthSignal, engagement: EngagementSignal | null, beta: BetaSignal | null }} Signals
- * @typedef {{ name: string, colour: string | null, route?: string | null, new: number, open: number, replyOwed: number, signals?: Signals | null }} ProductCounts
+ * @typedef {{ id: string, ref: string | null, sha: string, environment: string, at: string }} LatestRelease
+ * @typedef {{ name: string, colour: string | null, route?: string | null, new: number, open: number, replyOwed: number, latestRelease?: LatestRelease | null, signals?: Signals | null }} ProductCounts
  * @typedef {{ new: number, open: number, replyOwed: number, releasesWaiting: number, healthFailing?: number, byProduct: Record<string, ProductCounts> }} Counts
  */
 
@@ -122,11 +123,22 @@ export const withdrawTestimonial = testimonialId =>
 /** @typedef {{ release: Release, pulls: { number: number, title: string, url: string }[], checks: { conclusion: "success" | "failure" | "pending" | "unknown", url: string | null } }} ReleaseDetail */
 
 /**
- * @param {{ state?: string }} [filter]
+ * @param {{ state?: string, product?: string }} [filter]
  * @returns {Promise<{ releases: Release[] }>}
  */
-export const listReleases = ({ state } = {}) =>
-  request("GET", `/api/releases${state ? `?state=${encodeURIComponent(state)}` : ""}`);
+export const listReleases = ({ state, product } = {}) => {
+  const query = new URLSearchParams({ ...(state && { state }), ...(product && { product }) });
+  return request("GET", `/api/releases${query.size ? `?${query}` : ""}`);
+};
+
+/** @typedef {import("../signals/read.js").ProductDetail & { slug: string }} ProductDetail */
+
+/**
+ * A product's health with each monitor, its usage over 90 days, and its gated repositories.
+ * @param {string} route
+ * @returns {Promise<ProductDetail>}
+ */
+export const getProduct = route => request("GET", `/api/products/${encodeURIComponent(route)}`);
 
 /**
  * @param {string} id

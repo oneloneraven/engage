@@ -1,6 +1,6 @@
 import { env as baseEnv } from "cloudflare:test";
 import { beforeEach, expect, test } from "vitest";
-import { readSignals } from "../src/signals/read.js";
+import { readProduct, readSignals } from "../src/signals/read.js";
 import { makeEnv } from "./helpers.js";
 
 const NOW = new Date("2026-11-25T12:00:00.000Z");
@@ -55,7 +55,7 @@ const DOWNLOADS = { source: "github-downloads", metric: "downloads", label: "Dow
 beforeEach(async () => {
   for (const table of ["health_state", "metric_snapshots", "deployed_versions"])
     await baseEnv.DB.exec(`DELETE FROM ${table}`);
-  await baseEnv.DB.exec("UPDATE products SET engagement = '[]', beta_amber_days = 7");
+  await baseEnv.DB.exec("UPDATE products SET engagement = '[]', health_sources = '{}', beta_amber_days = 7");
 });
 
 test("fresh health comes back as stored", async () => {
@@ -178,4 +178,81 @@ test("no beta badge when versions match or either is missing", async () => {
   expect((await readSignals(makeEnv(), NOW)).cl.beta).toBeNull();
   await deployed("beta", "v1.15.0", daysAgo(3));
   expect((await readSignals(makeEnv(), NOW)).cl.beta).toBeNull();
+});
+
+const APP = { id: "101", name: "Climbing Logbook app", url: "https://uptime.example/101" };
+const BETA = { id: "102", name: "Climbing Logbook beta", url: "https://uptime.example/102" };
+
+/** @param {{ name: string, url: string, status: string }[]} monitors @param {string} checkedAt */
+async function monitorState(monitors, checkedAt) {
+  await baseEnv.DB.prepare(
+    "INSERT INTO health_state (product, status, reason, link, monitors, checked_at) VALUES ('cl', 'failing', ?, ?, ?, ?)",
+  )
+    .bind("Climbing Logbook app is down", APP.url, JSON.stringify(monitors), checkedAt)
+    .run();
+}
+
+test("a product's health lists each configured monitor with its last status", async () => {
+  await baseEnv.DB.prepare("UPDATE products SET health_sources = ? WHERE slug = 'cl'")
+    .bind(JSON.stringify({ betterStack: { monitors: [APP, BETA] } }))
+    .run();
+  await monitorState([{ name: APP.name, url: APP.url, status: "down" }], minutesAgo(2));
+  const detail = await readProduct(makeEnv(), "cl", NOW);
+  expect(detail?.health).toMatchObject({ status: "failing", reason: "Climbing Logbook app is down" });
+  expect(detail?.health.monitors).toEqual([
+    { name: APP.name, url: APP.url, status: "down" },
+    { name: BETA.name, url: BETA.url, status: "unknown" },
+  ]);
+});
+
+test("a stale check leaves every monitor unknown", async () => {
+  await baseEnv.DB.prepare("UPDATE products SET health_sources = ? WHERE slug = 'cl'")
+    .bind(JSON.stringify({ betterStack: { monitors: [APP] } }))
+    .run();
+  await monitorState([{ name: APP.name, url: APP.url, status: "down" }], minutesAgo(40));
+  const detail = await readProduct(makeEnv(), "cl", NOW);
+  expect(detail?.health.status).toBe("unknown");
+  expect(detail?.health.monitors.map(m => m.status)).toEqual(["unknown"]);
+});
+
+test("a product with nothing set up has no monitors, no usage and nothing gated", async () => {
+  const repos = await baseEnv.DB.prepare("SELECT * FROM release_repos WHERE product = 'cl'").all();
+  await baseEnv.DB.exec("DELETE FROM release_repos WHERE product = 'cl'");
+  const detail = await readProduct(makeEnv(), "cl", NOW).finally(() =>
+    baseEnv.DB.batch(
+      repos.results.map(r =>
+        baseEnv.DB.prepare(
+          "INSERT INTO release_repos (repo, product, environments, token_policy) VALUES (?, ?, ?, ?)",
+        ).bind(r.repo, r.product, r.environments, r.token_policy),
+      ),
+    ),
+  );
+  expect(detail).toEqual({
+    health: { status: "unknown", reason: "Not checked yet", link: null, checkedAt: null, monitors: [] },
+    usage: [],
+    gated: [],
+  });
+});
+
+test("usage lists every metric with 90 days of series, its value and change still over 30", async () => {
+  const daily = Array.from({ length: 90 }, (_, n) => /** @type {[number, number]} */ ([n, n < 30 ? 2 : 1]));
+  await engagement("cl", [{ ...VISITS, primary: false }, ACTIVE, { source: "nowhere", metric: "x" }]);
+  await snapshots("visits", daily);
+  await snapshots("active-users", [[0, 7]]);
+  const usage = (await readProduct(makeEnv(), "cl", NOW))?.usage;
+  expect(usage?.map(m => [m.label, m.primary, m.value, m.change, m.series.length])).toEqual([
+    [VISITS.label, false, 60, 100, 90],
+    [ACTIVE.label, true, 7, null, 1],
+  ]);
+});
+
+test("gated repositories come with their environments", async () => {
+  expect((await readProduct(makeEnv(), "deaftly", NOW))?.gated).toEqual([
+    { repo: "oneloneraven/deaftly", environments: ["release"] },
+    { repo: "oneloneraven/deaftly-website", environments: ["production", "infra"] },
+  ]);
+});
+
+test("an unknown product is null", async () => {
+  expect(await readProduct(makeEnv(), "nope", NOW)).toBeNull();
 });

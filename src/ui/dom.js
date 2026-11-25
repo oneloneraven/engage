@@ -49,6 +49,29 @@ export function replace(parent, ...children) {
 /** @param {string} text */
 export const emptyState = text => h("p", { class: "empty" }, text);
 
+const RUNBOOKS = "https://github.com/oneloneraven/engage/blob/main/docs/runbooks";
+
+/**
+ * A page that isn't set up for this product yet: what it would show, and the runbook that turns it on.
+ * @param {string} shows what the page shows once set up
+ * @param {string} missing what isn't there yet
+ * @param {string} turnOn what the runbook turns on
+ * @param {string} runbook its path under docs/runbooks
+ */
+export const setupState = (shows, missing, turnOn, runbook) =>
+  h(
+    "div",
+    { class: "setup-state" },
+    h("p", null, shows),
+    h(
+      "p",
+      { class: "muted" },
+      `${missing} Turning on ${turnOn}: `,
+      h("a", { href: `${RUNBOOKS}/${runbook}`, target: "_blank", rel: "noopener noreferrer" }, "the runbook"),
+      ".",
+    ),
+  );
+
 /** @param {string} text */
 export const loading = (text = "Loading…") => h("p", { class: "muted", role: "status" }, text);
 

@@ -4,6 +4,7 @@ import {
   betaText,
   changeText,
   formatCount,
+  formatDay,
   formatToday,
   healthWord,
   hubSummary,
@@ -56,10 +57,11 @@ function owedRow(item, inbox) {
 
 /**
  * @param {Release} release
+ * @param {string} releases the product's releases path
  * @param {() => void} onDecided
  */
-function releaseRow(release, onDecided) {
-  const href = `/releases/${encodeURIComponent(release.id)}`;
+function releaseRow(release, releases, onDecided) {
+  const href = `${releases}/${encodeURIComponent(release.id)}`;
   const title = `${release.ref ?? release.sha.slice(0, 7)} is waiting to go to ${release.environment}`;
   const status = h("div", { class: "status" });
   const approve = guarded(h("button", { type: "button", class: "attention" }, "Approve release"), async () => {
@@ -119,7 +121,7 @@ const healthPill = health =>
   );
 
 /** @param {import("../api.js").EngagementSignal} engagement */
-function engagementBlock(engagement) {
+export function engagementBlock(engagement) {
   const change = changeText(engagement.change);
   return h(
     "div",
@@ -149,11 +151,12 @@ export function productCard(slug, product, needs, redraw) {
   const hub = `/${encodeURIComponent(product.route ?? slug)}`;
   const inbox = `${hub}/inbox`;
   const signals = product.signals;
+  const latest = product.latestRelease;
   const health = signals?.health;
   const unhealthy = UNHEALTHY.includes(health?.status ?? "");
   const rows = [
     unhealthy && healthRow(product),
-    ...needs.releases.map(release => releaseRow(release, redraw)),
+    ...needs.releases.map(release => releaseRow(release, `${hub}/releases`, redraw)),
     ...needs.owed.slice(0, OWED_SHOWN).map(item => owedRow(item, inbox)),
   ].filter(Boolean);
   const titleId = `product-${slug}`;
@@ -209,6 +212,17 @@ export function productCard(slug, product, needs, redraw) {
               "p",
               null,
               h("span", { class: `beta-badge${signals.beta.amber ? " amber" : ""}` }, betaText(signals.beta)),
+            ),
+          latest &&
+            h(
+              "p",
+              { class: "latest-release" },
+              "Latest release: ",
+              link(
+                `${hub}/releases/${encodeURIComponent(latest.id)}`,
+                `${latest.ref ?? latest.sha.slice(0, 7)} to ${latest.environment}`,
+              ),
+              `, ${formatDay(latest.at)}.`,
             ),
         ),
       ),

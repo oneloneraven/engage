@@ -1,15 +1,20 @@
-import { getCounts, getItem } from "../api.js";
+import { getCounts, getItem, getRelease } from "../api.js";
 import { failure, h, loading, replace } from "../dom.js";
 import { healthWord } from "../format.js";
 import { navigate } from "../router.js";
 import { loadHub, productCard } from "./home.js";
 import { inboxPage } from "./inbox.js";
 import { junkPage } from "./junk.js";
+import { releasesPage } from "./releases.js";
+import { healthPage, usagePage } from "./signals.js";
 
 /** The pages every product has, in tab order. A product's own pages come after these (#131). */
 const PAGES = [
   { id: "", title: "Overview" },
   { id: "inbox", title: "Inbox" },
+  { id: "releases", title: "Releases" },
+  { id: "health", title: "Health" },
+  { id: "usage", title: "Usage" },
 ];
 
 /**
@@ -62,7 +67,7 @@ export function hubPage(container, context) {
     /** @type {HubProduct} */
     const product = { ...entry.product, slug: entry.slug, route };
     const href = (/** @type {string} */ id) => `/${route}${id ? `/${id}` : ""}`;
-    const body = h("div", { class: "hub-body" });
+    const body = h("div", { class: "hub-body", "data-colour": product.colour ?? "" });
     const menu = h("details", { class: "hub-menu" }, h("summary", null, page.title));
     menu.append(
       h(
@@ -129,7 +134,9 @@ export function hubPage(container, context) {
       menu,
       body,
     );
-    const base = href("inbox");
+    const base = href(page.id);
+    const subContext = { ...current, params: current.params.slice(2) };
+    const named = { slug: product.slug, name: product.name, route };
     if (page.id === "") {
       document.title = `${product.name} – Engage`;
       body.append(
@@ -140,16 +147,21 @@ export function hubPage(container, context) {
         ),
       );
       inner = null;
+    } else if (page.id === "releases") {
+      inner = { key: keyOf(current), page: releasesPage(body, subContext, { product: named, base }) };
+    } else if (page.id === "health") {
+      inner = { key: keyOf(current), page: healthPage(body, { product: named }) };
+    } else if (page.id === "usage") {
+      inner = { key: keyOf(current), page: usagePage(body, { product: named }) };
     } else if (current.query.get("state") === "junk") {
       inner = { key: keyOf(current), page: junkPage(body, { product, base }) };
     } else {
       inner = {
         key: keyOf(current),
-        page: inboxPage(
-          body,
-          { ...current, params: current.params.slice(2) },
-          { product: { slug: product.slug, name: product.name, colour: product.colour ?? "", new: product.new }, base },
-        ),
+        page: inboxPage(body, subContext, {
+          product: { slug: product.slug, name: product.name, colour: product.colour ?? "", new: product.new },
+          base,
+        }),
       };
     }
   }
@@ -238,4 +250,40 @@ export function inboxRedirectPage(container, context) {
       alive = false;
     },
   };
+}
+
+/**
+ * `/releases/<id>` from Discord pings and older links: sends you to the release in its product's hub.
+ * @param {HTMLElement} container
+ * @param {import("../router.js").RouteContext} context
+ * @returns {import("../router.js").Page}
+ */
+export function releaseRedirectPage(container, context) {
+  container.append(loading("Opening the release…"));
+  let alive = true;
+  const [id] = context.params;
+  Promise.all([getRelease(id), getCounts()])
+    .then(([{ release }, counts]) => {
+      if (!alive) return;
+      const route = counts.byProduct[release.product]?.route ?? release.product;
+      navigate(`/${encodeURIComponent(route)}/releases/${encodeURIComponent(id)}`, { replace: true });
+    })
+    .catch(error => {
+      if (alive) replace(container, failure(error.message));
+    });
+  return {
+    update() {},
+    destroy() {
+      alive = false;
+    },
+  };
+}
+
+/**
+ * The old `/releases`: releases live in each product's hub now, and Home shows every one waiting.
+ * @returns {import("../router.js").Page}
+ */
+export function releasesRedirectPage() {
+  queueMicrotask(() => navigate("/", { replace: true }));
+  return { update() {}, destroy() {} };
 }

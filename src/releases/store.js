@@ -71,14 +71,16 @@ export async function createRelease(env, r) {
 
 /**
  * @param {ReleaseEnv} env
- * @param {{ state?: ReleaseState }} [filter]
+ * @param {{ state?: ReleaseState, product?: string }} [filter]
  * @returns {Promise<Release[]>}
  */
-export async function listReleases(env, { state } = {}) {
-  const statement = state
-    ? env.DB.prepare(`SELECT ${COLUMNS} FROM releases WHERE state = ? ORDER BY created_at DESC LIMIT 100`).bind(state)
-    : env.DB.prepare(`SELECT ${COLUMNS} FROM releases ORDER BY created_at DESC LIMIT 100`);
-  const { results } = await statement.all();
+export async function listReleases(env, { state, product } = {}) {
+  const where = [state && "state = ?", product && "product = ?"].filter(Boolean);
+  const { results } = await env.DB.prepare(
+    `SELECT ${COLUMNS} FROM releases ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY created_at DESC LIMIT 100`,
+  )
+    .bind(...[state, product].filter(value => value !== undefined))
+    .all();
   return results.map(toRelease);
 }
 

@@ -9,6 +9,7 @@ import { codePointLength } from "../lib/text.js";
 import { getProduct } from "../registry.js";
 import { releaseContext, reviewRelease } from "../releases/review.js";
 import { getRelease, listReleases } from "../releases/store.js";
+import { readProduct } from "../signals/read.js";
 import { approve, createExcerpt, deleteItemWithTestimonials, withdraw } from "../testimonials/testimonials.js";
 import { counts, getItem, listItems, setFlags } from "./items.js";
 
@@ -237,13 +238,22 @@ const decisionSchema = v.strictObject({ note: v.optional(trimmedText(1, 1000)) }
 
 /** @param {RouteContext} context */
 async function releasesList({ env, url }) {
-  const state = url.searchParams.get("state") ?? "";
+  const state = url.searchParams.get("state") || undefined;
+  const product = url.searchParams.get("product") || undefined;
   if (state && !RELEASE_STATES.includes(state)) throw new Error("bad-request");
-  const releases = await listReleases(
-    env,
-    state ? { state: /** @type {import("../releases/store.js").ReleaseState} */ (state) } : {},
-  );
+  const releases = await listReleases(env, {
+    state: /** @type {import("../releases/store.js").ReleaseState | undefined} */ (state),
+    product,
+  });
   return json({ releases });
+}
+
+/** @param {RouteContext} context */
+async function productRead({ env, params: [route] }) {
+  const row = await env.DB.prepare("SELECT slug FROM products WHERE route = ?").bind(route).first();
+  const detail = row && (await readProduct(env, String(row.slug), new Date()));
+  if (!detail) throw new Error("not-found");
+  return json({ slug: String(row.slug), ...detail });
 }
 
 /** @param {RouteContext} context */
@@ -330,6 +340,7 @@ const ROUTES = [
   { pattern: /^\/api\/testimonials\/([^/]+)\/withdraw$/, handlers: { POST: testimonialWithdraw } },
   { pattern: /^\/api\/blocklist$/, handlers: { POST: blocklistAdd } },
   { pattern: /^\/api\/counts$/, handlers: { GET: countsRead } },
+  { pattern: /^\/api\/products\/([a-z0-9-]+)$/, handlers: { GET: productRead } },
   { pattern: /^\/api\/releases$/, handlers: { GET: releasesList } },
   { pattern: /^\/api\/releases\/([^/]+)$/, handlers: { GET: releaseRead } },
   { pattern: /^\/api\/releases\/([^/]+)\/approve$/, handlers: { POST: releaseDecide("approved") } },

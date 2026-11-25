@@ -542,6 +542,24 @@ describe("GET /api/counts", () => {
   });
 });
 
+describe("GET /api/products/:route", () => {
+  test("returns a product's health, usage and gated repositories by its route", async () => {
+    const product = await (await call("GET", "/api/products/deaftly")).json();
+    expect(product.slug).toBe("deaftly");
+    expect(product.health).toMatchObject({ monitors: [] });
+    expect(product.usage.map((/** @type {any} */ m) => m.label)).toEqual(["Android downloads in the last 30 days"]);
+    expect(product.gated.map((/** @type {any} */ g) => g.repo)).toEqual([
+      "oneloneraven/deaftly",
+      "oneloneraven/deaftly-website",
+    ]);
+  });
+
+  test("a route nobody has, or a slug, is not found", async () => {
+    expect((await call("GET", "/api/products/nope")).status).toBe(404);
+    expect((await call("GET", "/api/products/cl")).status).toBe(404);
+  });
+});
+
 describe("GET /api/items/:id/attachments/:attachmentId", () => {
   async function seedAttachment(bucket = makeBucket()) {
     await seed("a");

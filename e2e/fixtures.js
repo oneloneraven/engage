@@ -81,8 +81,8 @@ function itemSql(item, now) {
 const DAY_MS = 86_400_000;
 
 /**
- * Home's signals: Climbing Logbook healthy, with 60 days of visits and beta nine days ahead; Deaftly not monitored, with
- * no engagement source.
+ * Home's signals: Climbing Logbook healthy with one monitor up, with 60 days of visits and beta nine days ahead; Deaftly
+ * not monitored, with no engagement source.
  * @param {Date} now
  */
 function signalsSql(now) {
@@ -95,14 +95,18 @@ function signalsSql(now) {
       primary: true,
     },
   ]);
+  const monitor = { id: "101", name: "Climbing Logbook app", url: "https://uptime.example/monitors/101" };
   return [
     `UPDATE products SET engagement = ${sql(engagement)} WHERE slug = 'cl';`,
     "UPDATE products SET engagement = '[]' WHERE slug = 'deaftly';",
+    `UPDATE products SET health_sources = ${sql(JSON.stringify({ betterStack: { monitors: [monitor] } }))} WHERE slug = 'cl';`,
+    "UPDATE products SET health_sources = '{}' WHERE slug = 'deaftly';",
     insert("health_state", {
       product: "cl",
       status: "healthy",
       reason: null,
       link: null,
+      monitors: JSON.stringify([{ name: monitor.name, url: monitor.url, status: "up" }]),
       checked_at: now.toISOString(),
     }),
     insert("health_state", {
