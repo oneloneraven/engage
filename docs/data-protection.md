@@ -16,6 +16,12 @@ Discord receives the kind of item, the product's name and a link, and no
 personal data ([ADR-0005](adr/0005-content-free-notifications.md)), so it
 isn't a processor.
 
+Engage reads Better Stack (monitor status and open incidents), Cloudflare Web
+Analytics (daily visits, with EU visitors excluded at the edge), Climbing
+Logbook's usage endpoint and GitHub Release download counts. It sends them no
+personal data and stores only statuses and daily counts per product, which
+are aggregates kept indefinitely, so none of these is a processor for Engage.
+
 ## Processing activities
 
 | Data | Purpose | Lawful basis | Retention | Who can see it |
