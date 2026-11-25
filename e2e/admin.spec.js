@@ -90,7 +90,7 @@ describe("home", () => {
     const cl = $('article[data-product="cl"]');
     await cl.waitForExist();
     await expect(cl.$(".health-pill")).toHaveText("Healthy");
-    await expect(cl.$(".engagement .muted")).toHaveText("Visits in the last 30 days, excluding EU visitors");
+    await expect(cl.$(".engagement .metric .muted")).toHaveText("Visits in the last 30 days, excluding EU visitors");
     await expect(cl.$(".engagement .numeral")).toHaveText("420");
     await expect(cl.$(".change")).toHaveText("Up 40% on last month");
     await expect(cl.$("svg.sparkline")).toBeExisting();
