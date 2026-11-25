@@ -89,7 +89,9 @@ describe("home", () => {
 describe("releases", () => {
   it("shows a waiting release in the rail, on Home and on its own page", async () => {
     await browser.url("/");
-    await expect($('a[href="/releases"] .badge')).toHaveText(expect.stringContaining("1"));
+    const badge = $('a[href="/releases"] .badge');
+    await badge.waitForExist();
+    expect(await badge.getProperty("textContent")).toBe("1 waiting");
     const title = $(`.release-row .grow a[href="/releases/${SHARED_RELEASE}"]`);
     await expect(title).toHaveText("Climbing Logbook v1.14.0 is waiting to go to production");
     await title.click();
