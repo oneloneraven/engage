@@ -1,84 +1,173 @@
-# Engage UI direction
+# Engage UI direction: Ember
 
-**Subject:** One Lone Raven's lookout. One person keeps watch over their own small set of products and wants the state of things at a glance, then wants to act. The name gives the visual source: a raven's feathers are blue-black, with an oil-slick sheen of petrol blue and violet that shows only in the light. Engage is that: dark and quiet by default, iridescent only where something matters.
+**Subject:** One Lone Raven's control centre. One person runs a small set of products and opens Engage to find out what needs them, then deal with it. It should feel like a tool built for exactly that: fast, confident and alive, not a dashboard you read and close.
 
-**The one bold thing:** the verdict on Home. A large display sentence, "All green." or "2 things need you.", with a feather-sheen underline (petrol to violet) that sweeps once on load. Everything else stays disciplined.
+**The idea:** monochrome with fire. Neutral greys carry everything that's just information. Fire colours, from ember red through flame orange to gold, mark only what matters: something needs you, a product's identity, the one thing to press.
+
+**The one bold thing:** the verdict on Home. A huge display sentence, "All clear." or "3 things need you.", with a fire underline (ember red to gold) that sweeps once on load. Directly under it, the things that need you, each with its action on the row, so Home is somewhere you act, not just read.
+
+**Rules:**
+
+- **No blue, ever.** No navy, blue-black, cyan, petrol or teal, and no violet. Check every new colour's hue before using it.
+- Fire means something. Never use a fire colour as decoration on something that isn't asking for attention, isn't a product's identity, and isn't the primary action.
+- No drop shadows. Depth comes from stepped greys and a 1px light border.
 
 ## Colour
 
-Tokens on `:root`. Dark is the default when the system asks for it; light otherwise. Every text pairing meets WCAG 2.2 AA (4.5:1 body, 3:1 large and UI).
+Tokens on `:root`. Dark is the default when the system asks for it, and light otherwise. Both themes are first-class: the axe checks run in both.
 
 | Token | Dark | Light | Use |
 |---|---|---|---|
-| `--ink` | `#0F1420` | `#F3F5F9` | Page background: blue-black plumage / cool slate paper |
-| `--surface` | `#171D2B` | `#FFFFFF` | Panels, the item view, inputs |
-| `--line` | `#2A3346` | `#D5DAE4` | Dividers and borders |
-| `--text` | `#E6E9F0` | `#141A26` | Body text |
-| `--muted` | `#9AA3B5` | `#566079` | Secondary text and metadata |
-| `--petrol` | `#3BB7C9` | `#0C7482` | Links, focus, selection: the first sheen colour |
-| `--violet` | `#8B7CF6` | `#5B4BD6` | The second sheen colour: the verdict underline and active nav only |
-| `--attention` | `#F2B544` | `#9A6400` | Needs you: reply owed, things waiting |
-| `--danger` | `#F07178` | `#B4232F` | Delete, failed health, junk |
-| `--ok` | `#5CCB8A` | `#1E7A47` | Healthy |
+| `--ink` | `#101010` | `#F4F4F4` | Page background |
+| `--surface` | `#1A1A1A` | `#FFFFFF` | Panels, messages, the composer |
+| `--raised` | `#242424` | `#EBEBEB` | Hover and selected rows, inputs |
+| `--line` | `rgb(255 255 255 / 8%)` | `#D6D6D6` | Borders and dividers |
+| `--text` | `#F5F5F5` | `#141414` | Body text |
+| `--muted` | `#A8A8A8` | `#595959` | Secondary text and metadata |
+| `--accent` | `#FFB23F` | `#A34A00` | Links, focus rings, the selected filter, the inbox count badge |
+| `--attention` | `#FF7A1A` | `#B84A00` | Needs you: release waiting, reply owed, health degraded. Fills, dots and borders |
+| `--attention-text` | `#FFB27A` | `#9C3F00` | Attention as text, including on attention tints |
+| `--danger` | `#FF6B5E` | `#C42B1C` | Delete, health failing, junk |
+| `--primary` | `#F5F5F5` | `#141414` | Primary button fill |
+| `--on-primary` | `#101010` | `#FFFFFF` | Primary button text |
+| `--fire` | `#FF3D1F → #FF8A1A → #FFD23F` | same | The verdict underline and the logo tile only |
 
-Light `--petrol` is `#0C7482`, a shade darker than first proposed (`#0E7C8C`), because the lighter value measured 4.48:1 against `--ink`, just under the 4.5:1 that links and primary buttons need.
+Measured contrast (WCAG 2.2 AA needs 4.5:1 for body text and 3:1 for large text and UI):
 
-The sheen gradient (`--petrol` to `--violet`) appears in exactly two places: the verdict underline, and the active navigation marker. Never as a background wash.
+| Pairing | Dark | Light |
+|---|---|---|
+| `--text` on `--ink` / `--surface` / `--raised` | 17.45 / 15.96 / 14.24 | 16.75 / 18.42 / 15.45 |
+| `--muted` on the same | 8.00 / 7.32 / 6.53 | 6.37 / 7.00 / 5.88 |
+| `--accent` on the same | 10.59 / 9.69 / 8.64 | 5.40 / 5.94 / 4.98 |
+| `--attention-text` on the same | 10.78 / 9.86 / 8.80 | 6.11 / 6.72 / 5.64 |
+| `--danger` on the same | 6.81 / 6.23 / 5.56 | 5.15 / 5.66 / 4.75 |
+| `--on-primary` on `--primary` | 17.45 | 18.42 |
+| Dark text `#1A1206` / white on `--attention` | 7.11 | 5.23 |
+
+`--attention` itself drops to 4.38:1 on light `--raised`, so as text it's always `--attention-text`. Tints (a fire colour at up to 16% opacity behind a chip or row) take their `-text` colour for any words on them.
+
+### Product colours
+
+Each product has its own fire colour, used for its square in the rail, its filter chip, its avatar tint in the inbox, its product panel's glow and its sparkline. A product's colour is never the only way to tell it apart: its name is always beside it.
+
+| Product colour | Dark | Light | Dark text | Light text |
+|---|---|---|---|---|
+| Gold (Climbing Logbook) | `#FFC93C` | `#8A6100` | `#FFE08A` | `#7A5500` |
+| Flame (Deaftly) | `#FF4D2E` | `#C7341A` | `#FF9A85` | `#B02E17` |
+
+The fill colours pass 3:1 against every background in both themes (lowest: light Flame on `--raised`, 4.48:1). The text colours pass 4.5:1 everywhere (lowest: light Gold text on `--raised`, 5.63:1). A third product takes Ember (a deep red) or Amber, and its values are measured the same way before they're added here.
 
 ## Type
 
-- **Display: Bricolage Grotesque** (variable; its optical size and width axes). Used for the verdict, page titles and product names only, so it carries the personality. The verdict is set large and tight (`clamp(2.5rem, 6vw, 4.5rem)`, weight 650, letter-spacing −0.02em).
-- **Text: Atkinson Hyperlegible Next.** Built for legibility, and it reads as deliberate rather than default. Used for everything else at 1rem/1.55, with metadata at 0.875rem in `--muted`.
-- Both are self-hosted through Fontsource (the CSP is `self` only), as WOFF2, with `font-display: swap`.
-- Sentence case everywhere. No all-caps labels, no eyebrows, no monospace for data.
-
-Scale (1.25 ratio): 0.875 · 1 · 1.25 · 1.563 · 1.953 · 2.441 rem, plus the verdict's fluid size.
+- **Display: Bricolage Grotesque**, heavy and tight. Used for the verdict, page titles, item subjects, product names, and the numbers in count pills and product panels.
+  - Verdict: `clamp(3rem, 7vw, 6.5rem)`, weight 750, line-height 0.95, letter-spacing −0.035em.
+  - Page title: 2.5rem, weight 750, −0.03em. Item subject: `clamp(2rem, 4vw, 3.25rem)`, same weight.
+  - Product name: 1.875rem, weight 700, −0.02em. Section heading: 1.75rem, weight 650.
+- **Text: Atkinson Hyperlegible Next** for everything else: 1rem/1.5 body, 1.25rem for the line under the verdict, 0.875rem for metadata and chips.
+- Both stay self-hosted through Fontsource, as now.
+- Sentence case everywhere. No all-caps, no eyebrow labels, no monospace for data.
 
 ## Layout
 
 ```
-Desktop                                        Mobile
-┌──────┬──────────────────────────────────┐    ┌────────────────────┐
-│ Home │  2 things need you.              │    │ ☰  Engage          │
-│ Inbox│  ~~~~~~~~~~~~~~~~ (sheen)        │    │ 2 things need you. │
-│ Junk │                                  │    │ ~~~~~~~~~~~        │
-│      │  Needs you                       │    │ Needs you          │
-│ ──── │  ● Reply owed: "Map is blank" CL │    │ ● Reply owed …     │
-│ CL   │  ● Reply owed: "Love it" Deaftly │    │ 3 new · 5 open     │
-│ Deaft│                                  │    │ ┌ Climbing Logbook ┐│
-│      │  3 new   5 open   2 reply owed   │    │ └──────────────────┘│
-│      │                                  │    └────────────────────┘
-│      │  ┌ Climbing Logbook ┐┌ Deaftly ┐ │
-│      │  └──────────────────┘└─────────┘ │
-└──────┴──────────────────────────────────┘
+Desktop (≥ 1200px)
+┌────────────┬────────────────────────────────────────────────────────┐
+│ ▲ Engage   │ Wednesday 25 November          [ Search messages  / ] │
+│            │                                                        │
+│ Home       │ 3 things need you.                                     │
+│ Inbox    4 │ ━━━━━━━━━━━━━━━━ (fire, sweeps once)                   │
+│ Releases 1 │ A release is waiting and two people are owed a reply.  │
+│ Junk       │ ┌────────────────────────────────────────────────────┐ │
+│            │ │ ⬇ CL 1.14.0 is waiting for production [Review][Approve]│
+│ Products   │ │ ↩ The map is blank                          [Reply]│ │
+│ ■ Climbing │ │ ↩ App closes when I rotate                  [Reply]│ │
+│ ■ Deaftly  │ └────────────────────────────────────────────────────┘ │
+│            │ (4 new) (27 open) (2 replies owed)                     │
+│            │ Your products                                          │
+│            │ ┌ Climbing Logbook  Healthy ┐ ┌ Deaftly       Healthy ┐ │
+│            │ │ 38 weekly climbers  ╱╲╱╱  │ │ 126 downloads   ╱╲╱╱  │ │
+│            │ │ 3 new  22 open  Beta ahead│ │ 1 new  5 open         │ │
+│            │ └───────────────────────────┘ └───────────────────────┘ │
+└────────────┴────────────────────────────────────────────────────────┘
 ```
 
-- **Left rail** (desktop): the pages, then the products, which act as an inbox filter. It becomes a top bar with a menu on narrow screens. The active item gets a 3px sheen bar on its left edge.
-- **Home:** the verdict, then **Needs you** as a plain list (one row per thing, a coloured dot for its kind, the product name right-aligned), then the counts as three large numerals with plain labels, then one card per product. The product cards are the only cards on the page.
-- **Inbox:** two panes on wide screens (list left at 24rem, item right), like a mail client, and one pane on narrow screens. List rows aren't cards: a divider between rows, unread rows in weight 600 with a petrol dot, junk never shown here.
-- **Item:** a header (subject or first line, product, kind, received), then the thread. Each message is a block with a one-line header (who, when) and the text below in a readable measure (≤70ch). Inbound and outbound are told apart by a left border: `--line` for theirs, `--petrol` for yours. No chat bubbles. The actions sit in a toolbar under the header: Reply, Create GitHub issue, Quote, Star, Archive, and Delete pushed to the far end in `--danger`.
-- Content is left-aligned throughout. Nothing is centred except empty states.
+### The shell
+
+- **Rail** (desktop, 232–260px): the wordmark with its fire tile, then the pages, then the products. Inbox carries a count of new items in an `--accent` badge; Releases carries the number waiting in an `--attention` badge. Products show their colour square and filter the inbox. The current page has a `--raised`-strength light tint behind it and `aria-current="page"`.
+- **Below 1200px** the rail becomes a top bar: the wordmark, the badges, and a menu button (`aria-expanded`) that opens the full navigation as a sheet.
+- Main content is left-aligned with a fluid side margin (`clamp(1.25rem, 5vw, 4.5rem)`), capped at 74rem on Home. Nothing is centred except empty states.
+
+### Home
+
+1. A slim top row: today's date in `--muted`, and a search button that takes you to the inbox with its search box focused.
+2. **The verdict**, the fire underline and one plain sentence that says what the things are ("A release is waiting and two people are owed a reply. Everything else is quiet."). With nothing to do: "All clear." and "Nothing needs you. New feedback lands here and pings Discord."
+3. **Needs you:** one panel holding a row per thing, most urgent first (failing health, releases waiting, replies owed, conformance failures as those modules arrive). Each row has a 44px icon tile tinted in its kind's colour, a bold title, one line of context in `--muted`, and its actions on the right: the primary action as a filled button, a secondary one outlined. A release row sits on an `--attention` tint. Actions:
+   - Release waiting: Review (opens the approval page) and Approve release.
+   - Reply owed: Reply, which opens the item with the composer open (`/items/<id>?reply`).
+
+   The verdict's number is the number of rows here. Nothing else adds rows: there's no "worth quoting" signal, so Quote stays in the item toolbar.
+4. **Counts** as three pills: a display-type number and a plain label (new, open, replies owed), each linking to the inbox with that filter.
+5. **Your products:** a responsive grid (`repeat(auto-fit, minmax(min(100%, 26rem), 1fr))`) of product panels. Each panel: name, a health pill (dot plus word: Healthy, Degraded, Failing), one engagement number with its 30-day sparkline and change ("up 12% on last month"), then chips for new and open counts and a beta badge. The panel has a soft radial glow of its product colour from the top-right corner. Until Module 3 lands, the panel shows the name and counts only, and leaves out health, engagement and the beta badge (beta against production is Module 3, design §8) rather than faking them.
+
+### Inbox
+
+- **Three panes from 1200px:** rail, message list (22–26rem) and the open item. **Two panes from 768px:** list and item, under the top bar. **One pane below 768px:** the list, then the item with a back link.
+- **List header:** the page title with the new count beside it, a search field, and one wrapping row of filter chips (`aria-pressed`): All, one chip per product with its colour square, Reply owed, and a "More" chip for kind and archived. This replaces the four stacked selects.
+- **Rows:** a 36px avatar in the product's tint showing the sender's initial (a "?" when there's no name), the subject (weight 700 when unread), the time, one line of preview in `--muted`, then small tags (Reply owed, Issue report, Starred). The open row sits on `--raised`. No dividers; rows are separated by space and the selection tint.
+- `/inbox` and `/items/<id>` are the same split layout: the list stays put while items open beside it, and `/items/<id>` stays a link you can share with yourself. With nothing open, the item pane says how many are new and unread, and opens nothing by itself, because opening an item marks it read. On a phone, the list shows first.
+- The chips map onto the inbox's existing filters (product, state and kind): Reply owed is the reply-owed state, and "More" holds kind and the archived view. Search is the inbox's existing search.
+
+### Item
+
+- **Header:** chips for the product, the kind and source ("Issue report from the app"), and any state ("Reply owed: the linked issue closed 2 days ago"); then the subject in display type; then the toolbar.
+- **Toolbar:** Reply (primary), Create GitHub issue or View issue #n, Quote, Star, Archive, and Delete pushed to the far end with a `--danger` border. Delete confirms inline, as now.
+- **Thread:** messages in a ≤72ch column. Theirs sit on `--surface` with a `--line` border; yours sit on an `--accent` tint with an `--accent` border at 22%. Each has a one-line header (who and how, then the time) in `--muted`.
+- **Composer:** docked at the bottom of the item pane, on `--surface`. Its label says who it goes to and from which address ("Reply to Alex from hello@climbinglogbook.com"). Actions: Discard and Send reply.
+- **Formatted view** of inbound HTML stays as it is now: on request, in a sandboxed frame on a white page, captioned "Formatted view".
+
+### Junk
+
+The inbox layout without the filter chips. Each row has Not junk and Delete for good. Junk uses `--danger` only on the delete action, never on the rows.
+
+### Releases (for Module 2)
+
+The Releases page, its rail entry and Home's release rows arrive with Module 2, not before. A list shaped like the inbox: one row per release waiting, showing the product colour, the repository, the environment, the version and how long it's been waiting. The open release shows the PRs included since the last approved release, CI status and a link to the run, with Approve release (primary) and Reject (outlined, with an optional note). Its exact design is settled when Module 2 is built, within this direction.
 
 ## Components
 
-- **Radii by role:** 6px for controls (buttons, inputs, chips), 12px for panels and product cards, and none for list rows. No drop shadows: depth comes from `--surface` against `--ink`.
-- **Buttons:**
-  - Primary: `--petrol` fill with `--ink` text.
-  - Secondary: a 1px `--line` border with `--text`.
-  - Destructive: a `--danger` border; filled only inside its confirmation step.
-  - Labels say what happens: "Send reply", "Create issue", "Delete for good".
-- **Focus:** a 2px `--petrol` outline with a 2px offset on everything focusable. Never removed.
-- **Health dot:** a 10px dot (`--ok`, `--attention` or `--danger`), always paired with a word ("Healthy", "Errors"), never colour alone.
-- **Confirmations:** delete asks inline in the toolbar ("Delete this and its quotes for good?" with "Delete for good" and "Keep it"), not in a modal.
-- **Empty states:** one sentence and, where there is one, the next action. For example: "Nothing needs you. New feedback lands here and pings Discord."
-- **Inbound HTML:** shown only on request ("Show formatted"), in a sandboxed frame with a `--line` border, a white page whatever the theme (email is written for one), and the caption "Formatted view". Remote images and links don't load in it, by design.
+- **Radii by role:** 12px for buttons, inputs and icon tiles; 14px for list and queue rows; 20px for the needs-you panel and thread messages; 24px for product panels; fully round for chips, pills and badges.
+- **Buttons**, all at least 44px tall:
+  - Primary: `--primary` fill, `--on-primary` text, weight 700. One per row or toolbar.
+  - Attention primary, for Approve release only: `--attention` fill with dark text in dark theme and white text in light.
+  - Secondary: a 1px border at 14% of `--text`, `--text` label, no fill.
+  - Destructive: a `--danger` border and label; filled only inside its confirmation.
+  - Labels say what happens: "Send reply", "Approve release", "Delete for good".
+- **Chips:** 36px tall, fully round. Selected: `--text` fill, `--ink` label. Unselected: a `--line` border.
+- **Health pill:** neutral fill with a dot and a word. Dot: `--text` for Healthy, `--attention` for Degraded, `--danger` for Failing.
+- **Focus:** a 2px `--accent` outline with a 2px offset on everything focusable. Never removed.
+- **Sparklines:** a 3px line in the product colour with a 12% fill below. Each sparkline has `role="img"` and a label that says what it shows and which way it's going.
+- **Empty states:** one sentence and the next action, if there is one. Never styled as an error.
+
+## Depth and atmosphere
+
+- The page background carries one faint radial ember glow from the top-right (dark: `#3A1708` fading to `--ink`; light: `--attention` at 8% fading out). It's the only gradient wash.
+- Product panels carry their own product-colour glow. Nothing else has a gradient except the fire underline and the logo tile.
+- Panels use `--surface` against `--ink` with a 1px `--line` border; the needs-you panel adds a top-to-bottom sheen from 6% to 2.5% white (dark theme only).
 
 ## Motion
 
-- One orchestrated moment: on Home's first paint, the verdict's sheen underline sweeps left to right over 600ms. Nothing else animates on load.
-- Responses to actions: a 150ms fade when a row leaves the list after archiving, and the composer expands when opened.
+- One orchestrated moment: on Home's first paint, the fire underline sweeps left to right over 700ms with an ease-out.
+- Responses to actions: a 150ms fade and collapse when a row leaves the queue or the list, and the composer expands when opened.
 - `prefers-reduced-motion` removes all of it.
 
 ## Copy
 
-Second person, plain verbs, sentence case. Errors say what happened and what to do. For example: "Couldn't send: this person didn't leave an email address." "GitHub refused the issue (it may be down): try again in a minute."
+Second person, plain verbs, sentence case. The verdict's summary sentence names the kinds of thing waiting. Errors say what happened and what to do: "Couldn't send: this person didn't leave an email address." "GitHub refused the issue (it may be down): try again in a minute."
+
+## Building it
+
+- **Approach:** restyle in place. The UI stays vanilla JavaScript modules (`src/ui/`) with one stylesheet built on these tokens. Adopting a component framework or a utility-CSS framework was considered and rejected: neither fixes what's wrong (the direction and the layouts), and both add bundle weight and a dependency to screen for one user's admin tool.
+- **Product colour** becomes a column on the `products` table, holding one of the named product colours, and the admin API returns it with each product, so the UI never hard-codes a product. A product with no colour, or one the UI doesn't know, shows `--muted` instead.
+- **Tests:** the end-to-end and axe suites cover every page in both themes at phone and desktop widths, as the [coding standards](coding-standards.md#web-app) already require. Health, engagement, sparklines and the beta badge are built with Module 3, not now.
+- **Home's needs-you actions** reuse the existing item, quote and reply operations. Approve release arrives with Module 2.
+- The mockups (Home, and Inbox with an item open) are on the maintainer's private design canvas. They use sample data; this document is the source of truth where the two differ.
