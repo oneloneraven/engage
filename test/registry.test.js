@@ -47,3 +47,16 @@ test("productForEmailDomain matches the email domain exactly, ignoring case", as
   expect(await productForEmailDomain(env, "beta.climbinglogbook.com")).toBeNull();
   expect(await productForEmailDomain(env, "")).toBeNull();
 });
+
+test("every product has a route that's a safe, unreserved path segment", async () => {
+  const { results } = await env.DB.prepare("SELECT slug, route FROM products").all();
+  expect(results.length).toBeGreaterThan(0);
+  for (const { route } of results) {
+    expect(String(route)).toMatch(/^[a-z0-9-]+$/);
+    expect(["search", "items", "api", "assets", "inbox", "releases", "junk"]).not.toContain(route);
+  }
+  expect(Object.fromEntries(results.map(row => [row.slug, row.route]))).toMatchObject({
+    cl: "climbing-logbook",
+    deaftly: "deaftly",
+  });
+});

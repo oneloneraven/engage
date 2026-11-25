@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { betaText, changeText, healthWord, verdict, verdictSummary } from "../src/ui/format.js";
+import { betaText, changeText, healthWord, hubSummary, verdict } from "../src/ui/format.js";
 
 test("unhealthy products count towards the verdict", () => {
   expect(verdict({ healthFailing: 1 })).toBe("1 thing needs you.");
@@ -7,24 +7,23 @@ test("unhealthy products count towards the verdict", () => {
   expect(verdict({})).toBe("All clear.");
 });
 
-test("the summary names one unhealthy product, and counts several", () => {
-  expect(verdictSummary({ unhealthy: [{ name: "Climbing Logbook", status: "failing" }] })).toBe(
-    "Climbing Logbook is failing. Everything else is quiet.",
-  );
+test("the hub summary says who needs you, then who's quiet", () => {
   expect(
-    verdictSummary({
-      unhealthy: [
-        { name: "Climbing Logbook", status: "failing" },
-        { name: "Deaftly", status: "degraded" },
-      ],
-      releasesWaiting: 1,
-      replyOwed: 2,
-    }),
-  ).toBe("2 products need a look, a release is waiting and 2 people are owed a reply. Everything else is quiet.");
-  expect(verdictSummary({ releasesWaiting: 1, replyOwed: 1 })).toBe(
-    "A release is waiting and someone is owed a reply. Everything else is quiet.",
-  );
-  expect(verdictSummary({})).toBe("");
+    hubSummary([
+      { name: "Climbing Logbook", needs: 3 },
+      { name: "Deaftly", needs: 1 },
+      { name: "Beyond Borders", needs: 0 },
+    ]),
+  ).toBe("Climbing Logbook has 3 and Deaftly has 1. Beyond Borders is quiet.");
+  expect(hubSummary([{ name: "Climbing Logbook", needs: 2 }])).toBe("Climbing Logbook has 2.");
+  expect(
+    hubSummary([
+      { name: "Climbing Logbook", needs: 1 },
+      { name: "Deaftly", needs: 0 },
+      { name: "Beyond Borders", needs: 0 },
+    ]),
+  ).toBe("Climbing Logbook has 1. Deaftly and Beyond Borders are quiet.");
+  expect(hubSummary([{ name: "Deaftly", needs: 0 }])).toBe("");
 });
 
 test("health words", () => {

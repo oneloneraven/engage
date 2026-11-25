@@ -8,7 +8,7 @@ import { sentenceFor } from "./errors.js";
  * @typedef {{ label: string, value: number | null, series: { day: string, value: number }[], change: number | null }} EngagementSignal
  * @typedef {{ version: string, production: string, since: string, amber: boolean }} BetaSignal
  * @typedef {{ health: HealthSignal, engagement: EngagementSignal | null, beta: BetaSignal | null }} Signals
- * @typedef {{ name: string, colour: string | null, new: number, open: number, signals?: Signals | null }} ProductCounts
+ * @typedef {{ name: string, colour: string | null, route?: string | null, new: number, open: number, replyOwed: number, signals?: Signals | null }} ProductCounts
  * @typedef {{ new: number, open: number, replyOwed: number, releasesWaiting: number, healthFailing?: number, byProduct: Record<string, ProductCounts> }} Counts
  */
 

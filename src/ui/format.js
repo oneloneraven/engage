@@ -22,10 +22,7 @@ export function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/**
- * @typedef {{ replyOwed?: number, releasesWaiting?: number, healthFailing?: number }} Waiting
- * @typedef {{ name: string, status: string }} Unhealthy
- */
+/** @typedef {{ replyOwed?: number, releasesWaiting?: number, healthFailing?: number }} Waiting */
 
 /** @param {Waiting} waiting */
 export function verdict({ replyOwed = 0, releasesWaiting = 0, healthFailing = 0 }) {
@@ -37,24 +34,18 @@ export function verdict({ replyOwed = 0, releasesWaiting = 0, healthFailing = 0 
 /** @param {string[]} parts */
 const listOf = parts => (parts.length < 2 ? parts.join("") : `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`);
 
-/** @param {Waiting & { unhealthy?: Unhealthy[] }} waiting */
-export function verdictSummary({ replyOwed = 0, releasesWaiting = 0, unhealthy = [] }) {
-  const parts = [
-    unhealthy.length === 1
-      ? `${unhealthy[0].name} is ${unhealthy[0].status}`
-      : unhealthy.length > 1
-        ? `${unhealthy.length} products need a look`
-        : "",
-    releasesWaiting === 1
-      ? "a release is waiting"
-      : releasesWaiting > 1
-        ? `${releasesWaiting} releases are waiting`
-        : "",
-    replyOwed === 1 ? "someone is owed a reply" : replyOwed > 1 ? `${replyOwed} people are owed a reply` : "",
-  ].filter(Boolean);
-  if (parts.length === 0) return "";
-  const sentence = listOf(parts);
-  return `${sentence[0].toUpperCase()}${sentence.slice(1)}. Everything else is quiet.`;
+/**
+ * One sentence per hub: who needs you, then who's quiet. Empty when nothing needs you.
+ * @param {{ name: string, needs: number }[]} products
+ */
+export function hubSummary(products) {
+  const busy = products.filter(product => product.needs > 0);
+  if (busy.length === 0) return "";
+  const quiet = products.filter(product => product.needs === 0);
+  const sentences = [`${listOf(busy.map(product => `${product.name} has ${product.needs}`))}.`];
+  if (quiet.length)
+    sentences.push(`${listOf(quiet.map(product => product.name))} ${quiet.length === 1 ? "is" : "are"} quiet.`);
+  return sentences.join(" ");
 }
 
 const HEALTH_WORDS = {

@@ -23,12 +23,15 @@ describe("home", () => {
   it("says what needs you, from the real data", async () => {
     await browser.url("/");
     await expect($("h1")).toHaveText("2 things need you.");
-    await expect($(".summary")).toHaveText(
-      "A release is waiting and someone is owed a reply. Everything else is quiet.",
+    await expect($(".summary")).toHaveText("Climbing Logbook has 2. Deaftly is quiet.");
+    const cl = $('article[data-product="cl"]');
+    await expect(cl).toHaveElementClass("needs");
+    await expect(cl.$(`a[href="/items/${SHARED_OWED}"]`)).toHaveText("The map is blank");
+    await expect(cl.$(".release-row")).toBeExisting();
+    await expect($('article[data-product="deaftly"]')).not.toHaveElementClass("needs");
+    await expect($('article[data-product="deaftly"] .hub-needs .quiet')).toHaveText(
+      expect.stringContaining("Nothing needs you here."),
     );
-    const needsRow = $(`a[href="/items/${SHARED_OWED}"]`).parentElement();
-    await expect(needsRow).toHaveText(expect.stringContaining("The map is blank"));
-    await expect(needsRow).toHaveText(expect.stringContaining("Climbing Logbook"));
   });
 
   it("opens the item with the reply composer ready from a needs-you row", async () => {
@@ -47,37 +50,31 @@ describe("home", () => {
     await browser.mock("**/api/releases*").then(mock => mock.respond({ releases: [] }));
     await browser.url("/");
     await expect($("h1")).toHaveText("All clear.");
-    await expect($("section[aria-labelledby=needs-you] .empty")).toHaveText(
-      "Nothing needs you. New feedback lands here and pings Discord.",
-    );
+    await expect($(".summary")).toHaveText("Nothing needs you. New feedback lands here and pings Discord.");
     await browser.mockRestoreAll();
   });
 
-  it("shows the plural verdict, linked counts and a card per product", async () => {
+  it("shows the plural verdict and a card per product with its own counts", async () => {
     await browser.mock("**/api/counts").then(mock =>
       mock.respond({
         new: 3,
         open: 5,
-        replyOwed: 2,
+        replyOwed: 6,
         releasesWaiting: 0,
         byProduct: {
-          cl: { name: "Climbing Logbook", new: 2, open: 3 },
-          deaftly: { name: "Deaftly", new: 1, open: 2 },
+          cl: { name: "Climbing Logbook", new: 2, open: 3, replyOwed: 5 },
+          deaftly: { name: "Deaftly", new: 1, open: 2, replyOwed: 1 },
         },
       }),
     );
+    await browser.mock("**/api/items*").then(mock => mock.respond({ items: [], next: null }));
     await browser.mock("**/api/releases*").then(mock => mock.respond({ releases: [] }));
     await browser.url("/");
-    await expect($("h1")).toHaveText("2 things need you.");
-    for (const [label, state, count] of [
-      ["new", "new", "3"],
-      ["open", "open", "5"],
-      ["replies owed", "reply-owed", "2"],
-    ]) {
-      const link = $(`.counts a[href="/inbox?state=${state}"]`);
-      await expect(link).toHaveText(expect.stringContaining(label));
-      await expect(link).toHaveText(expect.stringContaining(count));
-    }
+    await expect($("h1")).toHaveText("6 things need you.");
+    await expect($(".summary")).toHaveText("Climbing Logbook has 5 and Deaftly has 1.");
+    await expect($('article[data-product="cl"] a[href="/inbox?product=cl&state=reply-owed"]')).toHaveText(
+      "See all 5 replies owed in the inbox",
+    );
     await expect($('article[data-product="cl"]')).toHaveText(expect.stringContaining("Climbing Logbook"));
     await expect($('article[data-product="cl"] a[href="/inbox?product=cl&state=new"]')).toHaveText("2 new");
     await expect($('article[data-product="cl"] a[href="/inbox?product=cl&state=open"]')).toHaveText("3 open");
@@ -118,6 +115,7 @@ describe("home", () => {
             colour: "gold",
             new: 0,
             open: 0,
+            replyOwed: 0,
             signals: signals("failing", "Climbing Logbook app is down", "https://uptime.example/monitors/1"),
           },
           deaftly: {
@@ -125,6 +123,7 @@ describe("home", () => {
             colour: "flame",
             new: 0,
             open: 0,
+            replyOwed: 0,
             signals: signals("unknown", "Last checked 40 minutes ago", null),
           },
         },
@@ -134,7 +133,7 @@ describe("home", () => {
     await browser.mock("**/api/releases*").then(mock => mock.respond({ releases: [] }));
     await browser.url("/");
     await expect($("h1")).toHaveText("1 thing needs you.");
-    await expect($(".summary")).toHaveText("Climbing Logbook is failing. Everything else is quiet.");
+    await expect($(".summary")).toHaveText("Climbing Logbook has 1. Deaftly is quiet.");
     const healthRow = $(".health-row");
     await expect(healthRow).toHaveText(expect.stringContaining("Climbing Logbook app is down"));
     await expect(healthRow.$("a")).toHaveAttribute("href", "https://uptime.example/monitors/1");
@@ -147,13 +146,13 @@ describe("home", () => {
 });
 
 describe("releases", () => {
-  it("shows a waiting release in the rail, on Home and on its own page", async () => {
+  it("shows a waiting release in the top bar, on its product's card and on its own page", async () => {
     await browser.url("/");
     const badge = $('a[href="/releases"] .badge');
     await badge.waitForExist();
     expect(await badge.getProperty("textContent")).toBe("1 waiting");
-    const title = $(`.release-row .grow a[href="/releases/${SHARED_RELEASE}"]`);
-    await expect(title).toHaveText("Climbing Logbook v1.14.0 is waiting to go to production");
+    const title = $(`article[data-product="cl"] .release-row .grow a[href="/releases/${SHARED_RELEASE}"]`);
+    await expect(title).toHaveText("v1.14.0 is waiting to go to production");
     await title.click();
     await expect($("h2.item-title")).toHaveText("Climbing Logbook v1.14.0 to production");
     await expect($(".panel").$("button=Approve release")).toBeExisting();
