@@ -1,4 +1,5 @@
 import { recordAudit } from "../audit.js";
+import { readSignals } from "../signals/read.js";
 
 /**
  * @typedef {{
@@ -349,10 +350,11 @@ export async function deleteItems(env, ids, actor) {
 
 /**
  * @param {ItemsEnv} env
- * @returns {Promise<{ new: number, open: number, replyOwed: number, releasesWaiting: number, byProduct: Record<string, { name: string, colour: string | null, new: number, open: number }> }>}
+ * @param {Date} [now]
+ * @returns {Promise<{ new: number, open: number, replyOwed: number, releasesWaiting: number, healthFailing: number, byProduct: Record<string, { name: string, colour: string | null, new: number, open: number, signals: import("../signals/read.js").Signals | null }> }>}
  */
-export async function counts(env) {
-  const [perProduct, owed, waiting] = await Promise.all([
+export async function counts(env, now = new Date()) {
+  const [perProduct, owed, waiting, signals] = await Promise.all([
     env.DB.prepare(
       `SELECT products.slug AS slug, products.name AS name, products.colour AS colour,
         COALESCE(SUM(CASE WHEN ${NEW} THEN 1 ELSE 0 END), 0) AS new_count,
@@ -362,8 +364,9 @@ export async function counts(env) {
     ).all(),
     env.DB.prepare("SELECT COUNT(*) AS n FROM items WHERE reply_owed_at IS NOT NULL AND junk = 0").first(),
     env.DB.prepare("SELECT COUNT(*) AS n FROM releases WHERE state = 'pending'").first(),
+    readSignals(env, now),
   ]);
-  /** @type {Record<string, { name: string, colour: string | null, new: number, open: number }>} */
+  /** @type {Record<string, { name: string, colour: string | null, new: number, open: number, signals: import("../signals/read.js").Signals | null }>} */
   const byProduct = {};
   let totalNew = 0;
   let totalOpen = 0;
@@ -373,6 +376,7 @@ export async function counts(env) {
       colour: row.colour == null ? null : String(row.colour),
       new: Number(row.new_count),
       open: Number(row.open_count),
+      signals: signals[String(row.slug)] ?? null,
     };
     byProduct[String(row.slug)] = entry;
     totalNew += entry.new;
@@ -383,6 +387,7 @@ export async function counts(env) {
     open: totalOpen,
     replyOwed: Number(owed?.n ?? 0),
     releasesWaiting: Number(waiting?.n ?? 0),
+    healthFailing: Object.values(signals).filter(s => ["failing", "degraded"].includes(s.health.status)).length,
     byProduct,
   };
 }

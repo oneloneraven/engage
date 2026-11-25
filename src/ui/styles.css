@@ -589,6 +589,88 @@ main {
   background: var(--raised);
 }
 
+.card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.health-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 32px;
+  padding: 0 0.875rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.health-pill[data-health="healthy"] .dot {
+  background: var(--text);
+}
+
+.health-pill[data-health="degraded"] .dot {
+  background: var(--attention);
+}
+
+.health-pill[data-health="failing"] .dot {
+  background: var(--danger);
+}
+
+.health-reason {
+  margin-top: -0.5rem;
+}
+
+.engagement {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.engagement .metric {
+  display: flex;
+  flex-direction: column;
+}
+
+.engagement .numeral {
+  font-size: 2.5rem;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.sparkline {
+  display: block;
+  width: 100%;
+  height: 40px;
+  color: var(--product);
+}
+
+.beta-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 0.875rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.beta-badge.amber {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--attention) 16%, transparent);
+  color: var(--attention-text);
+}
+
+.queue-row .row-title {
+  color: var(--text);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
 .product-name {
   font-family: var(--font-display);
   font-size: 1.875rem;
