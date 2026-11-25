@@ -7,6 +7,8 @@ import { json, notFound } from "../lib/http.js";
 import { log } from "../lib/log.js";
 import { codePointLength } from "../lib/text.js";
 import { getProduct } from "../registry.js";
+import { releaseContext, reviewRelease } from "../releases/review.js";
+import { getRelease, listReleases } from "../releases/store.js";
 import { approve, createExcerpt, deleteItemWithTestimonials, withdraw } from "../testimonials/testimonials.js";
 import { counts, getItem, listItems, setFlags } from "./items.js";
 
@@ -26,6 +28,8 @@ import { counts, getItem, listItems, setFlags } from "./items.js";
 
 const CLIENT_ERRORS = {
   "not-found": 404,
+  "release-not-pending": 409,
+  "release-expired": 409,
   "no-contact": 409,
   "issue-exists": 409,
   "no-consent": 409,
@@ -228,6 +232,36 @@ async function blocklistAdd({ env, actor, request }) {
   return json({ ok: true });
 }
 
+const RELEASE_STATES = ["pending", "approved", "rejected", "expired", "spent"];
+const decisionSchema = v.strictObject({ note: v.optional(trimmedText(1, 1000)) });
+
+/** @param {RouteContext} context */
+async function releasesList({ env, url }) {
+  const state = url.searchParams.get("state") ?? "";
+  if (state && !RELEASE_STATES.includes(state)) throw new Error("bad-request");
+  const releases = await listReleases(
+    env,
+    state ? { state: /** @type {import("../releases/store.js").ReleaseState} */ (state) } : {},
+  );
+  return json({ releases });
+}
+
+/** @param {RouteContext} context */
+async function releaseRead({ env, params: [id] }) {
+  const release = await getRelease(env, id);
+  if (!release) throw new Error("not-found");
+  return json({ release, ...(await releaseContext(env, release)) });
+}
+
+/** @param {"approved" | "rejected"} decision */
+const releaseDecide =
+  decision =>
+  /** @param {RouteContext} context */
+  async ({ env, actor, request, params: [id] }) => {
+    const { note } = await bodyOf(decisionSchema, request);
+    return json({ release: await reviewRelease(env, id, decision, actor, note) });
+  };
+
 /** @param {RouteContext} context */
 async function countsRead({ env }) {
   return json(await counts(env));
@@ -296,6 +330,10 @@ const ROUTES = [
   { pattern: /^\/api\/testimonials\/([^/]+)\/withdraw$/, handlers: { POST: testimonialWithdraw } },
   { pattern: /^\/api\/blocklist$/, handlers: { POST: blocklistAdd } },
   { pattern: /^\/api\/counts$/, handlers: { GET: countsRead } },
+  { pattern: /^\/api\/releases$/, handlers: { GET: releasesList } },
+  { pattern: /^\/api\/releases\/([^/]+)$/, handlers: { GET: releaseRead } },
+  { pattern: /^\/api\/releases\/([^/]+)\/approve$/, handlers: { POST: releaseDecide("approved") } },
+  { pattern: /^\/api\/releases\/([^/]+)\/reject$/, handlers: { POST: releaseDecide("rejected") } },
 ];
 
 const PAGE_POLICY =

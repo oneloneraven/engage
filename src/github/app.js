@@ -54,7 +54,7 @@ export async function appJwt(appId, pem, nowS = Math.floor(Date.now() / 1000)) {
  * @param {string} token
  * @param {unknown} [body]
  */
-async function call(method, path, token, body) {
+export async function githubCall(method, path, token, body) {
   const response = await fetch(`${API}${path}`, {
     method,
     headers: { ...HEADERS, Authorization: `Bearer ${token}`, ...(body ? { "Content-Type": "application/json" } : {}) },
@@ -76,10 +76,10 @@ export async function installationToken(env, owner) {
   if (!env.GITHUB_APP_ID || !env.GITHUB_APP_PRIVATE_KEY) throw new Error("github-app-not-configured");
   const jwt = await appJwt(env.GITHUB_APP_ID, env.GITHUB_APP_PRIVATE_KEY);
   const installation = /** @type {{ id: number }} */ (
-    await call("GET", `/orgs/${encodeURIComponent(owner)}/installation`, jwt)
+    await githubCall("GET", `/orgs/${encodeURIComponent(owner)}/installation`, jwt)
   );
   const granted = /** @type {{ token: string, expires_at: string }} */ (
-    await call("POST", `/app/installations/${installation.id}/access_tokens`, jwt)
+    await githubCall("POST", `/app/installations/${installation.id}/access_tokens`, jwt)
   );
   tokens.set(owner, { token: granted.token, expiresAt: Date.parse(granted.expires_at) });
   return granted.token;
@@ -113,7 +113,7 @@ export async function createIssue(env, itemId, draft, actor) {
   const { owner, name } = splitRepo(draft.repo);
   const token = await installationToken(env, owner);
   const issue = /** @type {{ number: number, html_url: string }} */ (
-    await call("POST", `/repos/${owner}/${name}/issues`, token, {
+    await githubCall("POST", `/repos/${owner}/${name}/issues`, token, {
       title: draft.title,
       body: draft.body,
       labels: draft.labels,
@@ -140,7 +140,7 @@ export async function createIssue(env, itemId, draft, actor) {
  */
 export async function dispatch(env, repo, eventType) {
   const { owner, name } = splitRepo(repo);
-  await call("POST", `/repos/${owner}/${name}/dispatches`, await installationToken(env, owner), {
+  await githubCall("POST", `/repos/${owner}/${name}/dispatches`, await installationToken(env, owner), {
     event_type: eventType,
   });
 }

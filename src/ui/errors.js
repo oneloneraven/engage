@@ -8,6 +8,8 @@ const SENTENCES = {
   "no-consent": "Couldn't save the quote: this person didn't agree to be quoted.",
   "not-faithful": "That text isn't in the message exactly as written: select it again.",
   "not-found": "That item no longer exists.",
+  "release-not-pending": "This release has already been decided: reload the page.",
+  "release-expired": "GitHub no longer waits on this run: start it again.",
   "bad-request": "That didn't look right: check what you entered and try again.",
   "bad-cursor": "That list is out of date: reload the page.",
   forbidden: "You're not signed in to Engage any more: reload the page to sign in again.",

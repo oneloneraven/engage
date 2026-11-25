@@ -349,10 +349,10 @@ export async function deleteItems(env, ids, actor) {
 
 /**
  * @param {ItemsEnv} env
- * @returns {Promise<{ new: number, open: number, replyOwed: number, byProduct: Record<string, { name: string, colour: string | null, new: number, open: number }> }>}
+ * @returns {Promise<{ new: number, open: number, replyOwed: number, releasesWaiting: number, byProduct: Record<string, { name: string, colour: string | null, new: number, open: number }> }>}
  */
 export async function counts(env) {
-  const [perProduct, owed] = await Promise.all([
+  const [perProduct, owed, waiting] = await Promise.all([
     env.DB.prepare(
       `SELECT products.slug AS slug, products.name AS name, products.colour AS colour,
         COALESCE(SUM(CASE WHEN ${NEW} THEN 1 ELSE 0 END), 0) AS new_count,
@@ -361,6 +361,7 @@ export async function counts(env) {
       GROUP BY products.slug, products.name, products.colour ORDER BY products.slug`,
     ).all(),
     env.DB.prepare("SELECT COUNT(*) AS n FROM items WHERE reply_owed_at IS NOT NULL AND junk = 0").first(),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM releases WHERE state = 'pending'").first(),
   ]);
   /** @type {Record<string, { name: string, colour: string | null, new: number, open: number }>} */
   const byProduct = {};
@@ -377,5 +378,11 @@ export async function counts(env) {
     totalNew += entry.new;
     totalOpen += entry.open;
   }
-  return { new: totalNew, open: totalOpen, replyOwed: Number(owed?.n ?? 0), byProduct };
+  return {
+    new: totalNew,
+    open: totalOpen,
+    replyOwed: Number(owed?.n ?? 0),
+    releasesWaiting: Number(waiting?.n ?? 0),
+    byProduct,
+  };
 }
