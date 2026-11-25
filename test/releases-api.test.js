@@ -68,7 +68,16 @@ function stubGithub({ review = 204 } = {}) {
         ],
       });
     if (url.includes("/check-runs"))
-      return Response.json({ check_runs: [{ status: "completed", conclusion: "success" }] });
+      return Response.json({
+        check_runs: [
+          {
+            status: "completed",
+            conclusion: "success",
+            details_url: `https://github.com/${REPO}/actions/runs/40/job/1`,
+          },
+          { status: "waiting", conclusion: null, details_url: `https://github.com/${REPO}/actions/runs/42/job/2` },
+        ],
+      });
     if (/\/actions\/runs\/\d+$/.test(url))
       return Response.json({ html_url: `https://github.com/${REPO}/actions/runs/42` });
     return new Response("unexpected", { status: 599 });

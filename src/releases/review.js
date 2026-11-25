@@ -104,16 +104,19 @@ async function pullsSince(env, release, token) {
  */
 async function checksFor(release, token) {
   const [runs, run] = await Promise.all([
-    /** @type {Promise<{ check_runs: { status: string, conclusion: string | null }[] }>} */ (
+    /** @type {Promise<{ check_runs: { status: string, conclusion: string | null, details_url?: string | null }[] }>} */ (
       githubCall("GET", `/repos/${release.repo}/commits/${release.sha}/check-runs?per_page=100`, token)
     ),
     /** @type {Promise<{ html_url: string }>} */ (
       githubCall("GET", `/repos/${release.repo}/actions/runs/${release.runId}`, token)
     ),
   ]);
-  const failed = runs.check_runs.some(check =>
+  const waitingRun = `/actions/runs/${release.runId}/`;
+  const checks = runs.check_runs.filter(check => !check.details_url?.includes(waitingRun));
+  if (checks.length === 0) return { conclusion: "unknown", url: run.html_url };
+  const failed = checks.some(check =>
     ["failure", "timed_out", "cancelled", "action_required"].includes(check.conclusion ?? ""),
   );
-  const finished = runs.check_runs.every(check => check.status === "completed");
+  const finished = checks.every(check => check.status === "completed");
   return { conclusion: failed ? "failure" : finished ? "success" : "pending", url: run.html_url };
 }
