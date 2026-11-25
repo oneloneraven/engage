@@ -93,10 +93,20 @@ Desktop
 
 ### The shell
 
-- **No rail.** A sticky top bar runs the full width: the wordmark with its fire tile (a link to Home), the pages, and a search button at the far end that opens the inbox with its search box focused. Inbox carries a count of new items in an `--accent` badge; Releases carries the number waiting in an `--attention` badge. The current page has a light tint behind it and `aria-current="page"`.
+- **No rail.** A sticky top bar runs the full width: the wordmark with its fire tile (a link to Home), then, inside a product, the product switcher (its colour square and name, opening a list of every product), then Releases with the number waiting in an `--attention` badge, and Search at the far end. The current page has a light tint behind it and `aria-current="page"`.
 - **Below 768px** the pages sit behind a menu button (`aria-expanded`), and search keeps only its icon.
 - Main content is left-aligned with a fluid side margin, capped at 74rem on Home. Nothing is centred except empty states.
-- Product hubs (`docs/superpowers/specs/2026-11-25-engage-product-hubs-design.md`) add a product switcher to the bar and replace the Inbox, Releases and Junk links as they land.
+- Releases leaves the bar when each product hub gets its own Releases page (#128).
+
+### Product hub
+
+- `/<route>` (for example `/climbing-logbook`) is a product's hub: its colour square and name as the page's `h1`, its health pill, then a tab bar of its pages (Overview, Inbox), with the current tab underlined in the product colour. Below 768px the tabs become one menu button naming the current page.
+- **Overview** is the product's card from Home, full width.
+- `/items/<id>`, the address Discord pings and older links use, opens the item inside its product's inbox. The old `/inbox?product=<slug>` goes to that product's inbox, and any other `/inbox` to Search.
+
+### Search
+
+`/search?q=` lists matching messages from every product, each with its product's colour square and name, and opens a result in its product's inbox.
 
 ### Home: the central hub
 
@@ -113,14 +123,15 @@ Desktop
 ### Inbox
 
 - **Two panes from 768px**, under the top bar: the message list (22–32rem, a third of the width) and the open item. **One pane below 768px:** the list, then the item with a back link.
-- **List header:** the page title with the new count beside it; the search field with a "More filters" icon button at its end (kind and archived); then one row of filter chips (`aria-pressed`): All, one chip per product with its colour square, and Reply owed. This replaces the four stacked selects.
+- **Inside a product's hub**, at `/<route>/inbox` and `/<route>/inbox/<id>`. Rows don't repeat the product's name; the hub already says it.
+- **List header:** the search field with a "More filters" icon button at its end (kind and archived); then one row of chips: All and Reply owed (`aria-pressed`), and Junk, which opens the product's junk.
 - **Rows:** a 36px avatar in the product's tint showing the sender's initial (a "?" when there's no name), the subject (weight 700 when unread), the time, one line of preview in `--muted` (the first line of what they wrote, cut short; left out when there's no text or it only repeats the subject), then small tags (Reply owed, Issue report, Starred). A tag never repeats the title: a row titled "Issue report" has no Issue report tag. The open row sits on `--raised`. No dividers; rows are separated by space and the selection tint.
 - `/inbox` and `/items/<id>` are the same split layout: the list stays put while items open beside it, and `/items/<id>` stays a link you can share with yourself. With nothing open, the item pane says how many are new and unread, and opens nothing by itself, because opening an item marks it read. On a phone, the list shows first.
-- The chips map onto the inbox's existing filters (product, state and kind): Reply owed is the reply-owed state, and "More" holds kind and the archived view. Search is the inbox's existing search.
+- The chips map onto the inbox's existing filters (state and kind): Reply owed is the reply-owed state, and "More filters" holds kind and the archived view. The search field searches this product; Search in the top bar searches every product.
 
 ### Item
 
-- **Header:** chips for the product, the kind and source ("Issue report from the app"), and any state ("Reply owed: the linked issue closed 2 days ago"); then the subject in display type; then the toolbar. When it arrived, where from and who sent it all sit together in Details, under the thread.
+- **Header:** chips for the kind and source ("Issue report from the app"), and any state ("Reply owed: the linked issue closed 2 days ago"); then the subject in display type; then the toolbar. When it arrived, where from and who sent it all sit together in Details, under the thread.
 - **Toolbar:** one row of 44px icon buttons, so it fits however narrow the item pane gets: Reply (filled, primary), Create GitHub issue or View GitHub issue #n (GitHub's mark), Star (filled when starred), Archive, Quote, and Delete pushed to the far end in `--danger`. Each has its name as its accessible name and tooltip. Delete confirms inline, as now.
   - An unavailable action is disabled in place, never as a filled primary, and the reasons sit in one muted line under the toolbar ("No contact email. No consent to quote."), so they don't move the buttons.
 - **Thread:** messages in a ≤72ch column. Theirs sit on `--surface` with a `--line` border; yours sit on an `--accent` tint with an `--accent` border at 22%. Each has a one-line header (who and how, then the time) in `--muted`.
@@ -129,7 +140,7 @@ Desktop
 
 ### Junk
 
-The inbox layout without the filter chips. Each row has Not junk and Delete for good. Junk uses `--danger` only on the delete action, never on the rows.
+A view of each product's inbox, at `/<route>/inbox?state=junk`, with a link back to the inbox. The inbox layout without the filter chips. Each row has Not junk and Delete for good. Junk uses `--danger` only on the delete action, never on the rows.
 
 ### Releases (for Module 2)
 

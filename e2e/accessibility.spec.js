@@ -8,11 +8,17 @@ const axeSource = readFileSync(createRequire(import.meta.url).resolve("axe-core/
 
 const PAGES = [
   { name: "Home", path: () => "/", ready: "h1.verdict" },
-  { name: "Inbox", path: () => "/inbox", ready: "ul.rows li:first-child" },
-  { name: "Inbox filtered to nothing", path: () => "/inbox?q=no-such-message", ready: ".status .empty" },
-  { name: "Item", path: ids => `/items/${ids.hostile}`, ready: "h1.item-title" },
-  { name: "Item with consent", path: ids => `/items/${ids.consent}`, ready: "h1.item-title" },
-  { name: "Junk", path: () => "/junk", ready: "ul.rows li:first-child" },
+  { name: "Product overview", path: () => "/climbing-logbook", ready: ".hub-card" },
+  { name: "Inbox", path: () => "/climbing-logbook/inbox", ready: "ul.rows li:first-child" },
+  {
+    name: "Inbox filtered to nothing",
+    path: () => "/climbing-logbook/inbox?q=no-such-message",
+    ready: ".status .empty",
+  },
+  { name: "Item", path: ids => `/items/${ids.hostile}`, ready: ".item-title" },
+  { name: "Item with consent", path: ids => `/items/${ids.consent}`, ready: ".item-title" },
+  { name: "Junk", path: () => "/climbing-logbook/inbox?state=junk", ready: "ul.rows li:first-child" },
+  { name: "Search", path: () => "/search?q=export", ready: ".search-results li" },
   { name: "Releases", path: () => "/releases", ready: "ul.rows li:first-child" },
   { name: "Release", path: () => `/releases/${SHARED_RELEASE}`, ready: "h2.item-title" },
   { name: "Not found", path: () => "/no-such-page", ready: "h1.page-title" },
@@ -51,7 +57,7 @@ for (const colorScheme of ["light", "dark"])
       it("the item page has none with the reply composer, issue draft and formatted view open", async () => {
         const ids = idsFor(String(browser.capabilities.browserName));
         await browser.url(`/items/${ids.email}`);
-        await $("h1.item-title").waitForExist();
+        await $(".item-title").waitForExist();
         await $(".toolbar").$("button=Reply").click();
         expect(await violations()).toEqual([]);
         await $(".toolbar").$("button=Create GitHub issue").click();

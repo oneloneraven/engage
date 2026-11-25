@@ -1,8 +1,8 @@
 import { h } from "./dom.js";
 import { homePage } from "./pages/home.js";
-import { inboxPage } from "./pages/inbox.js";
-import { junkPage } from "./pages/junk.js";
+import { hubPage, inboxRedirectPage, itemRedirectPage } from "./pages/hub.js";
 import { releasesPage } from "./pages/releases.js";
+import { searchPage } from "./pages/search.js";
 import { createRouter } from "./router.js";
 import { mountShell } from "./shell.js";
 
@@ -12,11 +12,12 @@ const router = createRouter({
   container: shell.main,
   routes: [
     { key: "home", pattern: /^\/$/, mount: homePage },
-    { key: "inbox", pattern: /^\/inbox$/, mount: inboxPage },
-    { key: "inbox", pattern: /^\/items\/([^/]+)$/, mount: inboxPage },
-    { key: "junk", pattern: /^\/junk$/, mount: junkPage },
+    { key: "search", pattern: /^\/search$/, mount: searchPage },
+    { key: "item-redirect", pattern: /^\/items\/([^/]+)$/, mount: itemRedirectPage },
+    { key: "inbox-redirect", pattern: /^\/inbox$/, mount: inboxRedirectPage },
     { key: "releases", pattern: /^\/releases$/, mount: releasesPage },
     { key: "releases", pattern: /^\/releases\/([^/]+)$/, mount: releasesPage },
+    { key: "hub", pattern: /^\/([a-z0-9-]+)(?:\/([a-z0-9-]+)(?:\/([^/]+))?)?$/, mount: hubPage },
   ],
   notFound: container => {
     document.title = "Not found – Engage";
@@ -32,7 +33,7 @@ const router = createRouter({
     );
     return { update() {}, destroy() {} };
   },
-  onChange: ({ path, query }) => shell.highlight(path, query),
+  onChange: ({ path }) => shell.highlight(path),
 });
 
 router.start();

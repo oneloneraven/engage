@@ -1,4 +1,4 @@
-import { getCounts, listItems } from "../api.js";
+import { listItems } from "../api.js";
 import { emptyState, failure, guarded, h, icon, prefersReducedMotion, replace } from "../dom.js";
 import { formatDay, itemTitle, kindLabel } from "../format.js";
 import { navigate } from "../router.js";
@@ -22,7 +22,7 @@ const KINDS = [
 const TARGET_ROWS = 25;
 const SEARCH_DELAY_MS = 250;
 const FADE_MS = 150;
-const FILTER_NAMES = ["product", "kind", "state", "q"];
+const FILTER_NAMES = ["kind", "state", "q"];
 const CHIP_STATES = ["", "reply-owed"];
 const FILTER_ICON = ["M4 6h16", "M7 12h10", "M10 18h4"];
 
@@ -64,15 +64,21 @@ function setOptions(element, options) {
 }
 
 /**
+ * @typedef {{ slug: string, name: string, colour: string, new: number }} InboxProduct
+ */
+
+/**
+ * One product's inbox, at `base` (its list) and `base/<item id>` (an open item).
  * @param {HTMLElement} container
  * @param {import("../router.js").RouteContext} context
+ * @param {{ product: InboxProduct, base: string }} options
  * @returns {import("../router.js").Page}
  */
-export function inboxPage(container, context) {
-  document.title = "Inbox – Engage";
+export function inboxPage(container, context, { product, base }) {
+  document.title = `Inbox – ${product.name} – Engage`;
   let filters = filtersFrom(context.query);
   /** @type {string | null} */
-  let itemId = context.params[0] ?? null;
+  let itemId = context.params[0] || null;
   let openReply = context.query.has("reply");
   /** @type {string | null} */
   let cursor = null;
@@ -84,12 +90,9 @@ export function inboxPage(container, context) {
   let itemPane = null;
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   let searchTimer;
-  /** @type {{ slug: string, name: string, colour: string }[]} */
-  let products = [];
-  let newCount = 0;
+  const newCount = product.new;
 
-  const heading = () => h(itemId ? "h2" : "h1", { class: "page-title" }, "Inbox");
-  let title = heading();
+  const title = h("h2", { class: "visually-hidden" }, "Inbox");
   const list = h("ul", { class: "rows" });
   const listStatus = h("div", { class: "status" });
   const more = h("button", { type: "button", class: "secondary", hidden: true }, "Show more");
@@ -105,14 +108,11 @@ export function inboxPage(container, context) {
 
   /** @param {Record<string, string> | undefined} [next] */
   function urlFor(next = filters, id = itemId) {
-    return `${id ? `/items/${encodeURIComponent(id)}` : "/inbox"}${queryString(next)}`;
+    return `${base}${id ? `/${encodeURIComponent(id)}` : ""}${queryString(next)}`;
   }
 
   /** @param {{ archivedAt: string | null }} item */
   const visible = item => filters.state !== "" || filters.q !== "" || item.archivedAt === null;
-
-  /** @param {string} slug */
-  const colourOf = slug => products.find(product => product.slug === slug)?.colour ?? "";
 
   /** @param {import("../api.js").ItemSummary} item */
   function rowFor(item) {
@@ -123,7 +123,7 @@ export function inboxPage(container, context) {
     const kind = kindLabel(item.kind);
     const li = h(
       "li",
-      { "data-id": item.id, "data-colour": colourOf(item.product), ...(unread && { "data-unread": "true" }) },
+      { "data-id": item.id, "data-colour": product.colour, ...(unread && { "data-unread": "true" }) },
       h(
         "a",
         {
@@ -152,7 +152,6 @@ export function inboxPage(container, context) {
           h(
             "span",
             { class: "row-tags" },
-            h("span", { class: "row-product" }, item.productName),
             (item.subject?.trim() || !title.startsWith(kind)) && h("span", { class: "tag" }, kind),
             item.replyOwedAt && h("span", { class: "tag owed" }, "Reply owed"),
             item.starred && h("span", { class: "tag" }, "Starred"),
@@ -193,7 +192,7 @@ export function inboxPage(container, context) {
    * @param {string | null} from
    */
   async function fetchRows(target, from) {
-    const params = { product: filters.product, kind: filters.kind, q: filters.q };
+    const params = { product: product.slug, kind: filters.kind, q: filters.q };
     const state = filters.state === "all" ? undefined : filters.state || undefined;
     /** @type {import("../api.js").ItemSummary[]} */
     const collected = [];
@@ -220,7 +219,7 @@ export function inboxPage(container, context) {
         replace(
           listStatus,
           emptyState(
-            filters.state || filters.q || filters.product || filters.kind
+            filters.state || filters.q || filters.kind
               ? "Nothing matches those filters."
               : "Nothing in the inbox. New feedback lands here and pings Discord.",
           ),
@@ -341,13 +340,11 @@ export function inboxPage(container, context) {
     const focused = chips.contains(document.activeElement) ? document.activeElement?.textContent : null;
     replace(
       chips,
-      chip("All", !filters.product && !filters.state, () => setFilters({ product: "", state: "" })),
-      products.map(({ slug, name, colour }) =>
-        chip(name, filters.product === slug, () => setFilter("product", filters.product === slug ? "" : slug), colour),
-      ),
+      chip("All", !filters.state, () => setFilters({ state: "" })),
       chip("Reply owed", filters.state === "reply-owed", () =>
         setFilter("state", filters.state === "reply-owed" ? "" : "reply-owed"),
       ),
+      chip("Junk", false, () => navigate(`${base}?state=junk`)),
     );
     if (focused)
       /** @type {HTMLElement | undefined} */ (
@@ -366,26 +363,9 @@ export function inboxPage(container, context) {
     drawChips();
   }
   syncFilters();
-  getCounts()
-    .then(counts => {
-      if (!alive) return;
-      products = Object.entries(counts.byProduct).map(([slug, { name, colour }]) => ({
-        slug,
-        name,
-        colour: colour ?? "",
-      }));
-      newCount = counts.new;
-      drawChips();
-      if (itemId === null) drawItem();
-      load();
-    })
-    .catch(() => {});
 
   function drawItem() {
     split.classList.toggle("has-item", itemId !== null);
-    const next = heading();
-    title.replaceWith(next);
-    title = next;
     itemPane?.destroy();
     itemPane = null;
     if (itemId === null) {
@@ -420,7 +400,7 @@ export function inboxPage(container, context) {
 
   return {
     update(next) {
-      const nextId = next.params[0] ?? null;
+      const nextId = next.params[0] || null;
       openReply = next.query.has("reply");
       const nextFilters = filtersFrom(next.query);
       const filtersChanged = FILTER_NAMES.some(name => nextFilters[name] !== filters[name]);

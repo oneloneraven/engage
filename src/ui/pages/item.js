@@ -303,13 +303,12 @@ export function mountItem(pane, id, hooks) {
     function drawHeader() {
       if (!item) return;
       const current = item;
-      const heading = h("h1", { class: "item-title", tabindex: "-1" }, itemHeading(current));
+      const heading = h("h2", { class: "item-title", tabindex: "-1" }, itemHeading(current));
       replace(
         header,
         h(
           "ul",
           { class: "item-chips", "aria-label": "About this item" },
-          h("li", null, current.productName),
           h(
             "li",
             null,
