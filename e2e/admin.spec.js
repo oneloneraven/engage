@@ -258,7 +258,7 @@ describe("product pages", () => {
     await expect($(".climbs-total .numeral")).toHaveText("200");
     const tabs = await $$(".hub-tabs a").map(a => a.getText());
     expect(tabs).toEqual(["Overview", "Inbox", "Releases", "Health", "Usage", "Climbs"]);
-    await expect($(".hub-tabs a=Climbs")).toHaveAttribute("aria-current", "page");
+    await expect($('.hub-tabs a[href="/climbing-logbook/climbs"]')).toHaveAttribute("aria-current", "page");
     const statuses = await $$('[aria-labelledby="climbs-status"] .shares li').map(li => li.getText());
     expect(statuses.map(text => text.replace(/\s+/g, " "))).toEqual([
       "Send / Redpoint 75%, 150",
