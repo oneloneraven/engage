@@ -7,7 +7,9 @@ import { handleInboundEmail } from "./email/inbound.js";
 import { handleSubmission } from "./intake/submissions.js";
 import { publicFeed } from "./testimonials/testimonials.js";
 import { forbidden, json, notFound } from "./lib/http.js";
+import { log } from "./lib/log.js";
 import { runRetention } from "./retention.js";
+import { refreshHealth } from "./signals/health.js";
 
 /**
  * @typedef {{
@@ -38,10 +40,17 @@ import { runRetention } from "./retention.js";
  *   BROKER_LIMITER?: import("./lib/rate-limit.js").RateLimiter,
  *   CLOUDFLARE_BROKER_TOKEN?: string,
  *   CLOUDFLARE_ACCOUNT_ID?: string,
+ *   BETTER_STACK_TOKEN?: string,
  * }} Env
  */
 
 /** @typedef {{ waitUntil: (promise: Promise<unknown>) => void }} Context */
+
+/** @type {Record<string, ((env: Env, now: Date) => Promise<unknown>)[]>} */
+const CRON_JOBS = {
+  "17 3 * * *": [runRetention],
+  "*/5 * * * *": [refreshHealth],
+};
 
 const FEED_PATH = /^\/v1\/testimonials\/([^/]+)$/;
 const ACCOUNT_PATH = /^\/v1\/accounts\/([^/]+)\/([^/]+)$/;
@@ -107,12 +116,15 @@ export default {
    */
   email: (message, env, ctx) => handleInboundEmail(message, env, ctx),
   /**
-   * @param {{ scheduledTime: number }} controller
+   * @param {{ scheduledTime: number, cron: string }} controller
    * @param {Env} env
    * @param {Context} ctx
    * @returns {Promise<void>}
    */
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(runRetention(env, new Date(controller.scheduledTime)));
+    const now = new Date(controller.scheduledTime);
+    const jobs = CRON_JOBS[controller.cron];
+    if (!jobs) log(env, "warn", "cron.unknown");
+    for (const job of jobs ?? []) ctx.waitUntil(job(env, now));
   },
 };
