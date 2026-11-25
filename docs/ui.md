@@ -103,17 +103,19 @@ Desktop (≥ 1200px)
 2. **The verdict**, the fire underline and one plain sentence that says what the things are ("A release is waiting and two people are owed a reply. Everything else is quiet."). With nothing to do: "All clear." and "Nothing needs you. New feedback lands here and pings Discord."
 3. **Needs you:** one panel holding a row per thing, most urgent first (failing health, releases waiting, replies owed, conformance failures as those modules arrive). Each row has a 44px icon tile tinted in its kind's colour, a bold title, one line of context in `--muted`, and its actions on the right: the primary action as a filled button, a secondary one outlined. A release row sits on an `--attention` tint. Actions:
    - Release waiting: Review (opens the approval page) and Approve release.
-   - Reply owed: Reply, which opens the item with the composer open.
-   - Feedback worth quoting: Quote and Reply.
+   - Reply owed: Reply, which opens the item with the composer open (`/items/<id>?reply`).
+
+   The verdict's number is the number of rows here. Nothing else adds rows: there's no "worth quoting" signal, so Quote stays in the item toolbar.
 4. **Counts** as three pills: a display-type number and a plain label (new, open, replies owed), each linking to the inbox with that filter.
-5. **Your products:** a responsive grid (`repeat(auto-fit, minmax(min(100%, 26rem), 1fr))`) of product panels. Each panel: name, a health pill (dot plus word: Healthy, Degraded, Failing), one engagement number with its 30-day sparkline and change ("up 12% on last month"), then chips for new and open counts and a beta badge. The panel has a soft radial glow of its product colour from the top-right corner. Until Module 3 lands, the panel shows the counts only and leaves out health and engagement rather than faking them.
+5. **Your products:** a responsive grid (`repeat(auto-fit, minmax(min(100%, 26rem), 1fr))`) of product panels. Each panel: name, a health pill (dot plus word: Healthy, Degraded, Failing), one engagement number with its 30-day sparkline and change ("up 12% on last month"), then chips for new and open counts and a beta badge. The panel has a soft radial glow of its product colour from the top-right corner. Until Module 3 lands, the panel shows the name and counts only, and leaves out health, engagement and the beta badge (beta against production is Module 3, design §8) rather than faking them.
 
 ### Inbox
 
 - **Three panes from 1200px:** rail, message list (22–26rem) and the open item. **Two panes from 768px:** list and item, under the top bar. **One pane below 768px:** the list, then the item with a back link.
 - **List header:** the page title with the new count beside it, a search field, and one wrapping row of filter chips (`aria-pressed`): All, one chip per product with its colour square, Reply owed, and a "More" chip for kind and archived. This replaces the four stacked selects.
 - **Rows:** a 36px avatar in the product's tint showing the sender's initial (a "?" when there's no name), the subject (weight 700 when unread), the time, one line of preview in `--muted`, then small tags (Reply owed, Issue report, Starred). The open row sits on `--raised`. No dividers; rows are separated by space and the selection tint.
-- With nothing open, the item pane shows the newest unread item rather than an empty "pick something" message. On a phone, the list shows first.
+- `/inbox` and `/items/<id>` are the same split layout: the list stays put while items open beside it, and `/items/<id>` stays a link you can share with yourself. With nothing open, the item pane says how many are new and unread, and opens nothing by itself, because opening an item marks it read. On a phone, the list shows first.
+- The chips map onto the inbox's existing filters (product, state and kind): Reply owed is the reply-owed state, and "More" holds kind and the archived view. Search is the inbox's existing search.
 
 ### Item
 
@@ -129,7 +131,7 @@ The inbox layout without the filter chips. Each row has Not junk and Delete for 
 
 ### Releases (for Module 2)
 
-A list shaped like the inbox: one row per release waiting, showing the product colour, the repository, the environment, the version and how long it's been waiting. The open release shows the PRs included since the last approved release, CI status and a link to the run, with Approve release (primary) and Reject (outlined, with an optional note). Its exact design is settled when Module 2 is built, within this direction.
+The Releases page, its rail entry and Home's release rows arrive with Module 2, not before. A list shaped like the inbox: one row per release waiting, showing the product colour, the repository, the environment, the version and how long it's been waiting. The open release shows the PRs included since the last approved release, CI status and a link to the run, with Approve release (primary) and Reject (outlined, with an optional note). Its exact design is settled when Module 2 is built, within this direction.
 
 ## Components
 
@@ -165,6 +167,7 @@ Second person, plain verbs, sentence case. The verdict's summary sentence names 
 ## Building it
 
 - **Approach:** restyle in place. The UI stays vanilla JavaScript modules (`src/ui/`) with one stylesheet built on these tokens. Adopting a component framework or a utility-CSS framework was considered and rejected: neither fixes what's wrong (the direction and the layouts), and both add bundle weight and a dependency to screen for one user's admin tool.
-- **Product colour** becomes a field in the product registry, holding one of the named product colours, so the UI never hard-codes a product.
+- **Product colour** becomes a column on the `products` table, holding one of the named product colours, and the admin API returns it with each product, so the UI never hard-codes a product. A product with no colour, or one the UI doesn't know, shows `--muted` instead.
+- **Tests:** the end-to-end and axe suites cover every page in both themes at phone and desktop widths, as the [coding standards](coding-standards.md#web-app) already require. Health, engagement, sparklines and the beta badge are built with Module 3, not now.
 - **Home's needs-you actions** reuse the existing item, quote and reply operations. Approve release arrives with Module 2.
 - The mockups (Home, and Inbox with an item open) are on the maintainer's private design canvas. They use sample data; this document is the source of truth where the two differ.
