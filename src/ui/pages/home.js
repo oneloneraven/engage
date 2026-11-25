@@ -183,7 +183,7 @@ function productCard(slug, product, needs, redraw) {
           { class: "hub-needs", "aria-label": `${product.name}: needs you` },
           h("h3", { class: "col-title" }, "Needs you"),
           rows.length ? h("ul", { class: "queue" }, rows) : h("p", { class: "quiet" }, "Nothing needs you here."),
-          (product.replyOwed ?? 0) > OWED_SHOWN &&
+          (product.replyOwed ?? 0) > Math.min(needs.owed.length, OWED_SHOWN) &&
             h("p", null, link(`${inbox}&state=reply-owed`, `See all ${product.replyOwed} replies owed in the inbox`)),
           h(
             "ul",
