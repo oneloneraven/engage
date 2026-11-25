@@ -22,6 +22,7 @@ import { readSignals } from "../signals/read.js";
  *   messageCount: number,
  *   createdAt: string,
  *   lastActivityAt: string,
+ *   preview: string | null,
  * }} ItemSummary
  */
 
@@ -79,10 +80,27 @@ const STATE_CLAUSES = {
 };
 
 const SUMMARY_COLUMNS =
-  "id, product, (SELECT name FROM products WHERE products.slug = items.product) AS product_name, kind, source, subject, contact_email, contact_name, read_at, starred, junk, suspected_spam, archived_at, reply_owed_at, issue_number, issue_url, created_at, last_activity_at, (SELECT COUNT(*) FROM messages WHERE messages.item_id = items.id) AS message_count";
+  "id, product, (SELECT name FROM products WHERE products.slug = items.product) AS product_name, kind, source, subject, contact_email, contact_name, read_at, starred, junk, suspected_spam, archived_at, reply_owed_at, issue_number, issue_url, created_at, last_activity_at, (SELECT COUNT(*) FROM messages WHERE messages.item_id = items.id) AS message_count, (SELECT substr(body_text, 1, 2000) FROM messages WHERE messages.item_id = items.id AND direction = 'in' ORDER BY created_at, id LIMIT 1) AS preview_source";
+const PREVIEW_MAX = 140;
 
 /** @param {string} term */
 const escapeLike = term => term.replace(/[\\%_]/g, "\\$&");
+
+/**
+ * The first non-empty line of the first message they sent, cut to PREVIEW_MAX characters. Null when there's none, or
+ * when it only repeats the subject.
+ * @param {unknown} source
+ * @param {unknown} subject
+ */
+function previewOf(source, subject) {
+  const line = String(source ?? "")
+    .split(/\r?\n/)
+    .map(text => text.trim())
+    .find(Boolean);
+  if (!line || line === String(subject ?? "").trim()) return null;
+  const characters = [...line];
+  return characters.length > PREVIEW_MAX ? `${characters.slice(0, PREVIEW_MAX - 1).join("")}…` : line;
+}
 
 /**
  * @param {Record<string, unknown>} row
@@ -109,6 +127,7 @@ function toSummary(row) {
     messageCount: Number(row.message_count),
     createdAt: String(row.created_at),
     lastActivityAt: String(row.last_activity_at),
+    preview: previewOf(row.preview_source, row.subject),
   };
 }
 

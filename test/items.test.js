@@ -1,5 +1,5 @@
 import { env as baseEnv } from "cloudflare:test";
-import { beforeEach, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { counts, deleteItem, deleteItems, getItem, listItems, setFlags } from "../src/admin/items.js";
 import { makeBucket, makeEnv, resetItems } from "./helpers.js";
 
@@ -489,4 +489,43 @@ test("deleteItem on an unknown item throws not-found without calling the hook", 
     "not-found",
   );
   expect(beforeDelete).not.toHaveBeenCalled();
+});
+
+describe("list previews", () => {
+  /** @param {string} id */
+  const previewOf = async id => (await listItems(baseEnv, {})).items.find(item => item.id === id)?.preview;
+
+  test("the preview is the first non-empty line of the first inbound message", async () => {
+    await seed("p");
+    await seedMessage("p", "p2", "A later message", T(3));
+    await seedMessage("p", "p1", "\n  \n  The map is blank on my phone.  \nMore detail here.", T(2));
+    expect(await previewOf("p")).toBe("The map is blank on my phone.");
+  });
+
+  test("a long line is cut to 140 characters with an ellipsis", async () => {
+    await seed("long");
+    await seedMessage("long", "l1", "é".repeat(200));
+    expect(await previewOf("long")).toBe(`${"é".repeat(139)}…`);
+  });
+
+  test("no inbound text, or text that only repeats the subject, gives no preview", async () => {
+    await seed("blank");
+    await seedMessage("blank", "b1", "  \n \n");
+    await seed("none");
+    await seed("same", { subject: "1720 test" });
+    await seedMessage("same", "s1", "1720 test");
+    expect(await previewOf("blank")).toBeNull();
+    expect(await previewOf("none")).toBeNull();
+    expect(await previewOf("same")).toBeNull();
+  });
+
+  test("replies you sent are never the preview", async () => {
+    await seed("out");
+    await baseEnv.DB.prepare(
+      "INSERT INTO messages (id, item_id, direction, from_addr, body_text, created_at) VALUES ('o1', 'out', 'out', NULL, 'Thanks for writing', ?)",
+    )
+      .bind(T(1))
+      .run();
+    expect(await previewOf("out")).toBeNull();
+  });
 });

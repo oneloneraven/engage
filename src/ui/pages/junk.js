@@ -52,6 +52,7 @@ export function junkPage(container) {
         "a",
         { class: "row-link", href: `/items/${encodeURIComponent(item.id)}`, "data-link": "" },
         h("span", { class: "row-title" }, itemTitle(item)),
+        item.preview && h("span", { class: "row-preview" }, item.preview),
         h("span", { class: "muted" }, `${item.productName} · ${kindLabel(item.kind)} · ${formatDay(item.createdAt)}`),
       ),
       restore,
