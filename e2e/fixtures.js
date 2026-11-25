@@ -78,6 +78,63 @@ function itemSql(item, now) {
   ].join("\n");
 }
 
+const DAY_MS = 86_400_000;
+
+/**
+ * Home's signals: Climbing Logbook healthy, with 60 days of visits and beta nine days ahead; Deaftly not monitored.
+ * @param {Date} now
+ */
+function signalsSql(now) {
+  const yesterday = Date.parse(now.toISOString().slice(0, 10)) - DAY_MS;
+  const engagement = JSON.stringify([
+    {
+      source: "web-visits",
+      metric: "visits",
+      label: "Visits in the last 30 days, excluding EU visitors",
+      primary: true,
+    },
+  ]);
+  return [
+    `UPDATE products SET engagement = ${sql(engagement)} WHERE slug = 'cl';`,
+    insert("health_state", {
+      product: "cl",
+      status: "healthy",
+      reason: null,
+      link: null,
+      checked_at: now.toISOString(),
+    }),
+    insert("health_state", {
+      product: "deaftly",
+      status: "unmonitored",
+      reason: null,
+      link: null,
+      checked_at: now.toISOString(),
+    }),
+    insert("deployed_versions", {
+      product: "cl",
+      environment: "production",
+      version: "v1.14.0",
+      first_seen: new Date(now.getTime() - 20 * DAY_MS).toISOString(),
+      last_seen: now.toISOString(),
+    }),
+    insert("deployed_versions", {
+      product: "cl",
+      environment: "beta",
+      version: "v1.15.0",
+      first_seen: new Date(now.getTime() - 9 * DAY_MS).toISOString(),
+      last_seen: now.toISOString(),
+    }),
+    ...Array.from({ length: 60 }, (_, n) =>
+      insert("metric_snapshots", {
+        product: "cl",
+        metric: "visits",
+        day: new Date(yesterday - n * DAY_MS).toISOString().slice(0, 10),
+        value: n < 30 ? 12 + (n % 5) : 10,
+      }),
+    ),
+  ];
+}
+
 /** The fixture rows every e2e run starts from. Each browser gets its own items, so parallel browsers never meet. */
 export function seedSql(now = new Date()) {
   const statements = [
@@ -86,6 +143,10 @@ export function seedSql(now = new Date()) {
     "DELETE FROM messages WHERE item_id LIKE 'e2e-%';",
     "DELETE FROM items WHERE id LIKE 'e2e-%';",
     "DELETE FROM releases WHERE id LIKE 'e2e-%';",
+    "DELETE FROM health_state;",
+    "DELETE FROM deployed_versions;",
+    "DELETE FROM metric_snapshots;",
+    ...signalsSql(now),
     insert("releases", {
       id: SHARED_RELEASE,
       repo: "oneloneraven/climbing-logbook",

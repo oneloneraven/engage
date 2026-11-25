@@ -521,6 +521,23 @@ describe("GET /api/counts", () => {
     expect(counts.byProduct.cl.colour).toBe("gold");
     expect(counts.byProduct.deaftly.colour).toBe("flame");
   });
+
+  test("carries each product's signals and how many products are unhealthy", async () => {
+    await baseEnv.DB.exec("DELETE FROM health_state");
+    await baseEnv.DB.prepare(
+      "INSERT INTO health_state (product, status, reason, link, checked_at) VALUES ('cl', 'degraded', 'Climbing Logbook beta is recovering', NULL, ?)",
+    )
+      .bind(new Date().toISOString())
+      .run();
+    const counts = await (await call("GET", "/api/counts")).json();
+    expect(counts.healthFailing).toBe(1);
+    expect(counts.byProduct.cl.signals.health).toMatchObject({
+      status: "degraded",
+      reason: "Climbing Logbook beta is recovering",
+    });
+    expect(counts.byProduct.deaftly.signals.health.status).toBe("unknown");
+    await baseEnv.DB.exec("DELETE FROM health_state");
+  });
 });
 
 describe("GET /api/items/:id/attachments/:attachmentId", () => {

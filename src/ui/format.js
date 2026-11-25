@@ -22,18 +22,29 @@ export function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** @typedef {{ replyOwed: number, releasesWaiting: number }} Waiting */
+/**
+ * @typedef {{ replyOwed?: number, releasesWaiting?: number, healthFailing?: number }} Waiting
+ * @typedef {{ name: string, status: string }} Unhealthy
+ */
 
 /** @param {Waiting} waiting */
-export function verdict({ replyOwed = 0, releasesWaiting = 0 }) {
-  const total = replyOwed + releasesWaiting;
+export function verdict({ replyOwed = 0, releasesWaiting = 0, healthFailing = 0 }) {
+  const total = replyOwed + releasesWaiting + healthFailing;
   if (total <= 0) return "All clear.";
   return total === 1 ? "1 thing needs you." : `${total} things need you.`;
 }
 
-/** @param {Waiting} waiting */
-export function verdictSummary({ replyOwed = 0, releasesWaiting = 0 }) {
+/** @param {string[]} parts */
+const listOf = parts => (parts.length < 2 ? parts.join("") : `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`);
+
+/** @param {Waiting & { unhealthy?: Unhealthy[] }} waiting */
+export function verdictSummary({ replyOwed = 0, releasesWaiting = 0, unhealthy = [] }) {
   const parts = [
+    unhealthy.length === 1
+      ? `${unhealthy[0].name} is ${unhealthy[0].status}`
+      : unhealthy.length > 1
+        ? `${unhealthy.length} products need a look`
+        : "",
     releasesWaiting === 1
       ? "a release is waiting"
       : releasesWaiting > 1
@@ -42,9 +53,32 @@ export function verdictSummary({ replyOwed = 0, releasesWaiting = 0 }) {
     replyOwed === 1 ? "someone is owed a reply" : replyOwed > 1 ? `${replyOwed} people are owed a reply` : "",
   ].filter(Boolean);
   if (parts.length === 0) return "";
-  const sentence = parts.join(" and ");
+  const sentence = listOf(parts);
   return `${sentence[0].toUpperCase()}${sentence.slice(1)}. Everything else is quiet.`;
 }
+
+const HEALTH_WORDS = {
+  healthy: "Healthy",
+  degraded: "Degraded",
+  failing: "Failing",
+  unmonitored: "Not monitored",
+  unknown: "Unknown",
+};
+
+/** @param {string} status */
+export const healthWord = status => HEALTH_WORDS[/** @type {keyof typeof HEALTH_WORDS} */ (status)] ?? "Unknown";
+
+/** @param {number | null} change */
+export function changeText(change) {
+  if (change === null) return "";
+  if (change === 0) return "Same as last month";
+  return change > 0 ? `Up ${change}% on last month` : `Down ${-change}% on last month`;
+}
+
+const COUNT = new Intl.NumberFormat("en-GB");
+
+/** @param {number} value */
+export const formatCount = value => COUNT.format(value);
 
 /**
  * How long something has waited, in the largest whole unit.
@@ -93,3 +127,10 @@ export function itemHeading(item) {
   const characters = [...first];
   return characters.length > 90 ? `${characters.slice(0, 89).join("")}…` : first;
 }
+
+/**
+ * @param {{ version: string, since: string }} beta
+ * @param {number} [now]
+ */
+export const betaText = (beta, now = Date.now()) =>
+  `Beta ${beta.version}, ${waitedFor(beta.since, now)} ahead of production`;

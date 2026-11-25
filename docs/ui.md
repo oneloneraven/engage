@@ -104,10 +104,14 @@ Desktop (≥ 1200px)
 3. **Needs you:** one panel holding a row per thing, most urgent first (failing health, releases waiting, replies owed, conformance failures as those modules arrive). Each row has a 44px icon tile tinted in its kind's colour, a bold title, one line of context in `--muted`, and its actions on the right: the primary action as a filled button, a secondary one outlined. A release row sits on an `--attention` tint. Actions:
    - Release waiting: Review (opens the approval page) and Approve release.
    - Reply owed: Reply, which opens the item with the composer open (`/items/<id>?reply`).
+   - Failing or degraded health: the product and its status as the title, the reason as context, and Open in Better Stack (outlined, in a new tab) when there's a link.
 
    The verdict's number is the number of rows here. Nothing else adds rows: there's no "worth quoting" signal, so Quote stays in the item toolbar.
 4. **Counts** as three pills: a display-type number and a plain label (new, open, replies owed), each linking to the inbox with that filter.
-5. **Your products:** a responsive grid (`repeat(auto-fit, minmax(min(100%, 26rem), 1fr))`) of product panels. Each panel: name, a health pill (dot plus word: Healthy, Degraded, Failing), one engagement number with its 30-day sparkline and change ("up 12% on last month"), then chips for new and open counts and a beta badge. The panel has a soft radial glow of its product colour from the top-right corner. Until Module 3 lands, the panel shows the name and counts only, and leaves out health, engagement and the beta badge (beta against production is Module 3, design §8) rather than faking them.
+5. **Your products:** a responsive grid (`repeat(auto-fit, minmax(min(100%, 26rem), 1fr))`) of product panels. Each panel: name, a health pill (dot plus word: Healthy, Degraded, Failing), one engagement number with its 30-day sparkline and change ("up 12% on last month"), then chips for new and open counts and a beta badge. The panel has a soft radial glow of its product colour from the top-right corner.
+   - The health pill also says Not monitored (no monitors configured) or Unknown (the source couldn't be read, or the last check is over 15 minutes old). Neither is ever shown as Healthy. Under the name, a muted line gives the reason for anything other than Healthy or Not monitored.
+   - The engagement number is in display type with its label beneath, then the sparkline in the product colour, then the change. A product with no engagement source leaves the block out; one with a source but no data yet says "No data yet". The change appears only once both 30-day windows have at least 25 days of data.
+   - The beta badge appears only when beta runs a different version from production: "Beta v1.15.0, 3 days ahead of production". It's outlined, and takes the `--attention` tint once beta has been ahead for longer than the product's `beta_amber_days` (7 by default).
 
 ### Inbox
 

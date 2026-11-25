@@ -84,6 +84,66 @@ describe("home", () => {
     await expect($('article[data-product="deaftly"] a[href="/inbox?product=deaftly&state=new"]')).toHaveText("1 new");
     await browser.mockRestoreAll();
   });
+
+  it("shows each product's health, engagement and beta from the real data", async () => {
+    await browser.url("/");
+    const cl = $('article[data-product="cl"]');
+    await cl.waitForExist();
+    await expect(cl.$(".health-pill")).toHaveText("Healthy");
+    await expect(cl.$(".engagement .muted")).toHaveText("Visits in the last 30 days, excluding EU visitors");
+    await expect(cl.$(".engagement .numeral")).toHaveText("420");
+    await expect(cl.$(".change")).toHaveText("Up 40% on last month");
+    await expect(cl.$("svg.sparkline")).toBeExisting();
+    await expect(cl.$(".beta-badge.amber")).toHaveText("Beta v1.15.0, 9 days ahead of production");
+    await expect($('article[data-product="deaftly"] .health-pill')).toHaveText("Not monitored");
+    await expect($('article[data-product="deaftly"] .engagement')).not.toBeExisting();
+  });
+
+  it("puts a failing product under Needs you, linking to Better Stack", async () => {
+    const signals = (status, reason, link) => ({
+      health: { status, reason, link, checkedAt: new Date().toISOString() },
+      engagement: { label: "Visits", value: null, series: [], change: null },
+      beta: null,
+    });
+    await browser.mock("**/api/counts").then(mock =>
+      mock.respond({
+        new: 0,
+        open: 0,
+        replyOwed: 0,
+        releasesWaiting: 0,
+        healthFailing: 1,
+        byProduct: {
+          cl: {
+            name: "Climbing Logbook",
+            colour: "gold",
+            new: 0,
+            open: 0,
+            signals: signals("failing", "Climbing Logbook app is down", "https://uptime.example/monitors/1"),
+          },
+          deaftly: {
+            name: "Deaftly",
+            colour: "flame",
+            new: 0,
+            open: 0,
+            signals: signals("unknown", "Last checked 40 minutes ago", null),
+          },
+        },
+      }),
+    );
+    await browser.mock("**/api/items*").then(mock => mock.respond({ items: [], next: null }));
+    await browser.mock("**/api/releases*").then(mock => mock.respond({ releases: [] }));
+    await browser.url("/");
+    await expect($("h1")).toHaveText("1 thing needs you.");
+    await expect($(".summary")).toHaveText("Climbing Logbook is failing. Everything else is quiet.");
+    const healthRow = $(".health-row");
+    await expect(healthRow).toHaveText(expect.stringContaining("Climbing Logbook app is down"));
+    await expect(healthRow.$("a")).toHaveAttribute("href", "https://uptime.example/monitors/1");
+    await expect(healthRow.$("a")).toHaveAttribute("rel", "noopener noreferrer");
+    await expect($('article[data-product="cl"] .health-pill')).toHaveText("Failing");
+    await expect($('article[data-product="deaftly"] .health-reason')).toHaveText("Last checked 40 minutes ago");
+    await expect($('article[data-product="cl"] .engagement .numeral')).toHaveText("No data yet");
+    await expect($('article[data-product="cl"] svg.sparkline')).not.toBeExisting();
+  });
 });
 
 describe("releases", () => {
