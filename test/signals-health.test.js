@@ -154,7 +154,7 @@ test("a next page on another host isn't followed, so the token never leaves Bett
     monitors: [monitorPage({ 101: "up", 102: "up" }, "https://elsewhere.example/api/v2/monitors?page=2")],
   });
   await refreshHealth(testEnv(), NOW);
-  expect(calls.some(call => call.url.startsWith("https://elsewhere.example"))).toBe(false);
+  expect(calls.every(call => new URL(call.url).origin === "https://incidents.betterstack.com")).toBe(true);
   expect(await stateOf("cl")).toMatchObject({ status: "unknown", reason: "Couldn't reach Better Stack" });
 });
 
