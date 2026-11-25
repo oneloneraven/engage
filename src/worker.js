@@ -10,6 +10,7 @@ import { forbidden, json, notFound } from "./lib/http.js";
 import { log } from "./lib/log.js";
 import { runRetention } from "./retention.js";
 import { refreshHealth } from "./signals/health.js";
+import { refreshVersions } from "./signals/versions.js";
 
 /**
  * @typedef {{
@@ -49,7 +50,7 @@ import { refreshHealth } from "./signals/health.js";
 /** @type {Record<string, ((env: Env, now: Date) => Promise<unknown>)[]>} */
 const CRON_JOBS = {
   "17 3 * * *": [runRetention],
-  "*/5 * * * *": [refreshHealth],
+  "*/5 * * * *": [refreshHealth, refreshVersions],
 };
 
 const FEED_PATH = /^\/v1\/testimonials\/([^/]+)$/;
