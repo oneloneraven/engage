@@ -1,3 +1,4 @@
+import { readConformance } from "../conformance/read.js";
 import * as v from "valibot";
 import { recordAudit } from "../audit.js";
 import { sendReply } from "../email/outbound.js";
@@ -251,6 +252,11 @@ async function releasesList({ env, url }) {
 }
 
 /** @param {RouteContext} context */
+async function repositoriesRead({ env }) {
+  return json(await readConformance(env, new Date()));
+}
+
+/** @param {RouteContext} context */
 async function productPageRead({ env, params: [route, path] }) {
   const row = await env.DB.prepare("SELECT slug FROM products WHERE route = ?").bind(route).first();
   const reader = row && productReader(String(row.slug), path);
@@ -350,6 +356,7 @@ const ROUTES = [
   { pattern: /^\/api\/testimonials\/([^/]+)\/withdraw$/, handlers: { POST: testimonialWithdraw } },
   { pattern: /^\/api\/blocklist$/, handlers: { POST: blocklistAdd } },
   { pattern: /^\/api\/counts$/, handlers: { GET: countsRead } },
+  { pattern: /^\/api\/repositories$/, handlers: { GET: repositoriesRead } },
   { pattern: /^\/api\/products\/([a-z0-9-]+)$/, handlers: { GET: productRead } },
   { pattern: /^\/api\/products\/([a-z0-9-]+)\/([a-z0-9-]+)$/, handlers: { GET: productPageRead } },
   { pattern: /^\/api\/releases$/, handlers: { GET: releasesList } },

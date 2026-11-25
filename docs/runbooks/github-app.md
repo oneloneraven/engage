@@ -8,6 +8,7 @@ Engage uses its own App, `oneloneraven-engage`, separate from the board-sync and
 | Deployments | Read and write | Approving releases (Plan 2) |
 | Actions | Read | Run details on the approval page (Plan 2) |
 | Administration, Contents | Read | Conformance checks (Plan 4) |
+| Secrets | Read | Conformance: the names of Actions secrets, to spot a long-lived Cloudflare deploy secret. GitHub never returns values |
 | Metadata | Read | Required by GitHub |
 
 Events: Issues, Deployment protection rule. Webhook: `https://engage-api.oneloneraven.com/v1/github/webhook`.
@@ -24,6 +25,14 @@ node scripts/create-github-app.mjs
 4. It sets the production Worker secrets `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `GITHUB_WEBHOOK_SECRET` from Pass. Nothing secret is printed.
 
 To set the Worker secrets again from Pass: `node scripts/create-github-app.mjs --set-worker-secrets`.
+
+## Grant Secrets read (conformance)
+
+Until this is done, every repository's "No long-lived Cloudflare secret" check shows Unknown: "Engage can't read secrets: grant Secrets read".
+
+1. In the App's settings (**Organisation settings → Developer settings → GitHub Apps → oneloneraven-engage → Permissions & events**), set **Repository permissions → Secrets** to **Read-only**, then save.
+2. GitHub asks the organisation to accept the new permission: open **Organisation settings → GitHub Apps → oneloneraven-engage**, review the request, and accept it.
+3. The next daily run (03:17 UTC) reads secret names. Nothing secret is stored or shown.
 
 ## Rotate the key
 
