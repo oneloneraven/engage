@@ -3,12 +3,17 @@ import { h, replace } from "./dom.js";
 
 /** @type {HTMLElement | null} */
 let nav = null;
-/** @type {[string, string][]} */
+/** @type {{ slug: string, name: string, colour: string }[]} */
 let products = [];
+let newCount = 0;
 
-/** @param {string} href @param {string} label @param {boolean} current */
-function navLink(href, label, current) {
-  return h("a", { href, "data-link": "", ...(current && { "aria-current": "page" }) }, label);
+/**
+ * @param {string} href
+ * @param {boolean} current
+ * @param {...import("./dom.js").Child} children
+ */
+function navLink(href, current, ...children) {
+  return h("a", { href, "data-link": "", ...(current && { "aria-current": "page" }) }, ...children);
 }
 
 /**
@@ -50,7 +55,12 @@ export function mountShell() {
   let lastQuery = new URLSearchParams();
   getCounts()
     .then(counts => {
-      products = Object.entries(counts.byProduct).map(([slug, { name }]) => [slug, name]);
+      products = Object.entries(counts.byProduct).map(([slug, { name, colour }]) => ({
+        slug,
+        name,
+        colour: colour ?? "",
+      }));
+      newCount = counts.new;
       draw(lastPath, lastQuery);
     })
     .catch(() => {});
@@ -71,17 +81,36 @@ export function mountShell() {
       h(
         "ul",
         { class: "nav-list" },
-        h("li", null, navLink("/", "Home", path === "/")),
-        h("li", null, navLink("/inbox", "Inbox", inInbox && !product)),
-        h("li", null, navLink("/junk", "Junk", path === "/junk")),
+        h("li", null, navLink("/", path === "/", "Home")),
+        h(
+          "li",
+          null,
+          navLink(
+            "/inbox",
+            inInbox && !product,
+            h("span", { class: "nav-label" }, "Inbox"),
+            newCount > 0 &&
+              h("span", { class: "badge" }, String(newCount), h("span", { class: "visually-hidden" }, " new")),
+          ),
+        ),
+        h("li", null, navLink("/junk", path === "/junk", "Junk")),
       ),
       products.length > 0 && h("h2", { class: "nav-heading" }, "Products"),
       products.length > 0 &&
         h(
           "ul",
           { class: "nav-list" },
-          products.map(([slug, name]) =>
-            h("li", null, navLink(`/inbox?product=${encodeURIComponent(slug)}`, name, inInbox && product === slug)),
+          products.map(({ slug, name, colour }) =>
+            h(
+              "li",
+              { "data-colour": colour },
+              navLink(
+                `/inbox?product=${encodeURIComponent(slug)}`,
+                inInbox && product === slug,
+                h("span", { class: "swatch", "aria-hidden": "true" }),
+                name,
+              ),
+            ),
           ),
         ),
     );
