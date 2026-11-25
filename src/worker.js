@@ -10,6 +10,7 @@ import { forbidden, json, notFound } from "./lib/http.js";
 import { log } from "./lib/log.js";
 import { runRetention } from "./retention.js";
 import { refreshHealth } from "./signals/health.js";
+import { snapshotMetrics } from "./signals/metrics.js";
 import { refreshVersions } from "./signals/versions.js";
 
 /**
@@ -42,6 +43,9 @@ import { refreshVersions } from "./signals/versions.js";
  *   CLOUDFLARE_BROKER_TOKEN?: string,
  *   CLOUDFLARE_ACCOUNT_ID?: string,
  *   BETTER_STACK_TOKEN?: string,
+ *   CLOUDFLARE_ANALYTICS_TOKEN?: string,
+ *   CL_USAGE_CLIENT_ID?: string,
+ *   CL_USAGE_CLIENT_SECRET?: string,
  * }} Env
  */
 
@@ -49,7 +53,7 @@ import { refreshVersions } from "./signals/versions.js";
 
 /** @type {Record<string, ((env: Env, now: Date) => Promise<unknown>)[]>} */
 const CRON_JOBS = {
-  "17 3 * * *": [runRetention],
+  "17 3 * * *": [runRetention, snapshotMetrics],
   "*/5 * * * *": [refreshHealth, refreshVersions],
 };
 
