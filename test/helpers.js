@@ -40,6 +40,7 @@ export function makeEnv(overrides = {}) {
     INTAKE_WEB_LIMITER: makeLimiter(),
     INTAKE_APP_LIMITER: makeLimiter(),
     ACCOUNT_LIMITER: makeLimiter(),
+    BROKER_LIMITER: makeLimiter(),
     ...overrides,
   };
 }
