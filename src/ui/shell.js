@@ -6,6 +6,7 @@ let nav = null;
 /** @type {{ slug: string, name: string, colour: string }[]} */
 let products = [];
 let newCount = 0;
+let releasesWaiting = 0;
 
 /**
  * @param {string} href
@@ -61,6 +62,7 @@ export function mountShell() {
         colour: colour ?? "",
       }));
       newCount = counts.new;
+      releasesWaiting = counts.releasesWaiting;
       draw(lastPath, lastQuery);
     })
     .catch(() => {});
@@ -91,6 +93,22 @@ export function mountShell() {
             h("span", { class: "nav-label" }, "Inbox"),
             newCount > 0 &&
               h("span", { class: "badge" }, String(newCount), h("span", { class: "visually-hidden" }, " new")),
+          ),
+        ),
+        h(
+          "li",
+          null,
+          navLink(
+            "/releases",
+            path === "/releases" || path.startsWith("/releases/"),
+            h("span", { class: "nav-label" }, "Releases"),
+            releasesWaiting > 0 &&
+              h(
+                "span",
+                { class: "badge attention" },
+                String(releasesWaiting),
+                h("span", { class: "visually-hidden" }, " waiting"),
+              ),
           ),
         ),
         h("li", null, navLink("/junk", path === "/junk", "Junk")),

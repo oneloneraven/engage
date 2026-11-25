@@ -1,5 +1,5 @@
 import { $, $$, browser, expect } from "@wdio/globals";
-import { CONSENT_MESSAGE, HOSTILE_MESSAGE, ISSUE_URL, SHARED_OWED, idsFor } from "./fixtures.js";
+import { CONSENT_MESSAGE, HOSTILE_MESSAGE, ISSUE_URL, SHARED_OWED, SHARED_RELEASE, idsFor } from "./fixtures.js";
 
 const ids = () => idsFor(String(browser.capabilities.browserName));
 const row = id => $(`li[data-id="${id}"]`);
@@ -15,10 +15,17 @@ async function openItem(id) {
 
 const toolbarButton = name => $(".toolbar").$(`button=${name}`);
 
+afterEach(async () => {
+  await browser.mockRestoreAll();
+});
+
 describe("home", () => {
   it("says what needs you, from the real data", async () => {
     await browser.url("/");
-    await expect($("h1")).toHaveText("1 thing needs you.");
+    await expect($("h1")).toHaveText("2 things need you.");
+    await expect($(".summary")).toHaveText(
+      "A release is waiting and someone is owed a reply. Everything else is quiet.",
+    );
     const needsRow = $(`a[href="/items/${SHARED_OWED}"]`).parentElement();
     await expect(needsRow).toHaveText(expect.stringContaining("The map is blank"));
     await expect(needsRow).toHaveText(expect.stringContaining("Climbing Logbook"));
@@ -33,8 +40,11 @@ describe("home", () => {
   });
 
   it("says all clear when nothing is owed", async () => {
-    await browser.mock("**/api/counts").then(mock => mock.respond({ new: 0, open: 0, replyOwed: 0, byProduct: {} }));
+    await browser
+      .mock("**/api/counts")
+      .then(mock => mock.respond({ new: 0, open: 0, replyOwed: 0, releasesWaiting: 0, byProduct: {} }));
     await browser.mock("**/api/items*").then(mock => mock.respond({ items: [], next: null }));
+    await browser.mock("**/api/releases*").then(mock => mock.respond({ releases: [] }));
     await browser.url("/");
     await expect($("h1")).toHaveText("All clear.");
     await expect($("section[aria-labelledby=needs-you] .empty")).toHaveText(
@@ -49,12 +59,14 @@ describe("home", () => {
         new: 3,
         open: 5,
         replyOwed: 2,
+        releasesWaiting: 0,
         byProduct: {
           cl: { name: "Climbing Logbook", new: 2, open: 3 },
           deaftly: { name: "Deaftly", new: 1, open: 2 },
         },
       }),
     );
+    await browser.mock("**/api/releases*").then(mock => mock.respond({ releases: [] }));
     await browser.url("/");
     await expect($("h1")).toHaveText("2 things need you.");
     for (const [label, state, count] of [
@@ -71,6 +83,45 @@ describe("home", () => {
     await expect($('article[data-product="cl"] a[href="/inbox?product=cl&state=open"]')).toHaveText("3 open");
     await expect($('article[data-product="deaftly"] a[href="/inbox?product=deaftly&state=new"]')).toHaveText("1 new");
     await browser.mockRestoreAll();
+  });
+});
+
+describe("releases", () => {
+  it("shows a waiting release in the rail, on Home and on its own page", async () => {
+    await browser.url("/");
+    const badge = $('a[href="/releases"] .badge');
+    await badge.waitForExist();
+    expect(await badge.getProperty("textContent")).toBe("1 waiting");
+    const title = $(`.release-row .grow a[href="/releases/${SHARED_RELEASE}"]`);
+    await expect(title).toHaveText("Climbing Logbook v1.14.0 is waiting to go to production");
+    await title.click();
+    await expect($("h2.item-title")).toHaveText("Climbing Logbook v1.14.0 to production");
+    await expect($(".panel").$("button=Approve release")).toBeExisting();
+  });
+
+  it("asks before rejecting, and shows GitHub's answer when the run no longer waits", async () => {
+    await browser
+      .mock(`**/api/releases/${SHARED_RELEASE}/reject`, { method: "post" })
+      .then(mock => mock.respond({ error: "release-expired" }, { statusCode: 409 }));
+    await browser.url(`/releases/${SHARED_RELEASE}`);
+    await $(".panel").$("button=Reject").click();
+    await expect($(".confirm")).toHaveText(expect.stringContaining("Reject this release?"));
+    await $("button=Keep it waiting").click();
+    await expect($(".panel").$("button=Approve release")).toBeExisting();
+    await $(".panel").$("button=Reject").click();
+    await $("button=Reject release").click();
+    await expect($(".error")).toHaveText("GitHub no longer waits on this run: start it again.");
+    await browser.mockRestoreAll();
+  });
+
+  it("approves with a note", async () => {
+    const approve = await browser.mock(`**/api/releases/${SHARED_RELEASE}/approve`, { method: "post" });
+    approve.respond({ release: { id: SHARED_RELEASE, state: "approved" } });
+    await browser.url(`/releases/${SHARED_RELEASE}`);
+    await $("#release-note").setValue("Ship it");
+    await $(".panel").$("button=Approve release").click();
+    await browser.waitUntil(async () => approve.calls.length > 0);
+    expect(approve.calls[0].postData).toBe(JSON.stringify({ note: "Ship it" }));
   });
 });
 

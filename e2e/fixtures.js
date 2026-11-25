@@ -7,6 +7,7 @@ export const FORMATTED_HTML =
   '<p id="formatted" style="color: rgb(160, 0, 0)">Formatted hello</p>' +
   "<script>document.body.insertAdjacentHTML('beforeend', '<p id=\"ran\">Script ran</p>')</script>";
 export const ISSUE_URL = "https://github.com/oneloneraven/climbing-logbook/issues/7";
+export const SHARED_RELEASE = "e2e-shared-release";
 
 /** @param {string} browserName */
 export function idsFor(browserName) {
@@ -84,6 +85,20 @@ export function seedSql(now = new Date()) {
     "DELETE FROM attachments WHERE item_id LIKE 'e2e-%';",
     "DELETE FROM messages WHERE item_id LIKE 'e2e-%';",
     "DELETE FROM items WHERE id LIKE 'e2e-%';",
+    "DELETE FROM releases WHERE id LIKE 'e2e-%';",
+    insert("releases", {
+      id: SHARED_RELEASE,
+      repo: "oneloneraven/climbing-logbook",
+      product: "cl",
+      environment: "production",
+      sha: "e2e0000000000000000000000000000000000000",
+      ref: "v1.14.0",
+      run_id: 4242,
+      callback_url:
+        "https://api.github.com/repos/oneloneraven/climbing-logbook/actions/runs/4242/deployment_protection_rule",
+      installation_id: 7,
+      created_at: new Date(now.getTime() - 20 * 60_000).toISOString(),
+    }),
     itemSql(
       {
         id: SHARED_OWED,

@@ -258,6 +258,11 @@ main:focus,
   text-align: center;
 }
 
+.badge.attention {
+  background: var(--attention);
+  color: var(--on-attention);
+}
+
 .swatch {
   flex: none;
   width: 10px;
@@ -375,6 +380,42 @@ main {
 .queue-row .muted {
   margin-top: 0.125rem;
   font-size: 1rem;
+}
+
+.release-row {
+  background: color-mix(in srgb, var(--attention) 8%, transparent);
+}
+
+.release-row .status:not(:empty) {
+  margin-top: 0.5rem;
+}
+
+.pulls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  max-width: 72ch;
+}
+
+.item-chips .checks.success::before,
+.item-chips .checks.failure::before,
+.item-chips .checks.pending::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background: var(--text);
+}
+
+.item-chips .checks.failure::before {
+  background: var(--danger);
+}
+
+.item-chips .checks.pending::before {
+  background: var(--attention);
 }
 
 .tile {
@@ -755,6 +796,18 @@ button.primary,
 button.primary:hover,
 .button.primary:hover {
   background: color-mix(in srgb, var(--primary) 85%, var(--ink));
+}
+
+button.attention {
+  padding: 0 1.25rem;
+  background: var(--attention);
+  border-color: var(--attention);
+  color: var(--on-attention);
+  font-weight: 700;
+}
+
+button.attention:hover {
+  background: color-mix(in srgb, var(--attention) 85%, var(--ink));
 }
 
 button.danger {

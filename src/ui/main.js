@@ -2,6 +2,7 @@ import { h } from "./dom.js";
 import { homePage } from "./pages/home.js";
 import { inboxPage } from "./pages/inbox.js";
 import { junkPage } from "./pages/junk.js";
+import { releasesPage } from "./pages/releases.js";
 import { createRouter } from "./router.js";
 import { mountShell } from "./shell.js";
 
@@ -14,6 +15,8 @@ const router = createRouter({
     { key: "inbox", pattern: /^\/inbox$/, mount: inboxPage },
     { key: "inbox", pattern: /^\/items\/([^/]+)$/, mount: inboxPage },
     { key: "junk", pattern: /^\/junk$/, mount: junkPage },
+    { key: "releases", pattern: /^\/releases$/, mount: releasesPage },
+    { key: "releases", pattern: /^\/releases\/([^/]+)$/, mount: releasesPage },
   ],
   notFound: container => {
     document.title = "Not found – Engage";
