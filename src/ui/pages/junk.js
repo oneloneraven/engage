@@ -3,11 +3,13 @@ import { emptyState, failure, guarded, h, loading, prefersReducedMotion, replace
 import { formatDay, itemTitle, kindLabel } from "../format.js";
 
 /**
+ * One product's junk, a view of its inbox.
  * @param {HTMLElement} container
+ * @param {{ product: { slug: string, name: string }, base: string }} options
  * @returns {import("../router.js").Page}
  */
-export function junkPage(container) {
-  document.title = "Junk – Engage";
+export function junkPage(container, { product, base }) {
+  document.title = `Junk – ${product.name} – Engage`;
   const status = h("div", { class: "status" });
   const list = h("ul", { class: "rows plain" });
   const body = h("div", null, loading());
@@ -16,7 +18,8 @@ export function junkPage(container) {
     h(
       "div",
       { class: "page" },
-      h("h1", { class: "page-title" }, "Junk"),
+      h("p", { class: "back-to" }, h("a", { href: base, "data-link": "" }, "Back to the inbox")),
+      h("h2", { class: "page-title" }, "Junk"),
       h("p", { class: "muted" }, "Spam and anything you've marked as junk. Engage deletes it after 30 days."),
       status,
       body,
@@ -50,10 +53,10 @@ export function junkPage(container) {
     li.append(
       h(
         "a",
-        { class: "row-link", href: `/items/${encodeURIComponent(item.id)}`, "data-link": "" },
+        { class: "row-link", href: `${base}/${encodeURIComponent(item.id)}`, "data-link": "" },
         h("span", { class: "row-title" }, itemTitle(item)),
         item.preview && h("span", { class: "row-preview" }, item.preview),
-        h("span", { class: "muted" }, `${item.productName} · ${kindLabel(item.kind)} · ${formatDay(item.createdAt)}`),
+        h("span", { class: "muted" }, `${kindLabel(item.kind)}, ${formatDay(item.createdAt)}`),
       ),
       restore,
     );
@@ -66,7 +69,7 @@ export function junkPage(container) {
 
   async function load() {
     try {
-      const page = await listItems(cursor ? { state: "junk", cursor } : { state: "junk" });
+      const page = await listItems({ state: "junk", product: product.slug, ...(cursor && { cursor }) });
       if (!alive) return;
       cursor = page.next;
       list.append(...page.items.map(row));

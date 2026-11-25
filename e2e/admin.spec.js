@@ -8,9 +8,13 @@ async function listLoaded() {
   await browser.waitUntil(async () => (await $$("ul.rows li")).length > 0 || (await $$(".empty")).length > 0);
 }
 
+const CL_INBOX = "/climbing-logbook/inbox";
+const DEAFTLY_INBOX = "/deaftly/inbox";
+
+/** Opens an item through its old address, which sends you to it inside its product's hub. */
 async function openItem(id) {
   await browser.url(`/items/${id}`);
-  await $("h1.item-title").waitForExist();
+  await $(".item-title").waitForExist();
 }
 
 const toolbarButton = name => $(".toolbar").$(`button=${name}`);
@@ -26,7 +30,7 @@ describe("home", () => {
     await expect($(".summary")).toHaveText("Climbing Logbook has 2. Deaftly is quiet.");
     const cl = $('article[data-product="cl"]');
     await expect(cl).toHaveElementClass("needs");
-    await expect(cl.$(`a[href="/items/${SHARED_OWED}"]`)).toHaveText("The map is blank");
+    await expect(cl.$(`a[href="${CL_INBOX}/${SHARED_OWED}"]`)).toHaveText("The map is blank");
     await expect(cl.$(".release-row")).toBeExisting();
     await expect($('article[data-product="deaftly"]')).not.toHaveElementClass("needs");
     await expect($('article[data-product="deaftly"] .hub-needs .quiet')).toHaveText(
@@ -36,10 +40,10 @@ describe("home", () => {
 
   it("opens the item with the reply composer ready from a needs-you row", async () => {
     await browser.url("/");
-    await $(`a[href="/items/${SHARED_OWED}?reply"]`).click();
+    await $(`a[href="${CL_INBOX}/${SHARED_OWED}?reply"]`).click();
     await $("#reply-text").waitForExist();
     await expect($("#reply-text")).toBeFocused();
-    expect(await browser.getUrl()).toContain(`/items/${SHARED_OWED}?reply`);
+    expect(await browser.getUrl()).toContain(`${CL_INBOX}/${SHARED_OWED}?reply`);
   });
 
   it("says all clear when nothing is owed", async () => {
@@ -62,8 +66,8 @@ describe("home", () => {
         replyOwed: 6,
         releasesWaiting: 0,
         byProduct: {
-          cl: { name: "Climbing Logbook", new: 2, open: 3, replyOwed: 5 },
-          deaftly: { name: "Deaftly", new: 1, open: 2, replyOwed: 1 },
+          cl: { name: "Climbing Logbook", route: "climbing-logbook", new: 2, open: 3, replyOwed: 5 },
+          deaftly: { name: "Deaftly", route: "deaftly", new: 1, open: 2, replyOwed: 1 },
         },
       }),
     );
@@ -72,13 +76,13 @@ describe("home", () => {
     await browser.url("/");
     await expect($("h1")).toHaveText("6 things need you.");
     await expect($(".summary")).toHaveText("Climbing Logbook has 5 and Deaftly has 1.");
-    await expect($('article[data-product="cl"] a[href="/inbox?product=cl&state=reply-owed"]')).toHaveText(
+    await expect($(`article[data-product="cl"] a[href="${CL_INBOX}?state=reply-owed"]`)).toHaveText(
       "See all 5 replies owed in the inbox",
     );
     await expect($('article[data-product="cl"]')).toHaveText(expect.stringContaining("Climbing Logbook"));
-    await expect($('article[data-product="cl"] a[href="/inbox?product=cl&state=new"]')).toHaveText("2 new");
-    await expect($('article[data-product="cl"] a[href="/inbox?product=cl&state=open"]')).toHaveText("3 open");
-    await expect($('article[data-product="deaftly"] a[href="/inbox?product=deaftly&state=new"]')).toHaveText("1 new");
+    await expect($(`article[data-product="cl"] a[href="${CL_INBOX}?state=new"]`)).toHaveText("2 new");
+    await expect($(`article[data-product="cl"] a[href="${CL_INBOX}?state=open"]`)).toHaveText("3 open");
+    await expect($(`article[data-product="deaftly"] a[href="${DEAFTLY_INBOX}?state=new"]`)).toHaveText("1 new");
     await browser.mockRestoreAll();
   });
 
@@ -112,6 +116,7 @@ describe("home", () => {
         byProduct: {
           cl: {
             name: "Climbing Logbook",
+            route: "climbing-logbook",
             colour: "gold",
             new: 0,
             open: 0,
@@ -120,6 +125,7 @@ describe("home", () => {
           },
           deaftly: {
             name: "Deaftly",
+            route: "deaftly",
             colour: "flame",
             new: 0,
             open: 0,
@@ -187,7 +193,7 @@ describe("releases", () => {
 describe("inbox", () => {
   it("shows the first line of what they wrote under each row, as text", async () => {
     const { noEmail, hostile } = ids();
-    await browser.url("/inbox");
+    await browser.url(CL_INBOX);
     await listLoaded();
     await expect(row(noEmail).$(".row-preview")).toHaveText("I could not find the export button.");
     await expect(row(hostile).$(".row-preview")).toHaveText("<img src=x onerror=alert(1)>");
@@ -196,7 +202,7 @@ describe("inbox", () => {
 
   it("filters by search text, and keeps the filter across a reload", async () => {
     const { unread, star } = ids();
-    await browser.url("/inbox");
+    await browser.url(CL_INBOX);
     await listLoaded();
     await expect(row(star)).toBeExisting();
     await $("#filter-q").setValue(`Unread subject ${browser.capabilities.browserName}`);
@@ -209,36 +215,67 @@ describe("inbox", () => {
     await expect(row(star)).not.toBeExisting();
   });
 
-  it("filters by product, kind and state", async () => {
-    const { consent, email, hostile } = ids();
-    await browser.url("/inbox");
+  it("shows only its own product's items, and filters by kind and state", async () => {
+    const { consent, email, hostile, noEmail } = ids();
+    await browser.url(DEAFTLY_INBOX);
     await listLoaded();
-    await $(".filter-chips").$("button=Deaftly").click();
-    await expect($(".filter-chips").$("button=Deaftly")).toHaveAttribute("aria-pressed", "true");
-    await browser.waitUntil(async () => !(await row(hostile).isExisting()));
     await expect(row(consent)).toBeExisting();
     await expect(row(email)).toBeExisting();
+    await expect(row(hostile)).not.toBeExisting();
     await $(".search-row").$("button=More filters").click();
     await $("#filter-kind").selectByAttribute("value", "email");
     await browser.waitUntil(async () => !(await row(consent).isExisting()));
     await expect(row(email)).toBeExisting();
-    await $("#filter-kind").selectByAttribute("value", "");
-    await $(".filter-chips").$("button=All").click();
+    await browser.url(CL_INBOX);
+    await listLoaded();
+    await expect(row(noEmail)).toBeExisting();
     await $(".filter-chips").$("button=Reply owed").click();
-    await browser.waitUntil(async () => !(await row(email).isExisting()));
+    await browser.waitUntil(async () => !(await row(noEmail).isExisting()));
     await expect(row(SHARED_OWED)).toBeExisting();
-    expect(await browser.getUrl()).toContain("state=reply-owed");
+    expect(await browser.getUrl()).toContain(`${CL_INBOX}?state=reply-owed`);
+  });
+
+  it("sends the old inbox address to the product's inbox, and anything else to search", async () => {
+    await browser.url("/inbox?product=deaftly&state=reply-owed");
+    await browser.waitUntil(async () => (await browser.getUrl()).includes(`${DEAFTLY_INBOX}?state=reply-owed`));
+    await browser.url("/inbox?q=export");
+    await browser.waitUntil(async () => (await browser.getUrl()).includes("/search?q=export"));
+  });
+
+  it("searches every product and opens a result in its own hub", async () => {
+    const { noEmail } = ids();
+    await browser.url(`/search?q=${encodeURIComponent(`No email ${browser.capabilities.browserName}`)}`);
+    const result = $(`.search-results li[data-id="${noEmail}"] a`);
+    await expect(result).toHaveAttribute("href", `${CL_INBOX}/${noEmail}`);
+    await expect(result).toHaveText(expect.stringContaining("Climbing Logbook"));
+    await result.click();
+    await expect($(".item-title")).toHaveText(`No email ${browser.capabilities.browserName}`);
+    await expect($(".hub-tabs [aria-current=page]")).toHaveText("Inbox");
+  });
+
+  it("switches product from the top bar", async () => {
+    await browser.url("/climbing-logbook");
+    await expect($("h1")).toHaveText("Climbing Logbook");
+    await $(".switcher summary").click();
+    await $(".switcher").$("a=Deaftly").click();
+    await expect($("h1")).toHaveText("Deaftly");
+    expect(new URL(await browser.getUrl()).pathname).toBe("/deaftly");
+  });
+
+  it("shows not found for a product nobody has", async () => {
+    await browser.url("/no-such-product");
+    await expect($("h1")).toHaveText("Not found");
   });
 
   it("marks an item read when it is opened", async () => {
     const { unread } = ids();
     const search = encodeURIComponent(`Unread subject ${browser.capabilities.browserName}`);
-    await browser.url(`/inbox?q=${search}`);
+    await browser.url(`${CL_INBOX}?q=${search}`);
     await expect(row(unread)).toHaveAttribute("data-unread", "true");
     await row(unread).$("a").click();
-    await expect($("h1.item-title")).toHaveText(`Unread subject ${browser.capabilities.browserName}`);
+    await expect($(".item-title")).toHaveText(`Unread subject ${browser.capabilities.browserName}`);
     await browser.waitUntil(async () => (await row(unread).getAttribute("data-unread")) === null);
-    await browser.url(`/inbox?state=new&q=${search}`);
+    await browser.url(`${CL_INBOX}?state=new&q=${search}`);
     await listLoaded();
     await expect(row(unread)).not.toBeExisting();
   });
@@ -307,7 +344,7 @@ describe("item", () => {
 
   it("shows the formatted version only on request, in a sandbox that runs nothing", async () => {
     const page = await browser.url(`/items/${ids().email}`);
-    await $("h1.item-title").waitForExist();
+    await $(".item-title").waitForExist();
     await expect($(".formatted iframe")).not.toBeExisting();
     await $("button=Show formatted").click();
     await expect($(".formatted iframe")).toHaveAttribute("sandbox", "");
@@ -368,7 +405,7 @@ describe("item", () => {
     await toolbarButton("Star").click();
     await browser.waitUntil(async () => (await toolbarButton("Star").getAttribute("aria-pressed")) === "true");
     await browser.refresh();
-    await $("h1.item-title").waitForExist();
+    await $(".item-title").waitForExist();
     await expect(toolbarButton("Star")).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -394,9 +431,9 @@ describe("item", () => {
     await expect($(".confirm")).not.toBeExisting();
     await toolbarButton("Delete").click();
     await $("button=Delete for good").click();
-    await browser.waitUntil(async () => new URL(await browser.getUrl()).pathname === "/inbox");
+    await browser.waitUntil(async () => new URL(await browser.getUrl()).pathname === CL_INBOX);
     await expect(row(remove)).not.toBeExisting();
-    await expect($("h1.item-title")).not.toBeExisting();
+    await expect($(".item-title")).not.toBeExisting();
     await expect($(".split")).not.toHaveElementClass("has-item");
     await expect($(".detail-pane .empty")).toBeExisting();
     const status = await browser.execute(async id => (await fetch(`/api/items/${id}`)).status, remove);
@@ -407,12 +444,15 @@ describe("item", () => {
 describe("junk", () => {
   it("lists junk and moves an item back", async () => {
     const { junk } = ids();
-    await browser.url("/junk");
+    await browser.url(CL_INBOX);
+    await listLoaded();
+    await $(".filter-chips").$("button=Junk").click();
+    await expect($(".hub-body h2")).toHaveText("Junk");
     await expect(row(junk)).toBeExisting();
     await expect($("button=Show more")).not.toBeDisplayed();
     await row(junk).$("button=Not junk").click();
     await browser.waitUntil(async () => !(await row(junk).isExisting()));
-    await browser.url(`/inbox?q=${encodeURIComponent(`Cheap pills ${browser.capabilities.browserName}`)}`);
+    await browser.url(`${CL_INBOX}?q=${encodeURIComponent(`Cheap pills ${browser.capabilities.browserName}`)}`);
     await expect(row(junk)).toBeExisting();
   });
 });

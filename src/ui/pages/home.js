@@ -28,9 +28,12 @@ let swept = false;
  * @typedef {import("../api.js").Release} Release
  */
 
-/** @param {ItemSummary} item */
-function owedRow(item) {
-  const href = `/items/${encodeURIComponent(item.id)}`;
+/**
+ * @param {ItemSummary} item
+ * @param {string} inbox the product's inbox path
+ */
+function owedRow(item, inbox) {
+  const href = `${inbox}/${encodeURIComponent(item.id)}`;
   const title = itemTitle(item);
   return h(
     "li",
@@ -142,15 +145,16 @@ function engagementBlock(engagement) {
  * @param {{ owed: ItemSummary[], releases: Release[] }} needs
  * @param {() => void} redraw
  */
-function productCard(slug, product, needs, redraw) {
-  const inbox = `/inbox?product=${encodeURIComponent(slug)}`;
+export function productCard(slug, product, needs, redraw) {
+  const hub = `/${encodeURIComponent(product.route ?? slug)}`;
+  const inbox = `${hub}/inbox`;
   const signals = product.signals;
   const health = signals?.health;
   const unhealthy = UNHEALTHY.includes(health?.status ?? "");
   const rows = [
     unhealthy && healthRow(product),
     ...needs.releases.map(release => releaseRow(release, redraw)),
-    ...needs.owed.slice(0, OWED_SHOWN).map(owedRow),
+    ...needs.owed.slice(0, OWED_SHOWN).map(item => owedRow(item, inbox)),
   ].filter(Boolean);
   const titleId = `product-${slug}`;
   return h(
@@ -171,7 +175,7 @@ function productCard(slug, product, needs, redraw) {
           "h2",
           { class: "product-name", id: titleId },
           h("span", { class: "swatch", "aria-hidden": "true" }),
-          link(inbox, product.name),
+          link(hub, product.name),
         ),
         health && healthPill(health),
       ),
@@ -184,12 +188,12 @@ function productCard(slug, product, needs, redraw) {
           h("h3", { class: "col-title" }, "Needs you"),
           rows.length ? h("ul", { class: "queue" }, rows) : h("p", { class: "quiet" }, "Nothing needs you here."),
           (product.replyOwed ?? 0) > Math.min(needs.owed.length, OWED_SHOWN) &&
-            h("p", null, link(`${inbox}&state=reply-owed`, `See all ${product.replyOwed} replies owed in the inbox`)),
+            h("p", null, link(`${inbox}?state=reply-owed`, `See all ${product.replyOwed} replies owed in the inbox`)),
           h(
             "ul",
             { class: "chips", "aria-label": `${product.name} messages` },
-            h("li", null, link(`${inbox}&state=new`, `${product.new} new`)),
-            h("li", null, link(`${inbox}&state=open`, `${product.open} open`)),
+            h("li", null, link(`${inbox}?state=new`, `${product.new} new`)),
+            h("li", null, link(`${inbox}?state=open`, `${product.open} open`)),
           ),
         ),
         h(
@@ -213,6 +217,27 @@ function productCard(slug, product, needs, redraw) {
 }
 
 /**
+ * Every product with what needs you, for the hub and each product's overview.
+ * @returns {Promise<{ counts: import("../api.js").Counts, products: { slug: string, product: ProductCounts, needs: { owed: ItemSummary[], releases: Release[] }, count: number }[] }>}
+ */
+export async function loadHub() {
+  const [counts, owed, waiting] = await Promise.all([
+    getCounts(),
+    listItems({ state: "reply-owed" }),
+    listReleases({ state: "pending" }),
+  ]);
+  const products = Object.entries(counts.byProduct).map(([slug, product]) => {
+    const needs = {
+      owed: owed.items.filter(item => item.product === slug),
+      releases: waiting.releases.filter(release => release.product === slug),
+    };
+    const unhealthy = UNHEALTHY.includes(product.signals?.health.status ?? "") ? 1 : 0;
+    return { slug, product, needs, count: unhealthy + needs.releases.length + (product.replyOwed ?? 0) };
+  });
+  return { counts, products };
+}
+
+/**
  * @param {HTMLElement} container
  * @returns {import("../router.js").Page}
  */
@@ -223,20 +248,11 @@ export function homePage(container) {
   let alive = true;
 
   const draw = () =>
-    Promise.all([getCounts(), listItems({ state: "reply-owed" }), listReleases({ state: "pending" })])
-      .then(([counts, owed, waiting]) => {
+    loadHub()
+      .then(({ counts, products }) => {
         if (!alive) return;
         const sweep = !swept;
         swept = true;
-        const products = Object.entries(counts.byProduct).map(([slug, product]) => {
-          const needs = {
-            owed: owed.items.filter(item => item.product === slug),
-            releases: waiting.releases.filter(release => release.product === slug),
-          };
-          const unhealthy = UNHEALTHY.includes(product.signals?.health.status ?? "") ? 1 : 0;
-          const count = unhealthy + needs.releases.length + (product.replyOwed ?? 0);
-          return { slug, product, needs, count };
-        });
         const summary = hubSummary(products.map(({ product, count }) => ({ name: product.name, needs: count })));
         replace(
           root,

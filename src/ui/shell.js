@@ -5,8 +5,9 @@ const SEARCH_ICON = ["M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z", "m20 20-3.5-3.5"];
 
 /** @type {HTMLElement | null} */
 let nav = null;
-let newCount = 0;
 let releasesWaiting = 0;
+/** @type {{ slug: string, route: string, name: string, colour: string }[]} */
+let products = [];
 
 /**
  * @param {string} href
@@ -20,7 +21,7 @@ function navLink(href, current, ...children) {
 /**
  * Builds the page frame, a full-width top bar over the page, and returns the element the router renders
  * into.
- * @returns {{ main: HTMLElement, highlight: (path: string, query: URLSearchParams) => void }}
+ * @returns {{ main: HTMLElement, highlight: (path: string) => void }}
  */
 export function mountShell() {
   const app = /** @type {HTMLElement} */ (document.getElementById("app"));
@@ -30,6 +31,7 @@ export function mountShell() {
     "Menu",
   );
   nav = h("nav", { id: "site-nav", class: "site-nav", "aria-label": "Main" });
+  const switcher = h("div", { class: "switcher-slot" });
   const main = h("main", { id: "main", tabindex: "-1" });
   const closeMenu = () => {
     menu.setAttribute("aria-expanded", "false");
@@ -52,10 +54,11 @@ export function mountShell() {
         "header",
         { class: "bar" },
         h("a", { class: "brand", href: "/", "data-link": "" }, "Engage"),
+        switcher,
         nav,
         h(
           "a",
-          { class: "button search-link", href: "/inbox?search", "data-link": "", "aria-label": "Search messages" },
+          { class: "button search-link", href: "/search", "data-link": "", "aria-label": "Search messages" },
           icon(...SEARCH_ICON),
           h("span", { class: "search-label" }, "Search messages"),
         ),
@@ -67,8 +70,13 @@ export function mountShell() {
   let lastPath = "/";
   getCounts()
     .then(counts => {
-      newCount = counts.new;
       releasesWaiting = counts.releasesWaiting;
+      products = Object.entries(counts.byProduct).map(([slug, product]) => ({
+        slug,
+        route: product.route ?? slug,
+        name: product.name,
+        colour: product.colour ?? "",
+      }));
       draw(lastPath);
     })
     .catch(() => {});
@@ -77,22 +85,53 @@ export function mountShell() {
   function draw(path) {
     if (!nav) return;
     lastPath = path;
+    const route = path.split("/")[1] ?? "";
+    const current = products.find(product => product.route === route);
+    replace(
+      switcher,
+      current &&
+        h(
+          "details",
+          { class: "switcher", "data-colour": current.colour },
+          h(
+            "summary",
+            null,
+            h("span", { class: "swatch", "aria-hidden": "true" }),
+            current.name,
+            h("span", { class: "visually-hidden" }, ", switch product"),
+          ),
+          h(
+            "ul",
+            null,
+            products.map(product =>
+              h(
+                "li",
+                { "data-colour": product.colour },
+                h(
+                  "a",
+                  {
+                    href: `/${encodeURIComponent(product.route)}`,
+                    "data-link": "",
+                    ...(product === current && { "aria-current": "page" }),
+                    onclick: (/** @type {Event} */ event) => {
+                      /** @type {HTMLDetailsElement | null} */ (
+                        /** @type {Element} */ (event.currentTarget).closest("details")
+                      )?.removeAttribute("open");
+                    },
+                  },
+                  h("span", { class: "swatch", "aria-hidden": "true" }),
+                  product.name,
+                ),
+              ),
+            ),
+          ),
+        ),
+    );
     replace(
       nav,
       h(
         "ul",
         { class: "nav-list" },
-        h(
-          "li",
-          null,
-          navLink(
-            "/inbox",
-            path === "/inbox" || path.startsWith("/items/"),
-            "Inbox",
-            newCount > 0 &&
-              h("span", { class: "badge" }, String(newCount), h("span", { class: "visually-hidden" }, " new")),
-          ),
-        ),
         h(
           "li",
           null,
@@ -109,7 +148,6 @@ export function mountShell() {
               ),
           ),
         ),
-        h("li", null, navLink("/junk", path === "/junk", "Junk")),
       ),
     );
   }

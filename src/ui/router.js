@@ -33,7 +33,7 @@ export function createRouter({ container, routes, notFound, onChange }) {
       if (!match) continue;
       let params;
       try {
-        params = match.slice(1).map(decodeURIComponent);
+        params = match.slice(1).map(part => (part === undefined ? "" : decodeURIComponent(part)));
       } catch {
         break;
       }
