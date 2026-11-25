@@ -24,6 +24,7 @@ const PAGES = [
   { name: "Health", path: () => "/climbing-logbook/health", ready: ".monitors li" },
   { name: "Usage", path: () => "/climbing-logbook/usage", ready: ".usage svg.sparkline" },
   { name: "Health not set up", path: () => "/deaftly/health", ready: ".setup-state" },
+  { name: "Climbs not set up", path: () => "/climbing-logbook/climbs", ready: ".setup-state" },
   { name: "Not found", path: () => "/no-such-page", ready: "h1.page-title" },
 ];
 

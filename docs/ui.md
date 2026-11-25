@@ -104,6 +104,8 @@ Desktop
 - Every foundation page shows for every product. A page that isn't set up says what it would show and links to the runbook that turns it on, in a dashed box: "No repositories are gated yet.", "No monitors yet.", "No usage source yet."
 - **Health** (`/<route>/health`): the health reason and when it was last checked, then one row per configured monitor with a status dot, its name, its status (Up, Down, Recovering, Open incident, Paused, Waiting for its first check, In maintenance, Not in Better Stack, Unknown) and Open in Better Stack. Every monitor is Unknown while the last check is over 15 minutes old.
 - **Usage** (`/<route>/usage`): one card per engagement figure, each with its 30-day number, its change, and a 90-day sparkline in the product colour.
+- **A product's own pages** come after the foundation tabs. Each is registered against the product's route in `src/ui/products/registry.js` as `{ path, title, mount }`, with what it reads on the server in `src/products/pages.js`. An own page can never take a foundation page's path. Own pages show figures and link out to the product's admin for anything that acts on its data.
+- **Climbs** (Climbing Logbook, `/climbing-logbook/climbs`): every climb logged, then two cards, By status and By discipline, each part with its share and count over a bar in the product colour, and a link to Usage in Climbing Logbook's admin. Until Engage can read Climbing Logbook's usage, it shows its set-up state.
 - `/items/<id>`, the address Discord pings and older links use, opens the item inside its product's inbox. The old `/inbox?product=<slug>` goes to that product's inbox, and any other `/inbox` to Search.
 
 ### Search

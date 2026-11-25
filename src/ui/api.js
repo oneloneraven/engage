@@ -154,3 +154,14 @@ export const getRelease = id => request("GET", `/api/releases/${encodeURICompone
  */
 export const decideRelease = (id, decision, note) =>
   request("POST", `/api/releases/${encodeURIComponent(id)}/${decision}`, note ? { note } : {});
+
+/** @typedef {import("../products/climbing-logbook.js").Climbs} Climbs */
+
+/**
+ * What one of a product's own hub pages shows.
+ * @param {string} route
+ * @param {string} path
+ * @returns {Promise<any>}
+ */
+export const getProductPage = (route, path) =>
+  request("GET", `/api/products/${encodeURIComponent(route)}/${encodeURIComponent(path)}`);

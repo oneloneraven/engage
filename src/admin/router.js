@@ -9,6 +9,7 @@ import { codePointLength } from "../lib/text.js";
 import { getProduct } from "../registry.js";
 import { releaseContext, reviewRelease } from "../releases/review.js";
 import { getRelease, listReleases } from "../releases/store.js";
+import { productReader } from "../products/pages.js";
 import { readProduct } from "../signals/read.js";
 import { approve, createExcerpt, deleteItemWithTestimonials, withdraw } from "../testimonials/testimonials.js";
 import { counts, getItem, listItems, setFlags } from "./items.js";
@@ -38,6 +39,7 @@ const CLIENT_ERRORS = {
   "repo-not-registered": 400,
   "bad-cursor": 400,
   "bad-request": 400,
+  "product-unavailable": 502,
   "reply-secret-missing": 502,
   "github-app-not-configured": 502,
   "send-failed": 502,
@@ -249,6 +251,14 @@ async function releasesList({ env, url }) {
 }
 
 /** @param {RouteContext} context */
+async function productPageRead({ env, params: [route, path] }) {
+  const row = await env.DB.prepare("SELECT slug FROM products WHERE route = ?").bind(route).first();
+  const reader = row && productReader(String(row.slug), path);
+  if (!reader) throw new Error("not-found");
+  return json(await reader(env));
+}
+
+/** @param {RouteContext} context */
 async function productRead({ env, params: [route] }) {
   const row = await env.DB.prepare("SELECT slug FROM products WHERE route = ?").bind(route).first();
   const detail = row && (await readProduct(env, String(row.slug), new Date()));
@@ -341,6 +351,7 @@ const ROUTES = [
   { pattern: /^\/api\/blocklist$/, handlers: { POST: blocklistAdd } },
   { pattern: /^\/api\/counts$/, handlers: { GET: countsRead } },
   { pattern: /^\/api\/products\/([a-z0-9-]+)$/, handlers: { GET: productRead } },
+  { pattern: /^\/api\/products\/([a-z0-9-]+)\/([a-z0-9-]+)$/, handlers: { GET: productPageRead } },
   { pattern: /^\/api\/releases$/, handlers: { GET: releasesList } },
   { pattern: /^\/api\/releases\/([^/]+)$/, handlers: { GET: releaseRead } },
   { pattern: /^\/api\/releases\/([^/]+)\/approve$/, handlers: { POST: releaseDecide("approved") } },

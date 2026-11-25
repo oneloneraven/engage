@@ -21,6 +21,8 @@ Analytics (daily visits, with EU visitors excluded at the edge), Climbing
 Logbook's usage endpoint and GitHub Release download counts. It sends them no
 personal data and stores only statuses and daily counts per product, which
 are aggregates kept indefinitely, so none of these is a processor for Engage.
+Climbing Logbook's Climbs page in Engage reads that usage endpoint live and
+keeps only climb counts by status and discipline, storing nothing.
 
 ## Processing activities
 

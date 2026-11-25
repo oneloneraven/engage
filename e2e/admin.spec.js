@@ -241,6 +241,49 @@ describe("health and usage", () => {
   });
 });
 
+describe("product pages", () => {
+  it("adds Climbing Logbook's Climbs after the foundation tabs, split by status and discipline", async () => {
+    await browser.mock("**/api/products/climbing-logbook/climbs").then(mock =>
+      mock.respond({
+        setUp: true,
+        climbs: 200,
+        statuses: [
+          { key: "send", climbs: 150 },
+          { key: "flash", climbs: 50 },
+        ],
+        disciplines: [{ key: "boulder", climbs: 200 }],
+      }),
+    );
+    await browser.url("/climbing-logbook/climbs");
+    await expect($(".climbs-total .numeral")).toHaveText("200");
+    const tabs = await $$(".hub-tabs a").map(a => a.getText());
+    expect(tabs).toEqual(["Overview", "Inbox", "Releases", "Health", "Usage", "Climbs"]);
+    await expect($(".hub-tabs a=Climbs")).toHaveAttribute("aria-current", "page");
+    const statuses = await $$('[aria-labelledby="climbs-status"] .shares li').map(li => li.getText());
+    expect(statuses.map(text => text.replace(/\s+/g, " "))).toEqual([
+      "Send / Redpoint 75%, 150",
+      "Flash / Onsight 25%, 50",
+    ]);
+    await expect($("a=Open Usage in Climbing Logbook's admin")).toHaveAttribute(
+      "href",
+      "https://admin.climbinglogbook.com/usage",
+    );
+    await browser.mockRestoreAll();
+  });
+
+  it("says how to turn the Climbs page on when Engage can't read Climbing Logbook yet", async () => {
+    await browser.url("/climbing-logbook/climbs");
+    await expect($(".setup-state")).toHaveText(
+      expect.stringContaining("Engage can't read Climbing Logbook's usage yet."),
+    );
+  });
+
+  it("doesn't give other products Climbing Logbook's pages", async () => {
+    await browser.url("/deaftly/climbs");
+    await expect($("h1.page-title")).toHaveText("Not found");
+  });
+});
+
 describe("inbox", () => {
   it("shows the first line of what they wrote under each row, as text", async () => {
     const { noEmail, hostile } = ids();
