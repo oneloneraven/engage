@@ -71,6 +71,7 @@ export function inboxPage(container, context) {
   let filters = filtersFrom(context.query);
   /** @type {string | null} */
   let itemId = context.params[0] ?? null;
+  let openReply = context.query.has("reply");
   /** @type {string | null} */
   let cursor = null;
   let alive = true;
@@ -287,6 +288,7 @@ export function inboxPage(container, context) {
     }
     itemPane = mountItem(detail, itemId, {
       backHref: urlFor(filters, null),
+      openReply,
       onChanged: () => load(),
       onGone: () => {
         navigate(urlFor(filters, null), { replace: true });
@@ -297,10 +299,12 @@ export function inboxPage(container, context) {
 
   drawItem();
   load();
+  if (context.query.has("search")) search.focus();
 
   return {
     update(next) {
       const nextId = next.params[0] ?? null;
+      openReply = next.query.has("reply");
       const nextFilters = filtersFrom(next.query);
       const filtersChanged = FILTER_NAMES.some(name => nextFilters[name] !== filters[name]);
       const itemChanged = nextId !== itemId;

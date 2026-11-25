@@ -84,3 +84,33 @@ export function guarded(button, action) {
   });
   return button;
 }
+
+const SVG = "http://www.w3.org/2000/svg";
+
+/**
+ * A decorative stroke icon drawn from path data.
+ * @param {...string} paths
+ * @returns {SVGSVGElement}
+ */
+export function icon(...paths) {
+  const svg = document.createElementNS(SVG, "svg");
+  for (const [name, value] of Object.entries({
+    viewBox: "0 0 24 24",
+    width: "22",
+    height: "22",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "2",
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+    "aria-hidden": "true",
+    focusable: "false",
+  }))
+    svg.setAttribute(name, value);
+  for (const d of paths) {
+    const path = document.createElementNS(SVG, "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  return svg;
+}

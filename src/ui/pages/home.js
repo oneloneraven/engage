@@ -1,12 +1,67 @@
 import { getCounts, listItems } from "../api.js";
-import { emptyState, failure, h, link, loading, replace } from "../dom.js";
-import { itemTitle, verdict } from "../format.js";
+import { emptyState, failure, h, icon, link, loading, replace } from "../dom.js";
+import { formatToday, itemTitle, kindLabel, verdict, verdictSummary } from "../format.js";
+
+const REPLY_ICON = ["M9 14 4 9l5-5", "M4 9h10a6 6 0 0 1 6 6v5"];
+const SEARCH_ICON = ["M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z", "m20 20-3.5-3.5"];
 
 let swept = false;
 
-/** @param {import("../api.js").Counts} counts */
-function countLink(counts, key, label, state) {
-  return link(`/inbox?state=${state}`, h("span", { class: "numeral" }, String(counts[key])), h("span", null, label));
+/**
+ * @param {string} href
+ * @param {number} count
+ * @param {string} label
+ */
+const countPill = (href, count, label) =>
+  h("li", null, link(href, h("span", { class: "numeral" }, String(count)), h("span", null, label)));
+
+/**
+ * @param {import("../api.js").ItemSummary} item
+ * @param {string} colour
+ */
+function needsRow(item, colour) {
+  const href = `/items/${encodeURIComponent(item.id)}`;
+  const title = itemTitle(item);
+  return h(
+    "li",
+    { class: "queue-row", "data-colour": colour },
+    h("span", { class: "tile" }, icon(...REPLY_ICON)),
+    h(
+      "div",
+      { class: "grow" },
+      link(href, title),
+      h("p", { class: "muted" }, `${item.productName}, ${kindLabel(item.kind).toLowerCase()}. You owe a reply.`),
+    ),
+    h(
+      "a",
+      { class: "button primary", href: `${href}?reply`, "data-link": "" },
+      "Reply",
+      h("span", { class: "visually-hidden" }, ` to ${title}`),
+    ),
+  );
+}
+
+/**
+ * @param {string} slug
+ * @param {{ name: string, colour: string | null, new: number, open: number }} product
+ */
+function productPanel(slug, product) {
+  const inbox = `/inbox?product=${encodeURIComponent(slug)}`;
+  return h(
+    "li",
+    null,
+    h(
+      "article",
+      { class: "card", "data-product": slug, "data-colour": product.colour ?? "" },
+      h("h3", { class: "product-name" }, link(inbox, product.name)),
+      h(
+        "ul",
+        { class: "chips", "aria-label": `${product.name} messages` },
+        h("li", null, link(`${inbox}&state=new`, `${product.new} new`)),
+        h("li", null, link(`${inbox}&state=open`, `${product.open} open`)),
+      ),
+    ),
+  );
 }
 
 /**
@@ -15,7 +70,7 @@ function countLink(counts, key, label, state) {
  */
 export function homePage(container) {
   document.title = "Home – Engage";
-  const root = h("div", { class: "page" }, loading());
+  const root = h("div", { class: "page home" }, loading());
   container.append(root);
   let alive = true;
 
@@ -24,67 +79,58 @@ export function homePage(container) {
       if (!alive) return;
       const sweep = !swept;
       swept = true;
+      const summary = verdictSummary(counts.replyOwed);
       replace(
         root,
         h(
-          "h1",
-          { class: "verdict" },
-          h("span", { class: `verdict-text${sweep ? " sweep" : ""}` }, verdict(counts.replyOwed)),
+          "div",
+          { class: "home-top" },
+          h("p", { class: "muted" }, formatToday(new Date())),
+          h("a", { class: "button", href: "/inbox?search", "data-link": "" }, icon(...SEARCH_ICON), "Search messages"),
+        ),
+        h(
+          "section",
+          { class: "hero", "aria-labelledby": "verdict" },
+          h(
+            "h1",
+            { id: "verdict", class: "verdict" },
+            h("span", { class: `verdict-text${sweep ? " sweep" : ""}` }, verdict(counts.replyOwed)),
+          ),
+          summary && h("p", { class: "summary" }, summary),
         ),
         h(
           "section",
           { "aria-labelledby": "needs-you" },
-          h("h2", { id: "needs-you", class: "section-title" }, "Needs you"),
+          h("h2", { id: "needs-you", class: "visually-hidden" }, "Needs you"),
           owed.items.length === 0
             ? emptyState("Nothing needs you. New feedback lands here and pings Discord.")
             : h(
                 "ul",
-                { class: "rows plain" },
-                owed.items.map(item =>
-                  h(
-                    "li",
-                    { class: "needs-row" },
-                    link(
-                      `/items/${encodeURIComponent(item.id)}`,
-                      h("span", { class: "dot attention", "aria-hidden": "true" }),
-                      h("span", { class: "grow" }, h("span", { class: "muted" }, "Reply owed: "), itemTitle(item)),
-                      h("span", { class: "muted" }, item.productName),
-                    ),
-                  ),
-                ),
+                { class: "queue" },
+                owed.items.map(item => needsRow(item, counts.byProduct[item.product]?.colour ?? "")),
               ),
+          owed.next &&
+            h("p", null, link("/inbox?state=reply-owed", `See all ${counts.replyOwed} replies owed in the inbox`)),
         ),
         h(
           "ul",
           { class: "counts", "aria-label": "Message counts" },
-          h("li", null, countLink(counts, "new", "New", "new")),
-          h("li", null, countLink(counts, "open", "Open", "open")),
-          h("li", null, countLink(counts, "replyOwed", "Reply owed", "reply-owed")),
+          countPill("/inbox?state=new", counts.new, "new"),
+          countPill("/inbox?state=open", counts.open, "open"),
+          countPill(
+            "/inbox?state=reply-owed",
+            counts.replyOwed,
+            counts.replyOwed === 1 ? "reply owed" : "replies owed",
+          ),
         ),
         h(
           "section",
           { "aria-labelledby": "products" },
-          h("h2", { id: "products", class: "section-title" }, "Products"),
+          h("h2", { id: "products", class: "section-title" }, "Your products"),
           h(
             "ul",
             { class: "cards" },
-            Object.entries(counts.byProduct).map(([slug, perProduct]) =>
-              h(
-                "li",
-                null,
-                h(
-                  "a",
-                  {
-                    class: "card",
-                    href: `/inbox?product=${encodeURIComponent(slug)}`,
-                    "data-link": "",
-                    "data-product": slug,
-                  },
-                  h("h3", { class: "product-name" }, perProduct.name),
-                  h("p", { class: "muted" }, `${perProduct.new} new · ${perProduct.open} open`),
-                ),
-              ),
-            ),
+            Object.entries(counts.byProduct).map(([slug, product]) => productPanel(slug, product)),
           ),
         ),
       );
