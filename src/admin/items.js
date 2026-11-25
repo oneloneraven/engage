@@ -1,3 +1,4 @@
+import { adminLinks } from "./admin-links.js";
 import { recordAudit } from "../audit.js";
 import { readSignals } from "../signals/read.js";
 
@@ -34,6 +35,7 @@ import { readSignals } from "../signals/read.js";
  *   section: string | null,
  *   appVersion: string | null,
  *   context: Record<string, unknown> | null,
+ *   adminLinks: { field: string, url: string }[],
  *   accountRef: string | null,
  *   recipientLocal: string | null,
  *   authResult: { spf: string, dkim: string, dmarc: string } | null,
@@ -207,7 +209,9 @@ const parseJson = value => (value === null || value === undefined ? null : JSON.
  */
 export async function getItem(env, id) {
   const row = await env.DB.prepare(
-    `SELECT *, (SELECT name FROM products WHERE products.slug = items.product) AS product_name, (SELECT COUNT(*) FROM messages WHERE item_id = ?1) AS message_count FROM items WHERE id = ?1`,
+    `SELECT items.*, products.name AS product_name, products.admin_links AS product_admin_links,
+       products.domains AS product_domains, (SELECT COUNT(*) FROM messages WHERE item_id = ?1) AS message_count
+     FROM items LEFT JOIN products ON products.slug = items.product WHERE items.id = ?1`,
   )
     .bind(id)
     .first();
@@ -235,6 +239,7 @@ export async function getItem(env, id) {
     section: /** @type {string | null} */ (row.section),
     appVersion: /** @type {string | null} */ (row.app_version),
     context: parseJson(row.context),
+    adminLinks: adminLinks(row.product_admin_links, row.product_domains, parseJson(row.context)),
     accountRef: /** @type {string | null} */ (row.account_ref),
     recipientLocal: /** @type {string | null} */ (row.recipient_local),
     authResult: parseJson(row.auth_result),

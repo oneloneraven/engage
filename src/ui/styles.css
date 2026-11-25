@@ -1343,6 +1343,13 @@ button.primary:disabled {
   font-weight: 400;
 }
 
+.product-admin:not(:empty) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
 .toolbar-note {
   margin-top: 0.5rem;
   font-size: 0.875rem;
