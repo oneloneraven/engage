@@ -30,8 +30,11 @@ function currentRules(repo, environment) {
   try {
     const rules = gh([`repos/${repo}/environments/${encodeURIComponent(environment)}/deployment_protection_rules`]);
     return { exists: true, appIds: rules.custom_deployment_protection_rules.map(r => r.app.id) };
-  } catch {
-    return { exists: false, appIds: [] };
+  } catch (error) {
+    if (String(/** @type {{ stderr?: string }} */ (error).stderr ?? "").includes("HTTP 404")) {
+      return { exists: false, appIds: [] };
+    }
+    throw error;
   }
 }
 
