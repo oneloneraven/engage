@@ -134,7 +134,7 @@ export function hubPage(container, context) {
       document.title = `${product.name} – Engage`;
       body.append(
         h(
-          "div",
+          "ul",
           { class: "hub-cards" },
           productCard(entry.slug, entry.product, entry.needs, () => refresh()),
         ),

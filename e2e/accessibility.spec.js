@@ -18,7 +18,7 @@ const PAGES = [
   { name: "Item", path: ids => `/items/${ids.hostile}`, ready: ".item-title" },
   { name: "Item with consent", path: ids => `/items/${ids.consent}`, ready: ".item-title" },
   { name: "Junk", path: () => "/climbing-logbook/inbox?state=junk", ready: "ul.rows li:first-child" },
-  { name: "Search", path: () => "/search?q=export", ready: ".search-results li" },
+  { name: "Search", path: () => "/search?q=export", ready: ".search-results li:first-child" },
   { name: "Releases", path: () => "/releases", ready: "ul.rows li:first-child" },
   { name: "Release", path: () => `/releases/${SHARED_RELEASE}`, ready: "h2.item-title" },
   { name: "Not found", path: () => "/no-such-page", ready: "h1.page-title" },

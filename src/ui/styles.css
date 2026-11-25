@@ -380,6 +380,13 @@ main:focus,
   margin-bottom: 0.5rem;
 }
 
+.back a,
+.back-to a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
 .search-results {
   margin-top: 1.5rem;
 }
