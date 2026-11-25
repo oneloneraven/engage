@@ -1,5 +1,5 @@
 import { getCounts, listItems } from "../api.js";
-import { emptyState, failure, guarded, h, prefersReducedMotion, replace } from "../dom.js";
+import { emptyState, failure, guarded, h, icon, prefersReducedMotion, replace } from "../dom.js";
 import { formatDay, itemTitle, kindLabel } from "../format.js";
 import { navigate } from "../router.js";
 import { mountItem } from "./item.js";
@@ -24,6 +24,7 @@ const SEARCH_DELAY_MS = 250;
 const FADE_MS = 150;
 const FILTER_NAMES = ["product", "kind", "state", "q"];
 const CHIP_STATES = ["", "reply-owed"];
+const FILTER_ICON = ["M4 6h16", "M7 12h10", "M10 18h4"];
 
 /**
  * @param {URLSearchParams} query
@@ -118,6 +119,8 @@ export function inboxPage(container, context) {
     const unread = item.readAt === null && item.archivedAt === null;
     const current = item.id === itemId;
     const initial = [...(item.contactName?.trim() ?? "")][0]?.toUpperCase() ?? "?";
+    const title = itemTitle(item);
+    const kind = kindLabel(item.kind);
     const li = h(
       "li",
       { "data-id": item.id, "data-colour": colourOf(item.product), ...(unread && { "data-unread": "true" }) },
@@ -141,7 +144,7 @@ export function inboxPage(container, context) {
               { class: "row-title" },
               unread && h("span", { class: "dot unread-dot", "aria-hidden": "true" }),
               unread && h("span", { class: "visually-hidden" }, "Unread: "),
-              itemTitle(item),
+              title,
             ),
             h("span", { class: "row-time" }, formatDay(item.lastActivityAt)),
           ),
@@ -149,7 +152,7 @@ export function inboxPage(container, context) {
             "span",
             { class: "row-tags" },
             h("span", { class: "row-product" }, item.productName),
-            h("span", { class: "tag" }, kindLabel(item.kind)),
+            !title.startsWith(kind) && h("span", { class: "tag" }, kind),
             item.replyOwedAt && h("span", { class: "tag owed" }, "Reply owed"),
             item.starred && h("span", { class: "tag" }, "Starred"),
             item.archivedAt && h("span", { class: "tag" }, "Archived"),
@@ -279,8 +282,15 @@ export function inboxPage(container, context) {
   );
   const moreToggle = h(
     "button",
-    { type: "button", class: "chip", "aria-expanded": "false", "aria-controls": "more-filters" },
-    "More",
+    {
+      type: "button",
+      class: "icon-button secondary",
+      title: "More filters",
+      "aria-expanded": "false",
+      "aria-controls": "more-filters",
+    },
+    icon(...FILTER_ICON),
+    h("span", { class: "visually-hidden" }, "More filters"),
   );
   moreToggle.addEventListener("click", () => {
     const open = moreFilters.hidden;
@@ -288,7 +298,17 @@ export function inboxPage(container, context) {
     moreToggle.setAttribute("aria-expanded", String(open));
   });
   filterForm.append(
-    h("div", { class: "field" }, h("label", { class: "visually-hidden", for: "filter-q" }, "Search messages"), search),
+    h(
+      "div",
+      { class: "search-row" },
+      h(
+        "div",
+        { class: "field" },
+        h("label", { class: "visually-hidden", for: "filter-q" }, "Search messages"),
+        search,
+      ),
+      moreToggle,
+    ),
     chips,
     moreFilters,
   );
@@ -327,7 +347,6 @@ export function inboxPage(container, context) {
       chip("Reply owed", filters.state === "reply-owed", () =>
         setFilter("state", filters.state === "reply-owed" ? "" : "reply-owed"),
       ),
-      moreToggle,
     );
     if (focused)
       /** @type {HTMLElement | undefined} */ (
