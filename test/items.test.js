@@ -245,6 +245,7 @@ test("getItem returns the thread in order, attachment metadata and testimonials"
   const item = await getItem(baseEnv, "a");
   expect(item).toMatchObject({
     id: "a",
+    productName: "Climbing Logbook",
     subject: "Hi",
     context: { errorRef: "e1" },
     authResult: { spf: "pass", dkim: "pass", dmarc: "none" },

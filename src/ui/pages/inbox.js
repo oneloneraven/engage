@@ -23,6 +23,7 @@ const TARGET_ROWS = 25;
 const SEARCH_DELAY_MS = 250;
 const FADE_MS = 150;
 const FILTER_NAMES = ["product", "kind", "state", "q"];
+const CHIP_STATES = ["", "reply-owed"];
 
 /**
  * @param {URLSearchParams} query
@@ -82,6 +83,9 @@ export function inboxPage(container, context) {
   let itemPane = null;
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   let searchTimer;
+  /** @type {{ slug: string, name: string, colour: string }[]} */
+  let products = [];
+  let newCount = 0;
 
   const heading = () => h(itemId ? "h2" : "h1", { class: "page-title" }, "Inbox");
   let title = heading();
@@ -106,14 +110,17 @@ export function inboxPage(container, context) {
   /** @param {{ archivedAt: string | null }} item */
   const visible = item => filters.state !== "" || filters.q !== "" || item.archivedAt === null;
 
+  /** @param {string} slug */
+  const colourOf = slug => products.find(product => product.slug === slug)?.colour ?? "";
+
   /** @param {import("../api.js").ItemSummary} item */
   function rowFor(item) {
     const unread = item.readAt === null && item.archivedAt === null;
     const current = item.id === itemId;
-    const meta = [item.productName, kindLabel(item.kind), formatDay(item.lastActivityAt)];
+    const initial = [...(item.contactName?.trim() ?? "")][0]?.toUpperCase() ?? "?";
     const li = h(
       "li",
-      { "data-id": item.id, ...(unread && { "data-unread": "true" }) },
+      { "data-id": item.id, "data-colour": colourOf(item.product), ...(unread && { "data-unread": "true" }) },
       h(
         "a",
         {
@@ -122,20 +129,31 @@ export function inboxPage(container, context) {
           "data-link": "",
           ...(current && { "aria-current": "true" }),
         },
+        h("span", { class: "avatar", "aria-hidden": "true" }, initial),
         h(
           "span",
-          { class: "row-title" },
-          unread && h("span", { class: "dot unread-dot", "aria-hidden": "true" }),
-          unread && h("span", { class: "visually-hidden" }, "Unread: "),
-          itemTitle(item),
-        ),
-        h(
-          "span",
-          { class: "muted" },
-          meta.join(" · "),
-          item.starred && " · Starred",
-          item.archivedAt && " · Archived",
-          item.replyOwedAt && h("span", { class: "owed" }, " · Reply owed"),
+          { class: "row-body" },
+          h(
+            "span",
+            { class: "row-top" },
+            h(
+              "span",
+              { class: "row-title" },
+              unread && h("span", { class: "dot unread-dot", "aria-hidden": "true" }),
+              unread && h("span", { class: "visually-hidden" }, "Unread: "),
+              itemTitle(item),
+            ),
+            h("span", { class: "row-time" }, formatDay(item.lastActivityAt)),
+          ),
+          h(
+            "span",
+            { class: "row-tags" },
+            h("span", { class: "row-product" }, item.productName),
+            h("span", { class: "tag" }, kindLabel(item.kind)),
+            item.replyOwedAt && h("span", { class: "tag owed" }, "Reply owed"),
+            item.starred && h("span", { class: "tag" }, "Starred"),
+            item.archivedAt && h("span", { class: "tag" }, "Archived"),
+          ),
         ),
       ),
     );
@@ -227,18 +245,21 @@ export function inboxPage(container, context) {
     }
   });
 
-  /** @param {string} name @param {string} value */
-  function setFilter(name, value) {
-    filters = { ...filters, [name]: value };
+  /** @param {Record<string, string>} patch */
+  function setFilters(patch) {
+    filters = { ...filters, ...patch };
     navigate(urlFor(), { replace: true });
+    syncFilters();
     load();
   }
 
-  const productField = field("product", "Product", [["", "All products"]]);
+  /** @param {string} name @param {string} value */
+  const setFilter = (name, value) => setFilters({ [name]: value });
+
   const kindField = field("kind", "Kind", KINDS);
   const stateField = field("state", "Show", STATES);
   const search = h("input", { id: "filter-q", name: "q", type: "search", autocomplete: "off" });
-  const controls = { product: productField.element, kind: kindField.element, state: stateField.element, q: search };
+  const controls = { kind: kindField.element, state: stateField.element, q: search };
   for (const [name, control] of Object.entries(controls)) {
     if (name === "q") continue;
     control.addEventListener("change", () => setFilter(name, control.value));
@@ -248,30 +269,95 @@ export function inboxPage(container, context) {
     searchTimer = setTimeout(() => setFilter("q", search.value.trim()), SEARCH_DELAY_MS);
   });
   filterForm.addEventListener("submit", event => event.preventDefault());
-  filterForm.append(
-    productField.wrapper,
+
+  const chips = h("div", { class: "filter-chips", role: "group", "aria-label": "Show" });
+  const moreFilters = h(
+    "div",
+    { id: "more-filters", class: "more-filters", hidden: true },
     kindField.wrapper,
     stateField.wrapper,
-    h("div", { class: "field grow" }, h("label", { for: "filter-q" }, "Search messages"), search),
   );
+  const moreToggle = h(
+    "button",
+    { type: "button", class: "chip", "aria-expanded": "false", "aria-controls": "more-filters" },
+    "More",
+  );
+  moreToggle.addEventListener("click", () => {
+    const open = moreFilters.hidden;
+    moreFilters.hidden = !open;
+    moreToggle.setAttribute("aria-expanded", String(open));
+  });
+  filterForm.append(
+    h("div", { class: "field" }, h("label", { class: "visually-hidden", for: "filter-q" }, "Search messages"), search),
+    chips,
+    moreFilters,
+  );
+  search.placeholder = "Search messages";
+
+  /**
+   * @param {string} label
+   * @param {boolean} pressed
+   * @param {() => void} onPress
+   * @param {string} [colour]
+   */
+  function chip(label, pressed, onPress, colour) {
+    const button = h(
+      "button",
+      {
+        type: "button",
+        class: "chip",
+        "aria-pressed": String(pressed),
+        ...(colour !== undefined && { "data-colour": colour }),
+      },
+      colour !== undefined && h("span", { class: "swatch", "aria-hidden": "true" }),
+      label,
+    );
+    button.addEventListener("click", onPress);
+    return button;
+  }
+
+  function drawChips() {
+    const focused = chips.contains(document.activeElement) ? document.activeElement?.textContent : null;
+    replace(
+      chips,
+      chip("All", !filters.product && !filters.state, () => setFilters({ product: "", state: "" })),
+      products.map(({ slug, name, colour }) =>
+        chip(name, filters.product === slug, () => setFilter("product", filters.product === slug ? "" : slug), colour),
+      ),
+      chip("Reply owed", filters.state === "reply-owed", () =>
+        setFilter("state", filters.state === "reply-owed" ? "" : "reply-owed"),
+      ),
+      moreToggle,
+    );
+    if (focused)
+      /** @type {HTMLElement | undefined} */ (
+        [...chips.querySelectorAll("button")].find(button => button.textContent === focused)
+      )?.focus();
+  }
 
   function syncFilters() {
-    const known = [...productField.element.options].some(option => option.value === filters.product);
-    if (filters.product && !known)
-      productField.element.append(h("option", { value: filters.product }, filters.product));
     for (const [name, control] of Object.entries(controls)) {
       if (control.value !== filters[name]) control.value = filters[name];
     }
+    if (filters.kind || !CHIP_STATES.includes(filters.state)) {
+      moreFilters.hidden = false;
+      moreToggle.setAttribute("aria-expanded", "true");
+    }
+    drawChips();
   }
   syncFilters();
   getCounts()
     .then(counts => {
       if (!alive) return;
-      setOptions(productField.element, [
-        ["", "All products"],
-        ...Object.entries(counts.byProduct).map(([slug, { name }]) => [slug, name]),
-      ]);
-      productField.element.value = filters.product;
+      products = Object.entries(counts.byProduct).map(([slug, { name, colour }]) => ({
+        slug,
+        name,
+        colour: colour ?? "",
+      }));
+      newCount = counts.new;
+      drawChips();
+      if (itemId === null) drawItem();
+      load();
     })
     .catch(() => {});
 
@@ -283,7 +369,18 @@ export function inboxPage(container, context) {
     itemPane?.destroy();
     itemPane = null;
     if (itemId === null) {
-      replace(detail, h("div", { class: "empty-pane" }, emptyState("Pick something from the list to read it.")));
+      replace(
+        detail,
+        h(
+          "div",
+          { class: "empty-pane" },
+          emptyState(
+            newCount > 0
+              ? `${newCount} new ${newCount === 1 ? "message is" : "messages are"} waiting. Pick one from the list to read it.`
+              : "Pick a message from the list to read it.",
+          ),
+        ),
+      );
       return;
     }
     itemPane = mountItem(detail, itemId, {
