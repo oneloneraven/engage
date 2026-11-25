@@ -518,6 +518,8 @@ describe("GET /api/counts", () => {
     const counts = await (await call("GET", "/api/counts")).json();
     expect(counts.new).toBe(1);
     expect(counts.byProduct.cl.new).toBe(1);
+    expect(counts.byProduct.cl.colour).toBe("gold");
+    expect(counts.byProduct.deaftly.colour).toBe("flame");
   });
 });
 

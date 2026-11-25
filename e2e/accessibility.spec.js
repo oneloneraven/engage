@@ -25,33 +25,39 @@ async function violations() {
   return result.violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).join(", ")}`);
 }
 
-for (const colorScheme of ["light", "dark"]) {
-  describe(`${colorScheme} theme at phone width`, () => {
-    before(async () => {
-      await browser.setViewport({ width: 375, height: 812 });
-      await browser.emulate("colorScheme", colorScheme);
-    });
+const WIDTHS = [
+  { label: "phone", width: 375, height: 812 },
+  { label: "desktop", width: 1280, height: 900 },
+];
 
-    for (const { name, path, ready } of PAGES) {
-      it(`${name} has no WCAG 2.2 AA violations`, async () => {
-        await browser.url(path(idsFor(String(browser.capabilities.browserName))));
-        await $(ready).waitForExist();
+for (const colorScheme of ["light", "dark"])
+  for (const { label, width, height } of WIDTHS) {
+    describe(`${colorScheme} theme at ${label} width`, () => {
+      before(async () => {
+        await browser.setViewport({ width, height });
+        await browser.emulate("colorScheme", colorScheme);
+      });
+
+      for (const { name, path, ready } of PAGES) {
+        it(`${name} has no WCAG 2.2 AA violations`, async () => {
+          await browser.url(path(idsFor(String(browser.capabilities.browserName))));
+          await $(ready).waitForExist();
+          expect(await violations()).toEqual([]);
+        });
+      }
+
+      it("the item page has none with the reply composer, issue draft and formatted view open", async () => {
+        const ids = idsFor(String(browser.capabilities.browserName));
+        await browser.url(`/items/${ids.email}`);
+        await $("h1.item-title").waitForExist();
+        await $(".toolbar").$("button=Reply").click();
+        expect(await violations()).toEqual([]);
+        await $(".toolbar").$("button=Create GitHub issue").click();
+        await $("#draft-title").waitForExist();
+        expect(await violations()).toEqual([]);
+        await $("button=Show formatted").click();
+        await $(".formatted iframe").waitForExist();
         expect(await violations()).toEqual([]);
       });
-    }
-
-    it("the item page has none with the reply composer, issue draft and formatted view open", async () => {
-      const ids = idsFor(String(browser.capabilities.browserName));
-      await browser.url(`/items/${ids.email}`);
-      await $("h1.item-title").waitForExist();
-      await $(".toolbar").$("button=Reply").click();
-      expect(await violations()).toEqual([]);
-      await $(".toolbar").$("button=Create GitHub issue").click();
-      await $("#draft-title").waitForExist();
-      expect(await violations()).toEqual([]);
-      await $("button=Show formatted").click();
-      await $(".formatted iframe").waitForExist();
-      expect(await violations()).toEqual([]);
     });
-  });
-}
+  }
