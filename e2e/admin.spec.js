@@ -29,7 +29,7 @@ describe("home", () => {
     await expect(cl.$(`a[href="/items/${SHARED_OWED}"]`)).toHaveText("The map is blank");
     await expect(cl.$(".release-row")).toBeExisting();
     await expect($('article[data-product="deaftly"]')).not.toHaveElementClass("needs");
-    await expect($('article[data-product="deaftly"] .quiet')).toHaveText(
+    await expect($('article[data-product="deaftly"] .hub-needs .quiet')).toHaveText(
       expect.stringContaining("Nothing needs you here."),
     );
   });

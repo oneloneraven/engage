@@ -55,7 +55,7 @@ export function mountShell() {
         nav,
         h(
           "a",
-          { class: "button search-link", href: "/inbox?search", "data-link": "" },
+          { class: "button search-link", href: "/inbox?search", "data-link": "", "aria-label": "Search messages" },
           icon(...SEARCH_ICON),
           h("span", { class: "search-label" }, "Search messages"),
         ),
