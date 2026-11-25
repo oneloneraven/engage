@@ -80,7 +80,7 @@ Desktop (≥ 1200px)
 │ Junk       │ ┌────────────────────────────────────────────────────┐ │
 │            │ │ ⬇ CL 1.14.0 is waiting for production [Review][Approve]│
 │ Products   │ │ ↩ The map is blank                          [Reply]│ │
-│ ■ Climbing │ │ ↩ Captions keep up…                  [Quote][Reply]│ │
+│ ■ Climbing │ │ ↩ App closes when I rotate                  [Reply]│ │
 │ ■ Deaftly  │ └────────────────────────────────────────────────────┘ │
 │            │ (4 new) (27 open) (2 replies owed)                     │
 │            │ Your products                                          │
