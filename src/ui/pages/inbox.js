@@ -317,6 +317,7 @@ export function inboxPage(container, context) {
   }
 
   function drawChips() {
+    const focused = chips.contains(document.activeElement) ? document.activeElement?.textContent : null;
     replace(
       chips,
       chip("All", !filters.product && !filters.state, () => setFilters({ product: "", state: "" })),
@@ -328,6 +329,10 @@ export function inboxPage(container, context) {
       ),
       moreToggle,
     );
+    if (focused)
+      /** @type {HTMLElement | undefined} */ (
+        [...chips.querySelectorAll("button")].find(button => button.textContent === focused)
+      )?.focus();
   }
 
   function syncFilters() {
