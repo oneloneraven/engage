@@ -25,14 +25,14 @@ export function formatSize(bytes) {
 /** @typedef {{ replyOwed: number, releasesWaiting: number }} Waiting */
 
 /** @param {Waiting} waiting */
-export function verdict({ replyOwed, releasesWaiting }) {
+export function verdict({ replyOwed = 0, releasesWaiting = 0 }) {
   const total = replyOwed + releasesWaiting;
   if (total <= 0) return "All clear.";
   return total === 1 ? "1 thing needs you." : `${total} things need you.`;
 }
 
 /** @param {Waiting} waiting */
-export function verdictSummary({ replyOwed, releasesWaiting }) {
+export function verdictSummary({ replyOwed = 0, releasesWaiting = 0 }) {
   const parts = [
     releasesWaiting === 1
       ? "a release is waiting"
