@@ -6,16 +6,9 @@ import { loadHub, productCard } from "./home.js";
 import { inboxPage } from "./inbox.js";
 import { junkPage } from "./junk.js";
 import { releasesPage } from "./releases.js";
+import { pagesFor } from "../products/pages.js";
+import { PRODUCT_PAGES } from "../products/registry.js";
 import { healthPage, usagePage } from "./signals.js";
-
-/** The pages every product has, in tab order. A product's own pages come after these (#131). */
-const PAGES = [
-  { id: "", title: "Overview" },
-  { id: "inbox", title: "Inbox" },
-  { id: "releases", title: "Releases" },
-  { id: "health", title: "Health" },
-  { id: "usage", title: "Usage" },
-];
 
 /**
  * @typedef {import("../api.js").ProductCounts & { slug: string, route: string }} HubProduct
@@ -57,7 +50,8 @@ export function hubPage(container, context) {
     if (!hub) return;
     const [route, pageId = ""] = current.params;
     const entry = hub.products.find(({ slug, product }) => (product.route ?? slug) === route);
-    const page = PAGES.find(candidate => candidate.id === pageId);
+    const pages = pagesFor(route, PRODUCT_PAGES);
+    const page = pages.find(candidate => candidate.id === pageId);
     if (!entry || !page) {
       inner?.page.destroy();
       inner = null;
@@ -73,7 +67,7 @@ export function hubPage(container, context) {
       h(
         "ul",
         null,
-        PAGES.map(candidate =>
+        pages.map(candidate =>
           h(
             "li",
             null,
@@ -114,7 +108,7 @@ export function hubPage(container, context) {
         h(
           "ul",
           null,
-          PAGES.map(candidate =>
+          pages.map(candidate =>
             h(
               "li",
               null,
@@ -136,7 +130,7 @@ export function hubPage(container, context) {
     );
     const base = href(page.id);
     const subContext = { ...current, params: current.params.slice(2) };
-    const named = { slug: product.slug, name: product.name, route };
+    const named = { slug: product.slug, name: product.name, route, colour: product.colour ?? "" };
     if (page.id === "") {
       document.title = `${product.name} – Engage`;
       body.append(
@@ -147,6 +141,9 @@ export function hubPage(container, context) {
         ),
       );
       inner = null;
+    } else if (page.mount) {
+      document.title = `${page.title} – ${product.name} – Engage`;
+      inner = { key: keyOf(current), page: page.mount(body, { product: named }) };
     } else if (page.id === "releases") {
       inner = { key: keyOf(current), page: releasesPage(body, subContext, { product: named, base }) };
     } else if (page.id === "health") {
