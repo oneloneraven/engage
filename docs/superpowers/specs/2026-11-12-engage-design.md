@@ -96,18 +96,7 @@ Secrets such as API tokens live in Worker secrets, never in rows. Adding a produ
 
 ### 4.3 GitHub App
 
-A new org-level GitHub App, `oneloneraven-engage`, separate from the board-sync and release Apps. It has least privilege, following the reasoning in bootstrap ADR-0007. Permissions:
-- Issues: read and write (create issues, receive close events)
-- Deployments: read and write (approve and reject protection rules)
-- Actions: read (run details for the approval page)
-- Administration: read, and Contents: read (conformance)
-- Metadata: read.
-
-Webhooks it subscribes to:
-- `issues` (closed and reopened)
-- `deployment_protection_rule`.
-
-The webhook secret is verified on every delivery.
+This section is kept in the private vault.
 
 ## 5. Feedback and email (Module 1)
 
@@ -228,40 +217,7 @@ The webhook secret is verified on every delivery.
 
 ## 6. Releases (Module 2)
 
-- **What's gated (Raven, D11):**
-  - `production` and `beta` are gated **separately**: each deploy is approved on its own.
-  - `infra` (OpenTofu apply) is gated too **(design call)**. Its token can change DNS, Access and everything else, so leaving it ungated would undo the rest.
-  - Android `release` is gated.
-  - **PR previews are not gated** and keep their GitHub-held `CLOUDFLARE_PREVIEW_TOKEN`.
-- **Accepted residual risk:** as far as is known, a Cloudflare token can't be limited to previews only. So someone with the GitHub account could still reach Cloudflare through the preview token. A later fix is to run previews in a separate Cloudflare account, so the preview token can't touch production.
-- **Splitting the shared token:** bootstrap currently gives `beta` and `production` the same `CLOUDFLARE_DEPLOY_TOKEN`. The broker issues each its own token, scoped to its environment's resources where Cloudflare allows it.
-- **Gate:**
-  - Engage's GitHub App is registered as a **custom deployment protection rule** on each product repository's `production`, `beta` and `infra` environments (Workers) and `release` environment (Android). This is available because the repositories are public.
-  - On `deployment_protection_rule`, Engage stores a pending release and sends a content-free Discord ping.
-  - It then appears under "Needs you" and **Releases**.
-- **Approval page:** repository, environment, version or tag, commit SHA, the PRs included since the last approved release, CI status, and a link to the run. Approve or reject, with an optional note. Engage calls GitHub's review endpoint, and the decision goes into the audit log.
-- **Raven's context:** Raven merges every PR, so releases are never a surprise. A clear "waiting" indicator is enough for v1. Push to a phone comes later.
-- **Credential broker (design call; this is the real second factor):**
-  - Cloudflare deploy tokens are removed from GitHub secrets.
-  - The deploy job asks GitHub for an OIDC token (audience `engage`) and POSTs it to `engage-api.oneloneraven.com/v1/deploy-credentials`.
-  - Engage verifies:
-    - the token's signature against GitHub's published keys;
-    - its repository, workflow, ref, SHA, environment and `run_id`;
-    - that an **approved** release with exactly those values exists and hasn't been used.
-  - It then returns a short-lived Cloudflare API token scoped to that product's resources, expiring in under an hour.
-  - Someone who controls GitHub alone can neither approve nor obtain a token. Removing the protection rule doesn't help them either, because without Engage's approval there's no credential.
-  - **Sensitive:** Engage needs a parent Cloudflare credential allowed to create scoped tokens. It's stored as a Worker secret, used only by the broker, and every token it mints is logged.
-- **Android (v1):**
-  - The signing key stays an environment secret on `release`, protected by the rule only.
-  - Brokering Play publishing credentials, a Google service account, is designed in but built later.
-- **Engage's own releases:**
-  - Engage does **not** gate itself, because a broken Engage would block the fix that repairs it.
-  - Engage's `production` environment uses GitHub's built-in required reviewer (Raven). Self-review isn't blocked by default, and the run is started by the release App anyway.
-  - A break-glass runbook covers deploying Engage by hand.
-- **Bootstrap changes:**
-  - The `cloudflare-opentofu` templates (`deploy.yml`, `deploy-beta.yml`, `promote.yml`, `infra.yml` apply) and the `android-toolchain` release template get the OIDC step, the `id-token: write` permission, and the protection rule on their environments.
-  - `CLOUDFLARE_DEPLOY_TOKEN` and `CLOUDFLARE_INFRA_APPLY_TOKEN` are removed from new repositories. The infra plan token and the preview token stay in GitHub.
-  - Existing repositories get a migration runbook.
+This section is kept in the private vault.
 
 ## 7. Home page
 
@@ -298,31 +254,11 @@ The webhook secret is verified on every delivery.
 
 ## 9. Conformance (Module 4)
 
-- **What it checks:** a daily cron checks every `oneloneraven` repository against the rules bootstrap sets up:
-  - rulesets and branch protection
-  - required checks
-  - labels
-  - security policy and the core docs present
-  - Dependabot
-  - the board-sync App installed
-  - Engage's protection rule on the deploy environments
-  - no long-lived Cloudflare deploy secret.
-- **Single source of truth:** the check definitions live in the bootstrap repository as a machine-readable file. Engage reads them, so bootstrap and Engage can't drift apart.
-- **Output:** a grid of repositories against checks, showing pass or fail, the reason and a link. Failures appear under "Needs you".
-- **Read-only.** Fixing things stays with bootstrap and Claude.
+This section is kept in the private vault.
 
 ## 10. Security summary
 
-- The admin host is behind Access with MFA, and the JWT is re-verified in the Worker so it fails closed.
-- Production, beta, infra and Android releases need Engage's approval. Previews are the one accepted exception (§6).
-- Public routes each authenticate their own way:
-  - Turnstile and rate limits for submissions;
-  - HMAC for webhooks and reply addresses;
-  - OIDC plus a matching approval for credentials.
-- The GitHub App has least privilege and its own key. The Cloudflare parent credential is used only by the broker.
-- Discord, logs and GitHub issues never carry submitted content or identity.
-- Everything state-changing goes into the audit log.
-- Threat model, data-protection record and privacy page come from the bootstrap `core` module, filled in for this design.
+This section is kept in the private vault.
 
 ## 11. Build order (design call; Raven chose to design everything now)
 

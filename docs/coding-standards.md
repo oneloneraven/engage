@@ -109,8 +109,9 @@ by hand at phone and desktop widths in light and dark themes.
 
 ### Security
 
-- Keep [the threat model](threat-model.md) current. A change that adds or
-  moves a trust boundary updates it in the same PR: a new host, an auth or
+- Keep the threat model current. It's in the private vault
+  (`oneloneraven-vault/engage/threat-model.md`). A change that adds or moves a
+  trust boundary updates it in a paired vault PR: a new host, an auth or
   session change, data exposed beyond its owner, a new processor, a new
   secret or CI permission.
 - Secrets never enter git. Local secrets files are gitignored and treated

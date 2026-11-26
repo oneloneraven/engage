@@ -123,40 +123,7 @@ docs/adr/                   0002-…0005 (see Task 14)
 
 ### Task 2: Host routing and the fail-closed Access guard
 
-**Files:**
-- Create: `src/lib/access.js`, `src/lib/http.js`
-- Modify: `src/worker.js`
-- Test: `test/routing.test.js`, `test/lib/access.test.js`
-
-**Interfaces:**
-- Produces:
-  - `verifyAccessJwt(token: string, opts: { teamDomain: string, aud: string, fetchImpl?: typeof fetch, nowS?: number }) => Promise<{ email: string } | null>`
-  - `adminIdentity(request: Request, env) => Promise<{ email: string } | null>`
-  - `json(body: unknown, status?: number, headers?: HeadersInit) => Response`
-  - `notFound() => Response`
-  - `forbidden() => Response`
-  - `worker.fetch` dispatches to `routeAdmin(request, env, ctx, identity)` (Task 9) and `routePublic(request, env, ctx)` (Tasks 4, 10, 11).
-
-- [ ] **Step 1: Write the failing tests:**
-  - `test/lib/access.test.js`, generating an RS256 key pair with WebCrypto and stubbing `fetchImpl` for `/cdn-cgi/access/certs`:
-    - a valid token returns `{ email: "owner@example.test" }`
-    - wrong `aud` → `null`
-    - wrong `iss` → `null`
-    - expired by 61 s → `null`
-    - unknown `kid` → keys refetched once, then `null`
-  - `test/routing.test.js`:
-    - `GET https://engage.oneloneraven.com/api/items` with no header → 403
-    - with `ACCESS_AUD` unset → 403, even with a valid token
-    - `GET https://engage-api.oneloneraven.com/api/items` → 404
-    - `GET https://engage.oneloneraven.com/v1/testimonials/cl` → 404
-    - `GET https://other.example/` → 404
-    - `/api/health` on either host → 200 JSON with `ok: true`
-- [ ] **Step 2:** Run `pnpm test -- routing access`. Expected: FAIL (modules missing).
-- [ ] **Step 3: Implement.** Port CL's `server/lib/access.js`, changing it to return the claims' `email` instead of `true`. The only skip: `env.ADMIN_ACCESS_CHECK === "off"` with `APP_ENV` in `["e2e", "development"]` yields `{ email: "dev@localhost" }`. Route on `new URL(request.url).hostname` against `env.ADMIN_HOST` and `env.PUBLIC_HOST`. On the admin host, non-`/api/` paths serve `ASSETS` (the SPA), behind the same guard.
-- [ ] **Step 4:** Run `pnpm test`. Expected: PASS.
-- [ ] **Step 5:** Commit with the message `Route by host and refuse admin requests without a verified Access token`.
-
----
+This section is kept in the private vault.
 
 ### Task 3: Schema, registry, ids and the audit log
 
@@ -287,28 +254,7 @@ CREATE INDEX items_issue ON items (issue_number);
 
 ### Task 5: Reply addresses
 
-**Files:**
-- Create: `src/email/reply-address.js`, `src/lib/hmac.js`
-- Test: `test/lib/reply-address.test.js`
-
-**Interfaces:**
-- Produces:
-  - `hmacHex(secret: string, data: string) => Promise<string>`
-  - `makeReplyAddress(itemId: string, domain: string, secret: string) => Promise<string>`, returning `reply+<itemId>.<first 16 hex of HMAC-SHA256(secret, itemId)>@<domain>`
-  - `parseReplyAddress(address: string, secret: string) => Promise<string | null>`, returning the item id, or null when the address is malformed or the signature doesn't match (compared in constant time).
-
-- [ ] **Step 1: Write the failing tests:**
-  - a round trip returns the id
-  - one changed signature character → null
-  - `reply+abc@x` (no dot) → null
-  - matching is case-insensitive on the local part's prefix only
-  - `hello@x` → null
-- [ ] **Step 2:** Run it. Expected: FAIL.
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** Run it. Expected: PASS.
-- [ ] **Step 5:** Commit with the message `Sign reply addresses so replies can't be forged onto other items`.
-
----
+This section is kept in the private vault.
 
 ### Task 6: Outbound replies
 
@@ -429,49 +375,7 @@ CREATE INDEX items_issue ON items (issue_number);
 
 ### Task 10: GitHub App: issues and webhooks
 
-**Files:**
-- Create: `src/github/app.js`, `src/github/issue-draft.js`, `src/github/webhook.js`
-- Test: `test/github.test.js`, `test/issue-draft.test.js`, `test/webhook.test.js`
-- Create: `scripts/create-github-app.mjs`. It creates the App in one click through GitHub's manifest flow (Raven, D17), the same way bootstrap's `secrets.mjs release-app` does.
-  - Name `oneloneraven-engage`, owned by the `oneloneraven` organisation.
-  - The permissions and events from spec §4.3.
-  - Webhook URL `https://engage-api.oneloneraven.com/v1/github/webhook`, with a generated webhook secret.
-  - It stores the App id, private key and webhook secret in Proton Pass, then opens the install page (All repositories).
-  - A `--set-worker-secrets` mode pipes them into `wrangler secret put` for production. Secrets never go to stdout.
-  - Test the manifest builder: permissions, events and webhook URL.
-- Doc: `docs/runbooks/github-app.md`: running the script, and how to rotate the key by hand.
-
-**Interfaces:**
-- Consumes: `longestBacktickRun`, `hmacHex`, `recordAudit`.
-- Produces:
-  - `installationToken(env, owner: string) => Promise<string>`: an RS256 App JWT signed with WebCrypto from the PKCS#8 `GITHUB_APP_PRIVATE_KEY`, then `POST /app/installations/:id/access_tokens`, cached until 5 minutes before expiry.
-  - `createIssue(env, itemId, draft: { repo, title, body, labels }, actor) => Promise<{ number, url }>`: stores `issue_number` and `issue_url`, audit `issue.created`.
-  - `dispatch(env, repo: string, eventType: string) => Promise<void>`: `POST /repos/:repo/dispatches`.
-  - `issueDraft(item: ItemDetail, product: Product) => { repo, title, body, labels }`.
-  - `handleGithubWebhook(request, env) => Promise<Response>`: `POST /v1/github/webhook` on the public host.
-
-- [ ] **Step 1: Write the failing tests:**
-  - `issueDraft`:
-    - `repo` = `product.issueRepo`
-    - `title` = the first line, truncated at 70 characters with `…`
-    - labels `["bug"]` for `issue` and `["enhancement"]` for `feedback`
-    - the body contains the message inside a fence of `max(4, longestRun + 1)` backticks with info string `text`, plus `App version:` and `Page or section:`
-    - the body does **not** contain the contact email, contact name, `accountRef` or any `context` value (assert each)
-  - Webhook:
-    - a bad `X-Hub-Signature-256` → 401
-    - `issues.closed` for a linked item with a contact email → `reply_owed_at` set
-    - the same delivery twice → set once, timestamp unchanged
-    - `reopened` → cleared
-    - `reopened` arriving before `closed` → the final state follows the last event's `issue.state`
-    - an item without a contact email → never flagged
-    - an unrelated issue number → 204, no change
-  - `createIssue`: given a stubbed GitHub API, it posts to `/repos/oneloneraven/climbing-logbook/issues` and stores number and URL.
-- [ ] **Step 2:** Run it. Expected: FAIL.
-- [ ] **Step 3:** Implement. Webhook state is driven by the payload's `issue.state` (not the event name) to make it idempotent and robust to ordering.
-- [ ] **Step 4:** Run it. Expected: PASS.
-- [ ] **Step 5:** Commit with the message `Create redacted GitHub issues from items and flag replies owed when they close`.
-
----
+This section is kept in the private vault.
 
 ### Task 11: Testimonials
 

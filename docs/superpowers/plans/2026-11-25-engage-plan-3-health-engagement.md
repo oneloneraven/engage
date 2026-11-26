@@ -183,36 +183,11 @@ Three consequences, all design calls recorded here:
 
 ### Task 5: Turning it on (#115)
 
-**Files:**
-- Create: `docs/runbooks/health-and-engagement.md`, `migrations/0010_signal_config.sql`
-- Modify: `docs/threat-model.md`, `docs/data-protection.md`, `docs/ui.md`, `.github/workflows/sync-worker-secrets.yml` (one step per new secret, as for `OWNER_EMAIL`)
-
-- [ ] **Step 1: Write the runbook** for the owner:
-  - creating a Better Stack API token and setting `BETTER_STACK_TOKEN`
-  - creating a Cloudflare token with Account Analytics: Read only, and setting `CLOUDFLARE_ANALYTICS_TOKEN`
-  - finding each Web Analytics site tag, and confirming whether deaftly.com has Web Analytics on
-  - CL's Access service token (Task 6) and the two `CL_USAGE_*` secrets
-  - the one-off 30-day visits backfill
-- [ ] **Step 2: Write `0010_signal_config.sql`** with the registry config that isn't secret: CL's three monitors (ids from `tofu output` or the API), both products' health endpoints, and each product's engagement entries. Site tags and monitor ids the plan can't know are filled in from the runbook before this migration merges.
-- [ ] **Step 3: Update the docs:**
-  - threat model: three new outbound credentials, and Engage now holds a CL Access service token, a new trust boundary into CL's admin host, scoped by CL to one path
-  - data protection: snapshots are aggregates with no personal data, kept indefinitely; no new processor for personal data
-  - `docs/ui.md`: drop "Until Module 3 lands…" from "Your products"
-- [ ] **Step 4: Commit.**
+This section is kept in the private vault.
 
 ### Task 6: Climbing Logbook lets Engage read usage (oneloneraven/climbing-logbook#1728)
 
-**Files (CL):** `server/lib/access.js`, `server/api/admin.js`, `infra/` (the admin Access application), tests.
-
-- [ ] **Step 1: Write the failing tests** in CL:
-  - an Access JWT from a service token whose `common_name` is in `USAGE_SERVICE_TOKENS` (comma-separated client ids: Engage now, Grafana with CL #1521) passes for `GET /-/api/admin/usage` only
-  - a service token not in the list gets 403 everywhere
-  - an allowed token gets 403 on every other admin route and method
-  - an owner-email JWT still passes everywhere, as now
-- [ ] **Step 2: Implement** allowed service tokens in `verifyAccessRequest`, limited by route in `admin.js`. Fail closed when `USAGE_SERVICE_TOKENS` is unset or empty.
-- [ ] **Step 3: Add** a `cloudflare_zero_trust_access_service_token` and a service-auth policy on the admin application in `infra/`. The token's id and secret go to Engage's secrets, not CL's.
-- [ ] **Step 4: Update** CL's threat model and ADR-0034's consequences.
-- [ ] **Step 5: Commit** on its own branch and PR in CL.
+This section is kept in the private vault.
 
 ## Order
 

@@ -6,37 +6,15 @@ The steps are independent: each one switches on its own part.
 
 ## 1. Health from Better Stack
 
-1. In Better Stack, create an API token for the team that holds the product monitors. Better Stack doesn't document a read-only token, so treat this one as able to change monitors.
-2. Store it in Proton Pass as `Dev / engage / Better Stack API token`.
-3. Set it as the `BETTER_STACK_TOKEN` secret of `oneloneraven/engage`'s **production** environment, then run the **Sync Worker secrets** workflow.
-4. Find each monitor's id, from the monitor's page in Better Stack, or in Climbing Logbook with `tofu -chdir=infra state show betteruptime_monitor.app_ready` (and `home`, `beta_ready`).
-5. Add the monitors to the registry in a migration (step 5 below). Each needs its id, the name to show ("Climbing Logbook app") and the link to open (the monitor's page in Better Stack).
-
-Engage checks every five minutes. A product with no monitors says Not monitored; Deaftly has none until oneloneraven/deaftly-website#102.
+This section is kept in the private vault.
 
 ## 2. Visits from Web Analytics
 
-1. In Cloudflare, create an account API token with **Account Analytics: Read** and nothing else.
-2. Store it in Proton Pass as `Dev / engage / Cloudflare analytics token`.
-3. Set it as the `CLOUDFLARE_ANALYTICS_TOKEN` secret of the production environment, then run **Sync Worker secrets**. The Worker also needs `CLOUDFLARE_ACCOUNT_ID`, which the [release gate runbook](release-gate.md) sets.
-4. Find each site's tag in the dashboard under **Web Analytics**, in the site's settings. Check whether deaftly.com has Web Analytics on at all; if it doesn't, it gets no visits entry.
-5. Add a `web-visits` entry to the product's engagement in a migration (step 5).
-
-The first daily run after this fills in the last 30 days, so the sparkline appears straight away.
+This section is kept in the private vault.
 
 ## 3. Climbing Logbook's active climbers
 
-The identity stack, oneloneraven/coraxia, owns the token: `engage-cl-usage` in its `service_tokens`, reaching Climbing Logbook's admin application through a service-auth policy. Climbing Logbook's Worker accepts it on `GET /-/api/admin/usage` only (ADR-0041 there). It was set up on 2026-11-26 like this, and a replacement token follows the same steps:
-
-1. Merge the coraxia change that declares the token, and let its apply create it.
-2. Read the client id and secret with `tofu output -json service_tokens` in coraxia's `infra/`, using its state read-only credentials (`Dev / coraxia / R2 state read-only`). They're sensitive outputs, so the apply log never prints them. Store them in Proton Pass as `Dev / engage / CL usage service token`.
-3. In Climbing Logbook, set the client id as the `USAGE_SERVICE_TOKENS` secret of the production environment, then run its **Sync Worker secrets**.
-4. Here, set them as the `CL_USAGE_CLIENT_ID` and `CL_USAGE_CLIENT_SECRET` secrets of the production environment, then run **Sync Worker secrets**.
-5. Check that `GET https://admin.climbinglogbook.com/-/api/admin/usage` with the token's `CF-Access-Client-Id` and `CF-Access-Client-Secret` headers returns 200, and that every other admin route returns 403.
-
-A Climbing Logbook change reaches production only when it's promoted: its release deploy goes to beta, and **Promote to production** takes a tag to production. If the check in step 5 returns 403 from the Worker rather than Access's login redirect, check that production runs a release that has the change.
-
-The registry entry for this is already in place (migration `0010`), so the number appears after the next daily run (03:17 UTC).
+This section is kept in the private vault.
 
 ## 4. Deaftly's Android downloads
 
