@@ -13,7 +13,7 @@ updates it in the same PR.
 | Proton (only for a product with backup forwarding turned on; none is) | A copy of every inbound email to that product | A backup mailbox while Engage is new | Switzerland |
 
 Discord receives the kind of item, the product's name and a link, and no
-personal data ([ADR-0005](adr/0005-content-free-notifications.md)), so it
+personal data (ADR-0005 (in the vault)), so it
 isn't a processor.
 
 Engage reads Better Stack (monitor status and open incidents), Cloudflare Web
@@ -52,4 +52,4 @@ keeps only climb counts by status and discipline, storing nothing.
 
 ## Security measures
 
-See the [threat model](threat-model.md) and [privacy rules](privacy.md).
+See the threat model (in the vault) and [privacy rules](privacy.md).
