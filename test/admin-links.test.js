@@ -8,7 +8,20 @@ const links = (/** @type {unknown[]} */ templates) => JSON.stringify(templates);
 test("a template whose field the context holds becomes a link, with the value URL-encoded", () => {
   expect(
     adminLinks(links([{ field: "reportedUsername", url: USERS }]), DOMAINS, { reportedUsername: "al ex&q=1" }),
-  ).toEqual([{ field: "reportedUsername", url: "https://admin.climbinglogbook.com/users?q=al%20ex%26q%3D1" }]);
+  ).toEqual([
+    { field: "reportedUsername", url: "https://admin.climbinglogbook.com/users?q=al%20ex%26q%3D1", label: null },
+  ]);
+});
+
+test("a template's label names what it opens, and one that isn't a short string is ignored", () => {
+  const context = { reportedUsername: "alex" };
+  const labelled = (/** @type {unknown} */ label) =>
+    adminLinks(links([{ field: "reportedUsername", url: USERS, label }]), DOMAINS, context)[0].label;
+  expect(labelled("user")).toBe("user");
+  expect(labelled("  climb  ")).toBe("climb");
+  expect(labelled("")).toBeNull();
+  expect(labelled(42)).toBeNull();
+  expect(labelled("x".repeat(41))).toBeNull();
 });
 
 test("no context, a missing or empty field, or no templates give no link", () => {

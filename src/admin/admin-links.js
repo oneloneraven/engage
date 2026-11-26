@@ -1,4 +1,5 @@
 const PLACEHOLDER = "{value}";
+const LABEL_MAX = 40;
 
 /** @param {unknown} raw @returns {any[]} */
 function arrayOf(raw) {
@@ -16,14 +17,20 @@ function arrayOf(raw) {
  */
 const onDomain = (hostname, domains) => domains.some(domain => hostname === domain || hostname.endsWith(`.${domain}`));
 
+/** @param {unknown} raw @returns {string | null} */
+function labelOf(raw) {
+  const label = typeof raw === "string" ? raw.trim() : "";
+  return label && label.length <= LABEL_MAX ? label : null;
+}
+
 /**
  * The links from an item to its product's own admin: each template whose field the item's context holds, filled with
- * that value URL-encoded. A template that isn't https, doesn't hold exactly one {value}, or points off the product's
- * domains gives no link.
+ * that value URL-encoded, with the template's label for what it opens. A template that isn't https, doesn't hold
+ * exactly one {value}, or points off the product's domains gives no link.
  * @param {unknown} rawLinks the product's `admin_links`
  * @param {unknown} rawDomains the product's `domains`
  * @param {Record<string, unknown> | null} context
- * @returns {{ field: string, url: string }[]}
+ * @returns {{ field: string, url: string, label: string | null }[]}
  */
 export function adminLinks(rawLinks, rawDomains, context) {
   if (!context) return [];
@@ -41,6 +48,6 @@ export function adminLinks(rawLinks, rawDomains, context) {
       return [];
     }
     if (url.protocol !== "https:" || url.username || url.password || !onDomain(url.hostname, domains)) return [];
-    return [{ field: /** @type {string} */ (field), url: url.href }];
+    return [{ field: /** @type {string} */ (field), url: url.href, label: labelOf(link.label) }];
   });
 }
