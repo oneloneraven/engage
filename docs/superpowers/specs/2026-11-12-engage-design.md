@@ -15,7 +15,7 @@ Decisions are marked **(Raven)** where the product owner made them, and **(desig
   - The Deaftly app has no in-app feedback yet.
   - More products are coming, and each one shouldn't reinvent this.
 - **Launch is 2–4 weeks away** for both products. Feedback has to work, in one place, before then.
-- **Releases** are protected only by GitHub. Anyone who controls the GitHub account, or a leaked deploy token, can ship to production. Engage adds a second, independent factor.
+(Kept in the private vault.)
 - **Operational awareness** is scattered across Better Stack, Grafana, Cloudflare and GitHub. Raven wants one morning view that says "all good" or "here's what needs you", without rebuilding those tools.
 
 ## 2. Goals, non-goals, anti-goals
@@ -43,8 +43,7 @@ Decisions are marked **(Raven)** where the product owner made them, and **(desig
 
 - Feedback text, email content or anyone's identity reaches Discord, a public GitHub issue, or any log, without Raven deliberately putting it there.
 - A testimonial is published without the person's recorded consent, or is altered beyond trimming.
-- Engage becomes the easiest way to compromise production, for example a credential that's broader than it needs to be, or an approval path that skips Access.
-- A broken Engage can't be fixed because Engage gates its own releases.
+(Kept in the private vault.)
 - The admin host accepts unauthenticated traffic.
 
 ## 3. Context: what exists today
@@ -72,7 +71,7 @@ Decisions are marked **(Raven)** where the product owner made them, and **(desig
   - the Email Sending binding for outbound mail
   - Infrastructure in OpenTofu under `infra/`.
 - **Hosts:**
-  - `engage.oneloneraven.com` **(Raven)**: the admin UI and its API. Gated entirely by Cloudflare Access, with a policy for Raven only, MFA required, and short sessions. **(Raven: MFA, not a hardware key.)** Email one-time PIN alone isn't enough. The builder picks a login method that enforces MFA, such as an identity provider with 2FA enforced, or Access's own MFA if the account supports it. The Worker also verifies the Access JWT on every request and refuses everything if the Access settings are missing, the same pattern as CL's `server/lib/access.js`. Fails closed.
+(Kept in the private vault.)
   - `engage-api.oneloneraven.com`: the public intake API, for submissions, the testimonials feed, GitHub webhooks and OIDC token exchange. It has no Access, and every route does its own authentication (see the per-route rules below).
   - The Worker routes strictly by host. Admin routes 404 on the public host, and the reverse.
 - **Plan:** Workers Paid **(Raven)**. It unlocks Email Sending and higher limits, and removes the worry about sharing CL's daily request cap.
@@ -267,7 +266,7 @@ This section is kept in the private vault.
    - feedback and email: intake, inbound email, inbox, replies, issues, testimonials, retention;
    - migrating both products onto it;
    - the home page with message counts.
-2. **Releases:** the protection rule, approval page, credential broker and bootstrap template changes.
+(Kept in the private vault.)
 3. **Health and engagement cards,** and beta vs prod.
 4. **Conformance.**
 
@@ -277,7 +276,7 @@ This section is kept in the private vault.
 - Play publishing credentials through the broker.
 - App Store engagement and App Attest.
 - Play Integrity, if app spam appears.
-- A separate Cloudflare account for PR previews, to close the preview-token gap.
+(Kept in the private vault.)
 
 ## 13. Related work outside Engage
 

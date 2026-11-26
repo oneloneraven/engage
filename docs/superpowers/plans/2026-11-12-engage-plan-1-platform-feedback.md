@@ -1,7 +1,7 @@
 # Engage Plan 1: Platform, Feedback and Email Implementation Plan
 
 > **Execution:** follow the repository's `docs/working-with-claude.md` (bootstrap ADRs 0003–0005).
-> - The Opus-class main session owns the security-sensitive tasks, **Task 2** (Access guard), **Task 5** (reply-address signatures) and **Task 10** (App JWT and webhook signatures), and builds them itself. It also reviews every other task's diff and real test output before moving on, and does the final verification.
+(Kept in the private vault.)
 > - Every other task goes to **one Sonnet-class subagent at a time**, working in the main checkout with no worktrees (Raven: work is sequential, so worktrees cost more than they save), with a self-contained brief. Follow-ups go to the same subagent. There are no parallel workers and no sub-sessions.
 > - **Task 1** runs through the bootstrap skill and its `bootstrap-executor`. The main session keeps repository creation and the initial push.
 > - Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -29,7 +29,7 @@ Behind it:
 ## Global Constraints
 
 - Hosts: admin `engage.oneloneraven.com`, public `engage-api.oneloneraven.com`. Admin routes return 404 on the public host, and public routes return 404 on the admin host.
-- The admin host refuses every request unless the `Cf-Access-Jwt-Assertion` header verifies (signature, `aud` = `ACCESS_AUD`, `iss` = `https://<ACCESS_TEAM_DOMAIN>`, expiry). Missing configuration means refuse. Only `APP_ENV` `e2e`/`development` with `ADMIN_ACCESS_CHECK=off` skips the check.
+(Kept in the private vault.)
 - Discord messages carry only the kind, the product name and a link to `https://engage.oneloneraven.com/items/<id>`, with `allowed_mentions: { parse: [] }`. They never include submitted text, a subject, an email address or a name.
 - Submitted text is never written to logs, and error responses never echo it back.
 - Message length: 1–5,000 characters, counted in Unicode code points (`[...s].length`), after trimming and normalising CRLF to LF.
@@ -479,7 +479,7 @@ This section is kept in the private vault.
   - a self-hosted Access application for `engage.oneloneraven.com`;
   - a policy allowing only `var.owner_email`, which is a tfvar and **never committed**;
   - `session_duration = "8h"`;
-  - an identity provider that enforces MFA (Raven picks the provider when applying; the README documents that email one-time PIN alone isn't allowed);
+(Kept in the private vault.)
   - outputs `aud`, which goes into `ACCESS_AUD`.
 - [ ] **Step 2:** `infra/storage.tf`: the D1 database `engage`, the R2 bucket `engage-attachments`, and the ratelimit namespaces. Wire the ids into `wrangler.jsonc`.
 - [ ] **Step 3: Write the failing test for `transformLegacy`:**

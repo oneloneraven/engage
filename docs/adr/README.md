@@ -14,7 +14,7 @@ old one's status becomes "Superseded by ADR-NNNN".
 | [0003](0003-one-worker-two-hosts.md) | One Worker on two hosts (in the vault) |
 | [0004](0004-engage-owns-feedback-storage.md) | Engage owns feedback storage |
 | [0005](0005-content-free-notifications.md) | Content-free notifications |
-| [0006](0006-signed-reply-addresses.md) | Signed reply addresses |
-| [0007](0007-show-inbound-html-only-in-a-sandbox.md) | Show inbound HTML only in a sandbox |
+| [0006](0006-signed-reply-addresses.md) | Signed reply addresses (in the vault) |
+| [0007](0007-show-inbound-html-only-in-a-sandbox.md) | Show inbound HTML only in a sandbox (in the vault) |
 | [0008](0008-engage-brokers-deploy-credentials.md) | Engage brokers deploy credentials (superseded by 0009, in the vault) |
 | [0009](0009-engage-operates.md) | Engage operates; granting and watching move out (in the vault) |

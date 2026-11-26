@@ -35,7 +35,7 @@ Three consequences, all design calls recorded here:
 - Snapshots are aggregates with no personal data, and are kept indefinitely (§8). Health state stores a status, a one-line reason and a link, never an incident's free text.
 - Web visits are always labelled "excludes EU visitors" wherever the number appears (§8, CL ADR-0015).
 - Monitor alerts keep going to Discord from Better Stack as now. Engage sends no health pings (§8: light touch).
-- Secrets live in Worker secrets, never in registry rows (§4.2): `BETTER_STACK_TOKEN`, `CLOUDFLARE_ANALYTICS_TOKEN` (Account Analytics: Read only), `CL_USAGE_CLIENT_ID` and `CL_USAGE_CLIENT_SECRET`. `CLOUDFLARE_ACCOUNT_ID` already exists.
+(Kept in the private vault.)
 - A source that isn't configured, or whose secret is missing, is skipped and logged once per run. It never fails the other sources.
 - The beta badge goes amber after 7 days, from `products.beta_amber_days` (default 7) (§7: configurable).
 - UI copy and colours follow `docs/ui.md`: health pill words are Healthy, Degraded, Failing, plus "Not monitored" and "Unknown"; sentence case; no blue.
@@ -133,7 +133,7 @@ Three consequences, all design calls recorded here:
   - `snapshotMetrics(env, now: Date) => Promise<void>`
 - Source contracts:
   - **`web-visits`** (`{ siteTag, metric: "visits", label: "Visits, excluding EU visitors" }`): Cloudflare GraphQL, `viewer.accounts(filter: { accountTag })`, `rumPageloadEventsAdaptiveGroups(filter: { siteTag, date: day }, limit: 1) { sum { visits } }`, with `CLOUDFLARE_ANALYTICS_TOKEN`. Probe the field names against the live schema before writing the query; they're unconfirmed.
-  - **`cl-usage`** (`{ url, field: "activeUsers", metric: "active-users", label: "People who logged a climb in the last 30 days" }`): `GET url` with `CF-Access-Client-Id` and `CF-Access-Client-Secret` from the two `CL_USAGE_*` secrets; returns the named integer field. Needs the CL change in Task 6.
+(Kept in the private vault.)
   - **`github-downloads`** (`{ repo, assetPattern: "\\.apk$", metric: "downloads", label: "Android downloads" }`): every page of `GET /repos/{repo}/releases` through `githubCall`, summing `download_count` over matching assets. Stored as the cumulative total; the read side turns it into downloads per day.
 
 - [ ] **Step 1: Write the failing tests:**

@@ -26,9 +26,9 @@ State lives in the R2 bucket `engage-tfstate`, never in git.
 ## Setup
 
 1. The zone `oneloneraven.com` is active on Cloudflare.
-2. Create the CI tokens below, the R2 state credentials, and the GitHub
-   secrets and variables: `node <plugin>/skills/bootstrap/scripts/secrets.mjs cloudflare-tokens <project dir>`
-   does the CI tokens, or follow this page by hand.
+2. Create the CI tokens, the R2 state credentials, and the GitHub secrets
+   and variables: `node <plugin>/skills/bootstrap/scripts/secrets.mjs cloudflare-tokens <project dir>`
+   does the CI tokens. Their permissions are kept in the private vault.
 3. Run "Bootstrap OpenTofu state bucket".
 4. Run "Infra" (dispatch it, or merge a change under `infra/`).
 5. Wait for DNSSEC to go live. The domain is on Cloudflare Registrar, which
@@ -68,18 +68,7 @@ This section is kept in the private vault.
 
 ### Preview databases
 
-Each PR's Preview gets its own D1 database, `engage-pr-<number>`, so unmerged
-code never runs against production data. The Preview workflow creates it if
-it's missing, applies the migrations, and writes a temporary
-`.wrangler-preview.jsonc` (never committed) that points the Preview's `DB`
-binding at it. `wrangler.jsonc` leaves `database_id` empty in `preview` and
-`previews` for that reason. When the PR closes, merged or not, the workflow
-deletes the database. Dependabot PRs get no Preview and no database.
-
-D1 Write is an account-wide permission: Cloudflare can't scope it to one
-database. The Preview token can read, change and delete every D1 database in
-the account, production's included, so it stays a repository secret that only
-the Preview workflow uses.
+This section is kept in the private vault.
 
 ### Worker secrets
 
