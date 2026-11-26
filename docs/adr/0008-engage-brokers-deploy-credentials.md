@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0009](0009-engage-operates.md)
 
 ## Context
 
