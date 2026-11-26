@@ -26,9 +26,15 @@ The first daily run after this fills in the last 30 days, so the sparkline appea
 
 ## 3. Climbing Logbook's active climbers
 
-1. Merge oneloneraven/climbing-logbook#1728. Its `infra/` change creates an Access service token for Engage, and CL accepts that token on its usage endpoint only.
-2. Read the token's client id and secret from that apply's outputs, and store them in Proton Pass as `Dev / engage / CL usage service token`.
-3. Set them as the `CL_USAGE_CLIENT_ID` and `CL_USAGE_CLIENT_SECRET` secrets of the production environment, then run **Sync Worker secrets**.
+The identity stack, oneloneraven/coraxia, owns the token: `engage-cl-usage` in its `service_tokens`, reaching Climbing Logbook's admin application through a service-auth policy. Climbing Logbook's Worker accepts it on `GET /-/api/admin/usage` only (ADR-0041 there). It was set up on 2026-11-26 like this, and a replacement token follows the same steps:
+
+1. Merge the coraxia change that declares the token, and let its apply create it.
+2. Read the client id and secret with `tofu output -json service_tokens` in coraxia's `infra/`, using its state read-only credentials (`Dev / coraxia / R2 state read-only`). They're sensitive outputs, so the apply log never prints them. Store them in Proton Pass as `Dev / engage / CL usage service token`.
+3. In Climbing Logbook, set the client id as the `USAGE_SERVICE_TOKENS` secret of the production environment, then run its **Sync Worker secrets**.
+4. Here, set them as the `CL_USAGE_CLIENT_ID` and `CL_USAGE_CLIENT_SECRET` secrets of the production environment, then run **Sync Worker secrets**.
+5. Check that `GET https://admin.climbinglogbook.com/-/api/admin/usage` with the token's `CF-Access-Client-Id` and `CF-Access-Client-Secret` headers returns 200, and that every other admin route returns 403.
+
+A Climbing Logbook change reaches production only when it's promoted: its release deploy goes to beta, and **Promote to production** takes a tag to production. If the check in step 5 returns 403 from the Worker rather than Access's login redirect, check that production runs a release that has the change.
 
 The registry entry for this is already in place (migration `0010`), so the number appears after the next daily run (03:17 UTC).
 
