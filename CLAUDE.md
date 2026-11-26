@@ -22,9 +22,9 @@ Read a doc when the work touches it, not up front.
 - Code is reviewed against [coding standards](docs/coding-standards.md); hold it to the [engineering standards](.claude/skills/engineering-standards/SKILL.md).
 - No comments by default; one line for a "why" the code can't express: [comments](docs/coding-standards.md#comments-and-docs).
 - Privacy and data rules: [privacy](docs/privacy.md), [record of processing](docs/data-protection.md).
-- Keep the threat model current whenever a trust boundary moves. It and other security docs are in `oneloneraven-vault/engage/`, which must be checked out beside this repository.
+- ADRs, specs, plans, runbooks, the threat model and architecture docs are written in `oneloneraven-vault/engage/`, never here. Keep the threat model current whenever a trust boundary moves.
 - Raise security-sensitive issues in `oneloneraven-vault`, not here. Never copy vault content into this repository, its issues, PRs or commits.
-- Screen new dependencies and vendors: [ADR-0002](docs/adr/0002-screen-dependencies-against-bds-boycott-lists.md).
+- Screen new dependencies and vendors: ADR-0002 (in the vault).
 - Significant decisions get an [ADR](docs/adr/README.md).
 - Verify before claiming anything works; report failures and unverified steps plainly.
 
@@ -37,4 +37,4 @@ Read a doc when the work touches it, not up front.
 
 - JavaScript with pnpm, Biome, `tsc` over JSDoc and Vitest: [coding standards](docs/coding-standards.md#javascript-toolchain). Run `pnpm lint && pnpm typecheck && pnpm test` before pushing.
 - A browser app built with Vite and tested end to end with WebdriverIO in Chromium and Firefox, with axe-core checking WCAG 2.2 AA: [coding standards](docs/coding-standards.md#web-app).
-- Cloudflare Workers, deployed by wrangler from release tags; infrastructure in OpenTofu: [coding standards](docs/coding-standards.md#cloudflare-and-opentofu), [infra](infra/README.md). Merging `infra/` is a production change.
+- Cloudflare Workers, deployed by wrangler from release tags; infrastructure in OpenTofu: [coding standards](docs/coding-standards.md#cloudflare-and-opentofu), infra (in the vault). Merging `infra/` is a production change.

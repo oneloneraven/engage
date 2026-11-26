@@ -109,4 +109,4 @@ minute and 500 per hour.
 - Judge a pre-release version by whether the vendor ships it as their
   current release, not by its suffix.
 - New dependencies and vendors are screened first
-  ([ADR-0002](adr/0002-screen-dependencies-against-bds-boycott-lists.md)).
+  (ADR-0002 (in the vault)).
