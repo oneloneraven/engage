@@ -228,7 +228,7 @@ export function seedSql(now = new Date()) {
           kind: "issue",
           source: "app",
           subject: `No email ${browserName}`,
-          context: { reportedUsername: "alex_c" },
+          context: { reportedUsername: "alex_c", reportedEntryId: "e-42" },
           minutesAgo: 2,
           body: "I could not find the export button.",
         },

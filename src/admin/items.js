@@ -36,7 +36,7 @@ import { readSignals } from "../signals/read.js";
  *   section: string | null,
  *   appVersion: string | null,
  *   context: Record<string, unknown> | null,
- *   adminLinks: { field: string, url: string }[],
+ *   adminLinks: { field: string, url: string, label: string | null }[],
  *   accountRef: string | null,
  *   recipientLocal: string | null,
  *   authResult: { spf: string, dkim: string, dmarc: string } | null,

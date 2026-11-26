@@ -209,12 +209,17 @@ describe("GET /api/items", () => {
 });
 
 describe("GET /api/items/:id", () => {
-  test("links a Climbing Logbook report to the reported user in its admin, and nothing else does", async () => {
-    await seed("reported", { kind: "issue", source: "app", context: JSON.stringify({ reportedUsername: "alex_c" }) });
+  test("links a Climbing Logbook report to the reported user and climb in its admin, and nothing else does", async () => {
+    await seed("reported", {
+      kind: "issue",
+      source: "app",
+      context: JSON.stringify({ reportedUsername: "alex_c", reportedEntryId: "e 1" }),
+    });
     await seed("plain");
     const reported = await (await call("GET", "/api/items/reported")).json();
     expect(reported.adminLinks).toEqual([
-      { field: "reportedUsername", url: "https://admin.climbinglogbook.com/users?q=alex_c" },
+      { field: "reportedUsername", url: "https://admin.climbinglogbook.com/users?q=alex_c", label: "user" },
+      { field: "reportedEntryId", url: "https://admin.climbinglogbook.com/entries/e%201", label: "climb" },
     ]);
     expect((await (await call("GET", "/api/items/plain")).json()).adminLinks).toEqual([]);
   });

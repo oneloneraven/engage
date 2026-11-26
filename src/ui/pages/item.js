@@ -491,11 +491,11 @@ export function mountItem(pane, id, hooks) {
       const { adminLinks, context, productName } = item;
       replace(
         productAdmin,
-        adminLinks.map(({ field, url }) =>
+        adminLinks.map(({ field, url, label }) =>
           h(
             "a",
             { class: "button", href: url, target: "_blank", rel: "noopener noreferrer" },
-            `Open in ${productName} admin`,
+            label ? `Open this ${label} in ${productName} admin` : `Open in ${productName} admin`,
             h("span", { class: "visually-hidden" }, ` for ${String(context?.[field] ?? "")}`),
           ),
         ),
