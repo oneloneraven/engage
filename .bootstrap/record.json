@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "modules": [
+    "core",
+    "js-toolchain",
+    "web-app",
+    "cloudflare-tofu-base",
+    "cloudflare-opentofu"
+  ],
+  "visibility": "public",
+  "flags": {
+    "admin": true,
+    "beta": false,
+    "d1": true,
+    "owner_org": true,
+    "turnstile": true
+  },
+  "skipped": {},
+  "exceptions": []
+}
